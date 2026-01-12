@@ -79,6 +79,37 @@
 
         <!-- Main App -->
         <div class="main-app" id="mainApp" style="display: none;">
+            <!-- Desktop Sidebar -->
+            <aside class="sidebar" id="sidebar">
+                <div class="sidebar-header">
+                    <i class="fas fa-lightbulb"></i>
+                    <span>Savit</span>
+                </div>
+                <nav class="sidebar-nav">
+                    <button class="sidebar-nav-item active" data-page="home">
+                        <i class="fas fa-home"></i>
+                        <span>Início</span>
+                    </button>
+                    <button class="sidebar-nav-item" data-page="chat">
+                        <i class="fas fa-comment-dots"></i>
+                        <span>Ideias</span>
+                    </button>
+                    <button class="sidebar-nav-item" data-page="categories">
+                        <i class="fas fa-folder"></i>
+                        <span>Temas</span>
+                    </button>
+                    <button class="sidebar-nav-item" data-page="profile">
+                        <i class="fas fa-user"></i>
+                        <span>Perfil</span>
+                    </button>
+                </nav>
+                <div class="sidebar-footer">
+                    <div class="sidebar-user">
+                        <div class="sidebar-avatar" id="sidebarAvatar">G</div>
+                        <span class="sidebar-username" id="sidebarUsername">Usuário</span>
+                    </div>
+                </div>
+            </aside>
             <!-- Bottom Navigation -->
             <nav class="bottom-nav" id="bottomNav">
                 <button class="nav-item active" data-page="home">
@@ -99,19 +130,21 @@
                 </button>
             </nav>
 
-            <!-- Pages Container -->
-            <div class="pages-container" id="pagesContainer">
+            <!-- Main Content Area -->
+            <div class="main-content">
+                <!-- Pages Container -->
+                <div class="pages-container" id="pagesContainer">
                 
-                <!-- Home Page -->
-                <div class="page active" id="homePage">
-                    <header class="page-header">
-                        <h1>Olá, <span id="userName">Usuário</span>! 👋</h1>
-                        <p class="header-subtitle" id="headerDate"></p>
-                    </header>
+                    <!-- Home Page -->
+                    <div class="page active" id="homePage">
+                        <header class="page-header">
+                            <h1>Olá, <span id="userName">Usuário</span>! 👋</h1>
+                            <p class="header-subtitle" id="headerDate"></p>
+                        </header>
 
-                    <div class="page-content">
-                        <!-- Quick Stats -->
-                        <div class="stats-grid">
+                        <div class="page-content">
+                            <!-- Quick Stats -->
+                            <div class="stats-grid">
                             <div class="stat-card">
                                 <div class="stat-icon" style="background: linear-gradient(135deg, #25D366, #128C7E);">
                                     <i class="fas fa-comment"></i>
@@ -275,6 +308,9 @@
                             <button class="option-btn" id="addTaskBtn" title="Criar tarefa">
                                 <i class="fas fa-check-square"></i>
                             </button>
+                            <button class="option-btn" id="voiceInputBtn" title="Gravar por voz">
+                                <i class="fas fa-microphone"></i>
+                            </button>
                         </div>
                         <div class="input-wrapper">
                             <div class="selected-category" id="selectedCategory" style="display: none;">
@@ -291,6 +327,18 @@
                                     <input type="date" id="taskDate">
                                     <input type="time" id="taskTime">
                                 </div>
+                            </div>
+                            <div class="voice-recording" id="voiceRecording" style="display: none;">
+                                <div class="voice-indicator">
+                                    <i class="fas fa-microphone"></i>
+                                    <span class="voice-text">Ouvindo...</span>
+                                    <div class="voice-waves">
+                                        <span></span><span></span><span></span><span></span>
+                                    </div>
+                                </div>
+                                <button class="voice-stop-btn" id="voiceStopBtn">
+                                    <i class="fas fa-stop"></i>
+                                </button>
                             </div>
                             <textarea id="messageInput" placeholder="Digite sua ideia..." rows="1"></textarea>
                             <button class="send-btn" id="sendBtn">
@@ -392,7 +440,11 @@
                     </main>
                 </div>
             </div>
+            <!-- End Pages Container -->
+            </div>
+            <!-- End Main Content -->
         </div>
+        <!-- End Main App -->
 
         <!-- Modals -->
         <!-- Category Selector Modal -->
