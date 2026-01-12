@@ -1,0 +1,33 @@
+<svg xmlns="http://www.w3.org/2000/svg" width="512" height="512" viewBox="0 0 512 512">
+  <defs>
+    <linearGradient id="bg-gradient" x1="0%" y1="0%" x2="100%" y2="100%">
+      <stop offset="0%" style="stop-color:#128C7E"/>
+      <stop offset="100%" style="stop-color:#075E54"/>
+    </linearGradient>
+  </defs>
+  
+  <!-- Background -->
+  <rect width="512" height="512" rx="100" fill="url(#bg-gradient)"/>
+  
+  <!-- Lightbulb icon representing ideas -->
+  <g transform="translate(128, 80)">
+    <!-- Bulb -->
+    <path d="M128 0C57.3 0 0 57.3 0 128c0 47.6 26 89.1 64 111.3V280c0 13.3 10.7 24 24 24h80c13.3 0 24-10.7 24-24v-40.7c38-22.2 64-63.7 64-111.3C256 57.3 198.7 0 128 0z" fill="#FFFFFF"/>
+    
+    <!-- Filament -->
+    <path d="M96 140c0-17.7 14.3-32 32-32s32 14.3 32 32" stroke="#075E54" stroke-width="12" fill="none" stroke-linecap="round"/>
+    
+    <!-- Base -->
+    <rect x="88" y="304" width="80" height="16" rx="4" fill="#FFFFFF"/>
+    <rect x="96" y="328" width="64" height="16" rx="4" fill="#FFFFFF"/>
+    <path d="M112 352h32l-8 32h-16l-8-32z" fill="#FFFFFF"/>
+  </g>
+  
+  <!-- Chat bubble accent -->
+  <g transform="translate(300, 320)">
+    <path d="M0 0h120c22 0 40 18 40 40v60c0 22-18 40-40 40H40L0 180V0z" fill="#25D366"/>
+    <circle cx="40" cy="70" r="10" fill="#FFFFFF"/>
+    <circle cx="80" cy="70" r="10" fill="#FFFFFF"/>
+    <circle cx="120" cy="70" r="10" fill="#FFFFFF"/>
+  </g>
+</svg>

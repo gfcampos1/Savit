@@ -1,0 +1,608 @@
+<!DOCTYPE html>
+<html lang="pt-BR">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no">
+    <meta name="theme-color" content="#075E54">
+    <meta name="apple-mobile-web-app-capable" content="yes">
+    <meta name="apple-mobile-web-app-status-bar-style" content="black-translucent">
+    <meta name="description" content="Salve suas ideias como mensagens para você mesmo">
+    <link rel="manifest" href="manifest.json">
+    <link rel="apple-touch-icon" href="icons/icon-192.png">
+    <title>Savit - Suas Ideias</title>
+    <link rel="stylesheet" href="css/styles.css">
+    <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.4.0/css/all.min.css">
+</head>
+<body>
+    <div id="app">
+        <!-- Loading Screen -->
+        <div class="loading-screen" id="loadingScreen">
+            <div class="loading-content">
+                <i class="fas fa-lightbulb loading-icon"></i>
+                <h1>Savit</h1>
+                <div class="loading-spinner"></div>
+            </div>
+        </div>
+
+        <!-- Auth Screen -->
+        <div class="auth-screen" id="authScreen" style="display: none;">
+            <div class="auth-container">
+                <div class="auth-header">
+                    <i class="fas fa-lightbulb"></i>
+                    <h1>Savit</h1>
+                    <p>Suas ideias, sempre à mão</p>
+                </div>
+
+                <!-- Login Form -->
+                <form class="auth-form" id="loginForm">
+                    <h2>Entrar</h2>
+                    <div class="form-group">
+                        <label for="loginEmail">Email</label>
+                        <input type="email" id="loginEmail" placeholder="seu@email.com" required>
+                    </div>
+                    <div class="form-group">
+                        <label for="loginPassword">Senha</label>
+                        <input type="password" id="loginPassword" placeholder="••••••" required>
+                    </div>
+                    <button type="submit" class="btn btn-primary btn-block">
+                        <i class="fas fa-sign-in-alt"></i> Entrar
+                    </button>
+                    <p class="auth-switch">
+                        Não tem conta? <a href="#" id="showRegister">Criar conta</a>
+                    </p>
+                </form>
+
+                <!-- Register Form -->
+                <form class="auth-form" id="registerForm" style="display: none;">
+                    <h2>Criar conta</h2>
+                    <div class="form-group">
+                        <label for="registerName">Nome</label>
+                        <input type="text" id="registerName" placeholder="Seu nome" required>
+                    </div>
+                    <div class="form-group">
+                        <label for="registerEmail">Email</label>
+                        <input type="email" id="registerEmail" placeholder="seu@email.com" required>
+                    </div>
+                    <div class="form-group">
+                        <label for="registerPassword">Senha</label>
+                        <input type="password" id="registerPassword" placeholder="Mínimo 6 caracteres" required minlength="6">
+                    </div>
+                    <button type="submit" class="btn btn-primary btn-block">
+                        <i class="fas fa-user-plus"></i> Criar conta
+                    </button>
+                    <p class="auth-switch">
+                        Já tem conta? <a href="#" id="showLogin">Entrar</a>
+                    </p>
+                </form>
+            </div>
+        </div>
+
+        <!-- Main App -->
+        <div class="main-app" id="mainApp" style="display: none;">
+            <!-- Bottom Navigation -->
+            <nav class="bottom-nav" id="bottomNav">
+                <button class="nav-item active" data-page="home">
+                    <i class="fas fa-home"></i>
+                    <span>Início</span>
+                </button>
+                <button class="nav-item" data-page="chat">
+                    <i class="fas fa-comment-dots"></i>
+                    <span>Ideias</span>
+                </button>
+                <button class="nav-item" data-page="categories">
+                    <i class="fas fa-folder"></i>
+                    <span>Temas</span>
+                </button>
+                <button class="nav-item" data-page="profile">
+                    <i class="fas fa-user"></i>
+                    <span>Perfil</span>
+                </button>
+            </nav>
+
+            <!-- Pages Container -->
+            <div class="pages-container" id="pagesContainer">
+                
+                <!-- Home Page -->
+                <div class="page active" id="homePage">
+                    <header class="page-header">
+                        <h1>Olá, <span id="userName">Usuário</span>! 👋</h1>
+                        <p class="header-subtitle" id="headerDate"></p>
+                    </header>
+
+                    <div class="page-content">
+                        <!-- Quick Stats -->
+                        <div class="stats-grid">
+                            <div class="stat-card">
+                                <div class="stat-icon" style="background: linear-gradient(135deg, #25D366, #128C7E);">
+                                    <i class="fas fa-comment"></i>
+                                </div>
+                                <div class="stat-info">
+                                    <span class="stat-value" id="statTotalMessages">0</span>
+                                    <span class="stat-label">Total de ideias</span>
+                                </div>
+                            </div>
+                            <div class="stat-card">
+                                <div class="stat-icon" style="background: linear-gradient(135deg, #34B7F1, #0088cc);">
+                                    <i class="fas fa-calendar-day"></i>
+                                </div>
+                                <div class="stat-info">
+                                    <span class="stat-value" id="statToday">0</span>
+                                    <span class="stat-label">Hoje</span>
+                                </div>
+                            </div>
+                            <div class="stat-card">
+                                <div class="stat-icon" style="background: linear-gradient(135deg, #9C27B0, #7B1FA2);">
+                                    <i class="fas fa-tasks"></i>
+                                </div>
+                                <div class="stat-info">
+                                    <span class="stat-value" id="statPendingTasks">0</span>
+                                    <span class="stat-label">Tarefas pendentes</span>
+                                </div>
+                            </div>
+                            <div class="stat-card">
+                                <div class="stat-icon" style="background: linear-gradient(135deg, #FF9800, #F57C00);">
+                                    <i class="fas fa-fire"></i>
+                                </div>
+                                <div class="stat-info">
+                                    <span class="stat-value" id="statStreak">0</span>
+                                    <span class="stat-label">Dias seguidos</span>
+                                </div>
+                            </div>
+                        </div>
+
+                        <!-- Activity Chart -->
+                        <div class="card">
+                            <div class="card-header">
+                                <h3><i class="fas fa-chart-bar"></i> Atividade dos últimos 7 dias</h3>
+                            </div>
+                            <div class="card-body">
+                                <div class="activity-chart" id="activityChart">
+                                    <!-- Chart bars will be rendered here -->
+                                </div>
+                            </div>
+                        </div>
+
+                        <!-- Tasks Overview -->
+                        <div class="card">
+                            <div class="card-header">
+                                <h3><i class="fas fa-check-circle"></i> Progresso de Tarefas</h3>
+                            </div>
+                            <div class="card-body">
+                                <div class="progress-container">
+                                    <div class="progress-bar">
+                                        <div class="progress-fill" id="taskProgress" style="width: 0%"></div>
+                                    </div>
+                                    <div class="progress-stats">
+                                        <span><i class="fas fa-check"></i> <span id="completedTasks">0</span> concluídas</span>
+                                        <span><i class="fas fa-clock"></i> <span id="pendingTasksDetail">0</span> pendentes</span>
+                                    </div>
+                                </div>
+                                <div class="task-alerts" id="taskAlerts">
+                                    <!-- Task alerts will be rendered here -->
+                                </div>
+                            </div>
+                        </div>
+
+                        <!-- Top Categories -->
+                        <div class="card">
+                            <div class="card-header">
+                                <h3><i class="fas fa-folder-open"></i> Top Categorias</h3>
+                            </div>
+                            <div class="card-body">
+                                <div class="top-categories" id="topCategories">
+                                    <!-- Categories will be rendered here -->
+                                </div>
+                            </div>
+                        </div>
+
+                        <!-- Recent Ideas -->
+                        <div class="card">
+                            <div class="card-header">
+                                <h3><i class="fas fa-history"></i> Ideias Recentes</h3>
+                                <a href="#" class="card-link" id="viewAllMessages">Ver todas</a>
+                            </div>
+                            <div class="card-body">
+                                <div class="recent-messages" id="recentMessages">
+                                    <!-- Recent messages will be rendered here -->
+                                </div>
+                            </div>
+                        </div>
+
+                        <!-- Upcoming Tasks -->
+                        <div class="card">
+                            <div class="card-header">
+                                <h3><i class="fas fa-calendar-alt"></i> Próximas Tarefas</h3>
+                            </div>
+                            <div class="card-body">
+                                <div class="upcoming-tasks" id="upcomingTasks">
+                                    <!-- Upcoming tasks will be rendered here -->
+                                </div>
+                            </div>
+                        </div>
+                    </div>
+
+                    <!-- Quick Add FAB -->
+                    <button class="fab" id="quickAddBtn">
+                        <i class="fas fa-plus"></i>
+                    </button>
+                </div>
+
+                <!-- Chat Page -->
+                <div class="page" id="chatPage">
+                    <header class="header">
+                        <div class="header-left">
+                            <h1 class="app-title">Ideias</h1>
+                        </div>
+                        <div class="header-right">
+                            <button class="header-btn" id="searchBtn" title="Buscar">
+                                <i class="fas fa-search"></i>
+                            </button>
+                        </div>
+                    </header>
+
+                    <!-- Search Bar -->
+                    <div class="search-bar" id="searchBar">
+                        <div class="search-input-wrapper">
+                            <i class="fas fa-arrow-left" id="closeSearchBtn"></i>
+                            <input type="text" id="searchInput" placeholder="Buscar mensagens...">
+                            <i class="fas fa-times" id="clearSearchBtn"></i>
+                        </div>
+                        <div class="search-filters">
+                            <select id="searchCategoryFilter">
+                                <option value="">Todas categorias</option>
+                            </select>
+                            <input type="date" id="searchDateFilter">
+                        </div>
+                    </div>
+
+                    <!-- Messages Container -->
+                    <main class="chat-content">
+                        <div class="messages-container" id="messagesContainer">
+                            <div class="empty-state" id="emptyState">
+                                <i class="fas fa-lightbulb"></i>
+                                <h2>Suas ideias começam aqui</h2>
+                                <p>Digite algo abaixo para salvar sua primeira ideia</p>
+                            </div>
+                        </div>
+                    </main>
+
+                    <!-- Message Input -->
+                    <div class="input-container">
+                        <div class="input-options" id="inputOptions">
+                            <button class="option-btn" id="addCategoryBtn" title="Adicionar categoria">
+                                <i class="fas fa-tag"></i>
+                            </button>
+                            <button class="option-btn" id="addTaskBtn" title="Criar tarefa">
+                                <i class="fas fa-check-square"></i>
+                            </button>
+                        </div>
+                        <div class="input-wrapper">
+                            <div class="selected-category" id="selectedCategory" style="display: none;">
+                                <span class="category-badge" id="categoryBadge"></span>
+                                <i class="fas fa-times" id="removeCategoryBtn"></i>
+                            </div>
+                            <div class="task-options" id="taskOptions" style="display: none;">
+                                <div class="task-header">
+                                    <i class="fas fa-check-square"></i>
+                                    <span>Tarefa</span>
+                                    <i class="fas fa-times" id="removeTaskBtn"></i>
+                                </div>
+                                <div class="task-datetime">
+                                    <input type="date" id="taskDate">
+                                    <input type="time" id="taskTime">
+                                </div>
+                            </div>
+                            <textarea id="messageInput" placeholder="Digite sua ideia..." rows="1"></textarea>
+                            <button class="send-btn" id="sendBtn">
+                                <i class="fas fa-paper-plane"></i>
+                            </button>
+                        </div>
+                    </div>
+                </div>
+
+                <!-- Categories Page -->
+                <div class="page" id="categoriesPage">
+                    <header class="page-header">
+                        <h1>Categorias</h1>
+                        <button class="header-btn" id="newCategoryBtn">
+                            <i class="fas fa-plus"></i>
+                        </button>
+                    </header>
+
+                    <div class="page-content">
+                        <div class="categories-list" id="categoriesList">
+                            <!-- Categories will be rendered here -->
+                        </div>
+                    </div>
+                </div>
+
+                <!-- Profile Page -->
+                <div class="page" id="profilePage">
+                    <header class="page-header">
+                        <h1>Perfil</h1>
+                    </header>
+
+                    <div class="page-content">
+                        <div class="profile-header">
+                            <div class="profile-avatar" id="profileAvatar">
+                                <i class="fas fa-user"></i>
+                            </div>
+                            <h2 id="profileName">Usuário</h2>
+                            <p id="profileEmail">email@exemplo.com</p>
+                        </div>
+
+                        <div class="profile-stats">
+                            <div class="profile-stat">
+                                <span class="stat-number" id="profileTotalMessages">0</span>
+                                <span class="stat-text">Ideias</span>
+                            </div>
+                            <div class="profile-stat">
+                                <span class="stat-number" id="profileTotalCategories">0</span>
+                                <span class="stat-text">Categorias</span>
+                            </div>
+                            <div class="profile-stat">
+                                <span class="stat-number" id="profileTotalTasks">0</span>
+                                <span class="stat-text">Tarefas</span>
+                            </div>
+                        </div>
+
+                        <div class="profile-menu">
+                            <button class="menu-item" id="editProfileBtn">
+                                <i class="fas fa-edit"></i>
+                                <span>Editar perfil</span>
+                                <i class="fas fa-chevron-right"></i>
+                            </button>
+                            <button class="menu-item" id="changePasswordBtn">
+                                <i class="fas fa-lock"></i>
+                                <span>Alterar senha</span>
+                                <i class="fas fa-chevron-right"></i>
+                            </button>
+                            <button class="menu-item" id="exportDataBtn">
+                                <i class="fas fa-download"></i>
+                                <span>Exportar dados</span>
+                                <i class="fas fa-chevron-right"></i>
+                            </button>
+                            <button class="menu-item danger" id="logoutBtn">
+                                <i class="fas fa-sign-out-alt"></i>
+                                <span>Sair</span>
+                                <i class="fas fa-chevron-right"></i>
+                            </button>
+                        </div>
+
+                        <div class="app-info">
+                            <p>Savit v1.0.0</p>
+                            <p>Feito com 💚</p>
+                        </div>
+                    </div>
+                </div>
+
+                <!-- Category Messages Page -->
+                <div class="page" id="categoryMessagesPage">
+                    <header class="header">
+                        <button class="back-btn" id="backFromCategoryBtn">
+                            <i class="fas fa-arrow-left"></i>
+                        </button>
+                        <h1 class="app-title" id="categoryMessagesTitle">Categoria</h1>
+                    </header>
+
+                    <main class="chat-content">
+                        <div class="messages-container" id="categoryMessagesContainer">
+                            <!-- Category messages will be rendered here -->
+                        </div>
+                    </main>
+                </div>
+            </div>
+        </div>
+
+        <!-- Modals -->
+        <!-- Category Selector Modal -->
+        <div class="modal" id="categorySelectorModal">
+            <div class="modal-content">
+                <div class="modal-header">
+                    <h3>Selecionar Categoria</h3>
+                    <button class="close-modal" id="closeCategorySelectorModal">
+                        <i class="fas fa-times"></i>
+                    </button>
+                </div>
+                <div class="modal-body">
+                    <div class="category-selector-list" id="categorySelectorList">
+                        <!-- Categories will be rendered here -->
+                    </div>
+                </div>
+            </div>
+        </div>
+
+        <!-- New/Edit Category Modal -->
+        <div class="modal" id="categoryModal">
+            <div class="modal-content">
+                <div class="modal-header">
+                    <h3 id="categoryModalTitle">Nova Categoria</h3>
+                    <button class="close-modal" id="closeCategoryModal">
+                        <i class="fas fa-times"></i>
+                    </button>
+                </div>
+                <div class="modal-body">
+                    <div class="form-group">
+                        <label for="categoryName">Nome</label>
+                        <input type="text" id="categoryName" placeholder="Ex: Trabalho, Pessoal...">
+                    </div>
+                    <div class="form-group">
+                        <label>Cor</label>
+                        <div class="color-picker" id="colorPicker">
+                            <div class="color-option" data-color="#25D366" style="background: #25D366;"></div>
+                            <div class="color-option" data-color="#128C7E" style="background: #128C7E;"></div>
+                            <div class="color-option" data-color="#075E54" style="background: #075E54;"></div>
+                            <div class="color-option" data-color="#34B7F1" style="background: #34B7F1;"></div>
+                            <div class="color-option" data-color="#9C27B0" style="background: #9C27B0;"></div>
+                            <div class="color-option" data-color="#E91E63" style="background: #E91E63;"></div>
+                            <div class="color-option" data-color="#FF5722" style="background: #FF5722;"></div>
+                            <div class="color-option" data-color="#FF9800" style="background: #FF9800;"></div>
+                            <div class="color-option" data-color="#FFC107" style="background: #FFC107;"></div>
+                            <div class="color-option" data-color="#4CAF50" style="background: #4CAF50;"></div>
+                            <div class="color-option" data-color="#607D8B" style="background: #607D8B;"></div>
+                            <div class="color-option" data-color="#795548" style="background: #795548;"></div>
+                        </div>
+                        <input type="color" id="customColor" class="custom-color-input">
+                    </div>
+                </div>
+                <div class="modal-footer">
+                    <button class="btn btn-secondary" id="cancelCategoryBtn">Cancelar</button>
+                    <button class="btn btn-primary" id="saveCategoryBtn">Salvar</button>
+                </div>
+            </div>
+        </div>
+
+        <!-- Edit Message Modal -->
+        <div class="modal" id="editMessageModal">
+            <div class="modal-content">
+                <div class="modal-header">
+                    <h3>Editar Mensagem</h3>
+                    <button class="close-modal" id="closeEditMessageModal">
+                        <i class="fas fa-times"></i>
+                    </button>
+                </div>
+                <div class="modal-body">
+                    <div class="form-group">
+                        <label for="editMessageText">Mensagem</label>
+                        <textarea id="editMessageText" rows="4"></textarea>
+                    </div>
+                    <div class="form-group">
+                        <label for="editMessageCategory">Categoria</label>
+                        <select id="editMessageCategory">
+                            <option value="">Sem categoria</option>
+                        </select>
+                    </div>
+                    <div class="form-group">
+                        <label class="checkbox-label">
+                            <input type="checkbox" id="editMessageIsTask">
+                            <span>É uma tarefa</span>
+                        </label>
+                    </div>
+                    <div class="form-group task-fields" id="editTaskFields" style="display: none;">
+                        <label>Data e hora da tarefa</label>
+                        <div class="task-datetime">
+                            <input type="date" id="editTaskDate">
+                            <input type="time" id="editTaskTime">
+                        </div>
+                    </div>
+                </div>
+                <div class="modal-footer">
+                    <button class="btn btn-danger" id="deleteMessageBtn">
+                        <i class="fas fa-trash"></i> Excluir
+                    </button>
+                    <button class="btn btn-primary" id="saveEditMessageBtn">Salvar</button>
+                </div>
+            </div>
+        </div>
+
+        <!-- Edit Profile Modal -->
+        <div class="modal" id="editProfileModal">
+            <div class="modal-content">
+                <div class="modal-header">
+                    <h3>Editar Perfil</h3>
+                    <button class="close-modal" id="closeEditProfileModal">
+                        <i class="fas fa-times"></i>
+                    </button>
+                </div>
+                <div class="modal-body">
+                    <div class="form-group">
+                        <label for="editProfileName">Nome</label>
+                        <input type="text" id="editProfileName" placeholder="Seu nome">
+                    </div>
+                </div>
+                <div class="modal-footer">
+                    <button class="btn btn-secondary" id="cancelEditProfileBtn">Cancelar</button>
+                    <button class="btn btn-primary" id="saveProfileBtn">Salvar</button>
+                </div>
+            </div>
+        </div>
+
+        <!-- Change Password Modal -->
+        <div class="modal" id="changePasswordModal">
+            <div class="modal-content">
+                <div class="modal-header">
+                    <h3>Alterar Senha</h3>
+                    <button class="close-modal" id="closeChangePasswordModal">
+                        <i class="fas fa-times"></i>
+                    </button>
+                </div>
+                <div class="modal-body">
+                    <div class="form-group">
+                        <label for="currentPassword">Senha atual</label>
+                        <input type="password" id="currentPassword" placeholder="••••••">
+                    </div>
+                    <div class="form-group">
+                        <label for="newPassword">Nova senha</label>
+                        <input type="password" id="newPassword" placeholder="Mínimo 6 caracteres" minlength="6">
+                    </div>
+                    <div class="form-group">
+                        <label for="confirmPassword">Confirmar nova senha</label>
+                        <input type="password" id="confirmPassword" placeholder="••••••">
+                    </div>
+                </div>
+                <div class="modal-footer">
+                    <button class="btn btn-secondary" id="cancelChangePasswordBtn">Cancelar</button>
+                    <button class="btn btn-primary" id="savePasswordBtn">Salvar</button>
+                </div>
+            </div>
+        </div>
+
+        <!-- Quick Add Modal -->
+        <div class="modal" id="quickAddModal">
+            <div class="modal-content">
+                <div class="modal-header">
+                    <h3>Nova Ideia</h3>
+                    <button class="close-modal" id="closeQuickAddModal">
+                        <i class="fas fa-times"></i>
+                    </button>
+                </div>
+                <div class="modal-body">
+                    <div class="form-group">
+                        <textarea id="quickAddText" rows="4" placeholder="Digite sua ideia..."></textarea>
+                    </div>
+                    <div class="form-group">
+                        <label for="quickAddCategory">Categoria (opcional)</label>
+                        <select id="quickAddCategory">
+                            <option value="">Sem categoria</option>
+                        </select>
+                    </div>
+                    <div class="form-group">
+                        <label class="checkbox-label">
+                            <input type="checkbox" id="quickAddIsTask">
+                            <span>É uma tarefa</span>
+                        </label>
+                    </div>
+                    <div class="form-group task-fields" id="quickAddTaskFields" style="display: none;">
+                        <label>Data e hora da tarefa</label>
+                        <div class="task-datetime">
+                            <input type="date" id="quickAddTaskDate">
+                            <input type="time" id="quickAddTaskTime">
+                        </div>
+                    </div>
+                </div>
+                <div class="modal-footer">
+                    <button class="btn btn-primary btn-block" id="saveQuickAddBtn">
+                        <i class="fas fa-paper-plane"></i> Salvar
+                    </button>
+                </div>
+            </div>
+        </div>
+
+        <!-- Context Menu -->
+        <div class="context-menu" id="contextMenu">
+            <div class="context-menu-item" data-action="edit">
+                <i class="fas fa-edit"></i> Editar
+            </div>
+            <div class="context-menu-item" data-action="copy">
+                <i class="fas fa-copy"></i> Copiar
+            </div>
+            <div class="context-menu-item" data-action="delete">
+                <i class="fas fa-trash"></i> Excluir
+            </div>
+        </div>
+    </div>
+
+    <script src="js/api.js"></script>
+    <script src="js/app.js"></script>
+</body>
+</html>
