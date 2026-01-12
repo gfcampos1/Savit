@@ -1,13 +1,21 @@
 {
-    "name": "Savit - Suas Ideias",
+    "name": "Savit - Salve suas Ideias",
     "short_name": "Savit",
-    "description": "Salve suas ideias como mensagens",
+    "description": "Salve suas ideias como mensagens para você mesmo. Organize com categorias, crie tarefas e use reconhecimento de voz.",
     "start_url": "/",
+    "scope": "/",
     "display": "standalone",
     "background_color": "#0b141a",
     "theme_color": "#075E54",
-    "orientation": "portrait-primary",
+    "orientation": "any",
+    "prefer_related_applications": false,
     "icons": [
+        {
+            "src": "/icons/icon.svg",
+            "sizes": "any",
+            "type": "image/svg+xml",
+            "purpose": "any"
+        },
         {
             "src": "/icons/icon-72.png",
             "sizes": "72x72",
@@ -57,6 +65,39 @@
             "purpose": "any maskable"
         }
     ],
-    "categories": ["productivity", "utilities"],
-    "lang": "pt-BR"
+    "screenshots": [
+        {
+            "src": "/icons/icon-512.png",
+            "sizes": "512x512",
+            "type": "image/png",
+            "form_factor": "narrow",
+            "label": "Savit Mobile"
+        },
+        {
+            "src": "/icons/icon-512.png",
+            "sizes": "512x512",
+            "type": "image/png",
+            "form_factor": "wide",
+            "label": "Savit Desktop"
+        }
+    ],
+    "shortcuts": [
+        {
+            "name": "Nova Ideia",
+            "short_name": "Nova",
+            "description": "Adicionar nova ideia",
+            "url": "/?action=new",
+            "icons": [{ "src": "/icons/icon-96.png", "sizes": "96x96" }]
+        },
+        {
+            "name": "Buscar",
+            "short_name": "Buscar",
+            "description": "Buscar ideias",
+            "url": "/?action=search",
+            "icons": [{ "src": "/icons/icon-96.png", "sizes": "96x96" }]
+        }
+    ],
+    "categories": ["productivity", "utilities", "lifestyle"],
+    "lang": "pt-BR",
+    "dir": "ltr"
 }
