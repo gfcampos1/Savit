@@ -56,7 +56,12 @@ const API = {
                         window.App.showAuthScreen();
                     }
                 }
-                throw new Error(data.error || 'Erro na requisição');
+                // Preserve pendingApproval flag for login errors
+                const error = new Error(data.error || 'Erro na requisição');
+                if (data.pendingApproval) {
+                    error.pendingApproval = true;
+                }
+                throw error;
             }
 
             return data;
@@ -82,7 +87,10 @@ const API = {
                 method: 'POST',
                 body: { name, email, password }
             });
-            API.setToken(data.token);
+            // Only set token if not pending approval
+            if (data.token) {
+                API.setToken(data.token);
+            }
             return data;
         },
 

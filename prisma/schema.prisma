@@ -13,6 +13,8 @@ model User {
   password  String
   name      String
   avatar    String?
+  role      String   @default("user") // user, admin
+  approved  Boolean  @default(false)
   createdAt DateTime @default(now())
   updatedAt DateTime @updatedAt
 
@@ -40,6 +42,7 @@ model Category {
 model Message {
   id            String    @id @default(cuid())
   text          String
+  images        String?   // JSON array of base64 images
   isTask        Boolean   @default(false)
   taskDate      DateTime?
   taskTime      String?

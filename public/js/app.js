@@ -15,6 +15,7 @@ const AppState = {
     currentPage: 'home',
     selectedCategoryId: null,
     isTaskMode: false,
+    isCategoryTaskMode: false,
     editingMessageId: null,
     editingCategoryId: null,
     selectedColorForCategory: '#25D366',
@@ -22,7 +23,15 @@ const AppState = {
     searchCategory: '',
     searchDate: '',
     viewingCategoryId: null,
-    isLoading: false
+    isLoading: false,
+    theme: 'dark',
+    pendingImages: [],
+    categoryPendingImages: [],
+    drawingForCategory: false,
+    kanbanSearch: '',
+    kanbanCategory: '',
+    calendarDate: new Date(),
+    calendarSelectedDay: null
 };
 
 // =============================================
@@ -106,6 +115,7 @@ const SpeechToText = {
     recognition: null,
     isRecording: false,
     isSupported: false,
+    targetInput: null, // Dynamic target input
 
     init() {
         // Check if Speech Recognition is supported
@@ -150,20 +160,21 @@ const SpeechToText = {
                 }
             }
 
-            // Update input with transcription
-            if (DOM.messageInput) {
-                const currentText = DOM.messageInput.value;
-                const cursorPos = DOM.messageInput.selectionStart || currentText.length;
+            // Update input with transcription - use targetInput or default to messageInput
+            const input = this.targetInput || DOM.messageInput;
+            if (input) {
+                const currentText = input.value;
+                const cursorPos = input.selectionStart || currentText.length;
                 
                 if (finalTranscript) {
                     // Add final transcript with proper spacing
                     const before = currentText.substring(0, cursorPos);
                     const after = currentText.substring(cursorPos);
                     const space = before.length > 0 && !before.endsWith(' ') ? ' ' : '';
-                    DOM.messageInput.value = before + space + finalTranscript + after;
+                    input.value = before + space + finalTranscript + after;
                     
                     // Trigger input event for auto-resize
-                    DOM.messageInput.dispatchEvent(new Event('input'));
+                    input.dispatchEvent(new Event('input'));
                 }
             }
         };
@@ -249,20 +260,229 @@ const SpeechToText = {
     },
 
     updateUI(isRecording) {
-        if (DOM.voiceInputBtn) {
+        // Determine if we're in category page or main chat
+        const isInCategoryPage = this.targetInput === DOM.categoryMessageInput;
+        
+        // Main chat voice button
+        if (DOM.voiceInputBtn && !isInCategoryPage) {
             DOM.voiceInputBtn.classList.toggle('recording', isRecording);
             DOM.voiceInputBtn.querySelector('i').className = isRecording 
                 ? 'fas fa-stop' 
                 : 'fas fa-microphone';
         }
         
-        if (DOM.voiceRecording) {
+        // Category page voice button
+        if (DOM.categoryVoiceInputBtn && isInCategoryPage) {
+            DOM.categoryVoiceInputBtn.classList.toggle('recording', isRecording);
+            DOM.categoryVoiceInputBtn.querySelector('i').className = isRecording 
+                ? 'fas fa-stop' 
+                : 'fas fa-microphone';
+        }
+        
+        // Main chat voice recording UI
+        if (DOM.voiceRecording && !isInCategoryPage) {
             DOM.voiceRecording.style.display = isRecording ? 'flex' : 'none';
         }
         
-        if (DOM.messageInput) {
+        // Category page voice recording UI
+        if (DOM.categoryVoiceRecording && isInCategoryPage) {
+            DOM.categoryVoiceRecording.style.display = isRecording ? 'flex' : 'none';
+        }
+        
+        // Hide/show appropriate input
+        if (!isInCategoryPage && DOM.messageInput) {
             DOM.messageInput.style.display = isRecording ? 'none' : 'block';
         }
+        if (isInCategoryPage && DOM.categoryMessageInput) {
+            DOM.categoryMessageInput.style.display = isRecording ? 'none' : 'block';
+        }
+    }
+};
+
+// =============================================
+// Theme Manager
+// =============================================
+
+const ThemeManager = {
+    init() {
+        // Load saved theme or detect system preference
+        const savedTheme = localStorage.getItem('savit-theme') || 'system';
+        this.setTheme(savedTheme);
+        
+        // Listen for system theme changes
+        window.matchMedia('(prefers-color-scheme: dark)').addEventListener('change', (e) => {
+            if (AppState.theme === 'system') {
+                this.applyTheme(e.matches ? 'dark' : 'light');
+            }
+        });
+    },
+
+    setTheme(theme) {
+        AppState.theme = theme;
+        localStorage.setItem('savit-theme', theme);
+        
+        if (theme === 'system') {
+            const prefersDark = window.matchMedia('(prefers-color-scheme: dark)').matches;
+            this.applyTheme(prefersDark ? 'dark' : 'light');
+        } else {
+            this.applyTheme(theme);
+        }
+        
+        this.updateButtons();
+    },
+
+    applyTheme(theme) {
+        if (theme === 'light') {
+            document.documentElement.setAttribute('data-theme', 'light');
+        } else {
+            document.documentElement.removeAttribute('data-theme');
+        }
+    },
+
+    updateButtons() {
+        document.querySelectorAll('.theme-option').forEach(btn => {
+            btn.classList.toggle('active', btn.dataset.theme === AppState.theme);
+        });
+    }
+};
+
+// =============================================
+// Drawing Canvas
+// =============================================
+
+const DrawingCanvas = {
+    canvas: null,
+    ctx: null,
+    isDrawing: false,
+    currentColor: '#000000',
+    currentSize: 5,
+    isEraser: false,
+    lastX: 0,
+    lastY: 0,
+
+    init() {
+        this.canvas = DOM.drawCanvas;
+        if (!this.canvas) return;
+        
+        this.ctx = this.canvas.getContext('2d');
+        this.setupCanvas();
+        this.bindEvents();
+    },
+
+    setupCanvas() {
+        const container = DOM.canvasContainer;
+        const rect = container.getBoundingClientRect();
+        
+        // Set canvas size
+        this.canvas.width = rect.width || 500;
+        this.canvas.height = rect.height || 400;
+        
+        // Fill with white background
+        this.clear();
+    },
+
+    bindEvents() {
+        // Mouse events
+        this.canvas.addEventListener('mousedown', (e) => this.startDrawing(e));
+        this.canvas.addEventListener('mousemove', (e) => this.draw(e));
+        this.canvas.addEventListener('mouseup', () => this.stopDrawing());
+        this.canvas.addEventListener('mouseout', () => this.stopDrawing());
+
+        // Touch events
+        this.canvas.addEventListener('touchstart', (e) => {
+            e.preventDefault();
+            this.startDrawing(e.touches[0]);
+        });
+        this.canvas.addEventListener('touchmove', (e) => {
+            e.preventDefault();
+            this.draw(e.touches[0]);
+        });
+        this.canvas.addEventListener('touchend', () => this.stopDrawing());
+    },
+
+    getPosition(e) {
+        const rect = this.canvas.getBoundingClientRect();
+        const scaleX = this.canvas.width / rect.width;
+        const scaleY = this.canvas.height / rect.height;
+        
+        return {
+            x: (e.clientX - rect.left) * scaleX,
+            y: (e.clientY - rect.top) * scaleY
+        };
+    },
+
+    startDrawing(e) {
+        this.isDrawing = true;
+        const pos = this.getPosition(e);
+        this.lastX = pos.x;
+        this.lastY = pos.y;
+    },
+
+    draw(e) {
+        if (!this.isDrawing) return;
+        
+        const pos = this.getPosition(e);
+        
+        this.ctx.beginPath();
+        this.ctx.moveTo(this.lastX, this.lastY);
+        this.ctx.lineTo(pos.x, pos.y);
+        this.ctx.strokeStyle = this.isEraser ? '#FFFFFF' : this.currentColor;
+        this.ctx.lineWidth = this.currentSize;
+        this.ctx.lineCap = 'round';
+        this.ctx.lineJoin = 'round';
+        this.ctx.stroke();
+        
+        this.lastX = pos.x;
+        this.lastY = pos.y;
+    },
+
+    stopDrawing() {
+        this.isDrawing = false;
+    },
+
+    setColor(color) {
+        this.currentColor = color;
+        this.isEraser = false;
+        DOM.drawPencil.classList.add('active');
+        DOM.drawEraser.classList.remove('active');
+    },
+
+    setSize(size) {
+        this.currentSize = size;
+    },
+
+    setEraser() {
+        this.isEraser = true;
+        DOM.drawEraser.classList.add('active');
+        DOM.drawPencil.classList.remove('active');
+    },
+
+    setPencil() {
+        this.isEraser = false;
+        DOM.drawPencil.classList.add('active');
+        DOM.drawEraser.classList.remove('active');
+    },
+
+    clear() {
+        this.ctx.fillStyle = '#FFFFFF';
+        this.ctx.fillRect(0, 0, this.canvas.width, this.canvas.height);
+    },
+
+    getImage() {
+        return this.canvas.toDataURL('image/png');
+    },
+
+    reset() {
+        this.clear();
+        this.currentColor = '#000000';
+        this.currentSize = 5;
+        this.isEraser = false;
+        if (DOM.drawSize) DOM.drawSize.value = 5;
+        document.querySelectorAll('.draw-color').forEach((btn, i) => {
+            btn.classList.toggle('active', i === 0);
+        });
+        DOM.drawPencil?.classList.add('active');
+        DOM.drawEraser?.classList.remove('active');
     }
 };
 
@@ -296,8 +516,18 @@ const DOM = {
     homePage: document.getElementById('homePage'),
     chatPage: document.getElementById('chatPage'),
     categoriesPage: document.getElementById('categoriesPage'),
+    kanbanPage: document.getElementById('kanbanPage'),
     profilePage: document.getElementById('profilePage'),
     categoryMessagesPage: document.getElementById('categoryMessagesPage'),
+
+    // Kanban
+    kanbanBoard: document.getElementById('kanbanBoard'),
+    kanbanPending: document.getElementById('kanbanPending'),
+    kanbanCompleted: document.getElementById('kanbanCompleted'),
+    kanbanPendingCount: document.getElementById('kanbanPendingCount'),
+    kanbanCompletedCount: document.getElementById('kanbanCompletedCount'),
+    kanbanSearch: document.getElementById('kanbanSearch'),
+    kanbanCategoryFilter: document.getElementById('kanbanCategoryFilter'),
 
     // Home Page
     userName: document.getElementById('userName'),
@@ -307,6 +537,13 @@ const DOM = {
     statPendingTasks: document.getElementById('statPendingTasks'),
     statStreak: document.getElementById('statStreak'),
     activityChart: document.getElementById('activityChart'),
+    calendarDays: document.getElementById('calendarDays'),
+    calendarMonth: document.getElementById('calendarMonth'),
+    calendarPrev: document.getElementById('calendarPrev'),
+    calendarNext: document.getElementById('calendarNext'),
+    calendarTasks: document.getElementById('calendarTasks'),
+    calendarTasksList: document.getElementById('calendarTasksList'),
+    calendarSelectedDate: document.getElementById('calendarSelectedDate'),
     taskProgress: document.getElementById('taskProgress'),
     completedTasks: document.getElementById('completedTasks'),
     pendingTasksDetail: document.getElementById('pendingTasksDetail'),
@@ -316,6 +553,13 @@ const DOM = {
     upcomingTasks: document.getElementById('upcomingTasks'),
     quickAddBtn: document.getElementById('quickAddBtn'),
     viewAllMessages: document.getElementById('viewAllMessages'),
+    
+    // Admin
+    adminSection: document.getElementById('adminSection'),
+    pendingUsersList: document.getElementById('pendingUsersList'),
+    pendingCount: document.getElementById('pendingCount'),
+    allUsersList: document.getElementById('allUsersList'),
+    refreshUsersBtn: document.getElementById('refreshUsersBtn'),
 
     // Chat Page
     messagesContainer: document.getElementById('messagesContainer'),
@@ -366,6 +610,44 @@ const DOM = {
     backFromCategoryBtn: document.getElementById('backFromCategoryBtn'),
     categoryMessagesTitle: document.getElementById('categoryMessagesTitle'),
     categoryMessagesContainer: document.getElementById('categoryMessagesContainer'),
+    categoryMessageInput: document.getElementById('categoryMessageInput'),
+    categorySendBtn: document.getElementById('categorySendBtn'),
+    categoryAddTaskBtn: document.getElementById('categoryAddTaskBtn'),
+    categoryTaskOptions: document.getElementById('categoryTaskOptions'),
+    categoryTaskDate: document.getElementById('categoryTaskDate'),
+    categoryTaskTime: document.getElementById('categoryTaskTime'),
+    categoryRemoveTaskBtn: document.getElementById('categoryRemoveTaskBtn'),
+    categoryVoiceInputBtn: document.getElementById('categoryVoiceInputBtn'),
+    categoryVoiceRecording: document.getElementById('categoryVoiceRecording'),
+    categoryVoiceStopBtn: document.getElementById('categoryVoiceStopBtn'),
+    categoryAttachImageBtn: document.getElementById('categoryAttachImageBtn'),
+    categoryImageInput: document.getElementById('categoryImageInput'),
+    categoryImagePreviewContainer: document.getElementById('categoryImagePreviewContainer'),
+    categoryDrawMessageBtn: document.getElementById('categoryDrawMessageBtn'),
+
+    // Theme
+    themeLightBtn: document.getElementById('themeLightBtn'),
+    themeDarkBtn: document.getElementById('themeDarkBtn'),
+    themeSystemBtn: document.getElementById('themeSystemBtn'),
+
+    // Image & Drawing
+    attachImageBtn: document.getElementById('attachImageBtn'),
+    imageInput: document.getElementById('imageInput'),
+    imagePreviewContainer: document.getElementById('imagePreviewContainer'),
+    drawMessageBtn: document.getElementById('drawMessageBtn'),
+    drawModal: document.getElementById('drawModal'),
+    closeDrawModal: document.getElementById('closeDrawModal'),
+    drawCanvas: document.getElementById('drawCanvas'),
+    canvasContainer: document.getElementById('canvasContainer'),
+    drawPencil: document.getElementById('drawPencil'),
+    drawEraser: document.getElementById('drawEraser'),
+    drawClear: document.getElementById('drawClear'),
+    drawSize: document.getElementById('drawSize'),
+    cancelDrawBtn: document.getElementById('cancelDrawBtn'),
+    saveDrawBtn: document.getElementById('saveDrawBtn'),
+    imageViewer: document.getElementById('imageViewer'),
+    imageViewerImg: document.getElementById('imageViewerImg'),
+    closeImageViewer: document.getElementById('closeImageViewer'),
 
     // Modals
     categorySelectorModal: document.getElementById('categorySelectorModal'),
@@ -483,6 +765,12 @@ const App = {
         
         // Initialize Speech-to-Text
         SpeechToText.init();
+        
+        // Initialize Drawing Canvas
+        DrawingCanvas.init();
+        
+        // Initialize Theme Manager
+        ThemeManager.init();
     },
 
     // Load initial data
@@ -549,6 +837,10 @@ const App = {
             this.refreshMessages();
         } else if (page === 'categories') {
             this.refreshCategories();
+        } else if (page === 'kanban') {
+            this.renderKanban();
+        } else if (page === 'profile') {
+            this.loadAdminData();
         }
     },
 
@@ -617,6 +909,9 @@ const App = {
         // Upcoming tasks
         this.renderUpcomingTasks(stats.recent.upcomingTasks);
 
+        // Calendar
+        this.renderCalendar();
+
         // Profile stats
         DOM.profileTotalMessages.textContent = stats.messages.total;
         DOM.profileTotalCategories.textContent = stats.categories.total;
@@ -640,6 +935,176 @@ const App = {
         });
 
         DOM.activityChart.innerHTML = html;
+    },
+
+    // Calendar
+    renderCalendar() {
+        const date = AppState.calendarDate;
+        const year = date.getFullYear();
+        const month = date.getMonth();
+        
+        // Update month display
+        const monthNames = ['Janeiro', 'Fevereiro', 'Março', 'Abril', 'Maio', 'Junho',
+                           'Julho', 'Agosto', 'Setembro', 'Outubro', 'Novembro', 'Dezembro'];
+        DOM.calendarMonth.textContent = `${monthNames[month]} ${year}`;
+        
+        // Get first day of month and total days
+        const firstDay = new Date(year, month, 1).getDay();
+        const daysInMonth = new Date(year, month + 1, 0).getDate();
+        const daysInPrevMonth = new Date(year, month, 0).getDate();
+        
+        // Get tasks by date
+        const tasksByDate = this.getTasksByDate();
+        
+        // Today
+        const today = new Date();
+        today.setHours(0, 0, 0, 0);
+        
+        let html = '';
+        
+        // Previous month days
+        for (let i = firstDay - 1; i >= 0; i--) {
+            const day = daysInPrevMonth - i;
+            html += `<div class="calendar-day other-month"><span class="calendar-day-number">${day}</span></div>`;
+        }
+        
+        // Current month days
+        for (let day = 1; day <= daysInMonth; day++) {
+            const dateStr = `${year}-${String(month + 1).padStart(2, '0')}-${String(day).padStart(2, '0')}`;
+            const dayDate = new Date(year, month, day);
+            dayDate.setHours(0, 0, 0, 0);
+            
+            const isToday = dayDate.getTime() === today.getTime();
+            const isSelected = AppState.calendarSelectedDay === dateStr;
+            const tasks = tasksByDate[dateStr] || [];
+            
+            let classes = 'calendar-day';
+            if (isToday) classes += ' today';
+            if (isSelected) classes += ' selected';
+            
+            // Task dots
+            let dots = '';
+            if (tasks.length > 0) {
+                const pending = tasks.filter(t => !t.taskCompleted);
+                const completed = tasks.filter(t => t.taskCompleted);
+                const overdue = pending.filter(t => dayDate < today);
+                
+                dots = '<div class="calendar-day-dots">';
+                if (overdue.length > 0) dots += '<span class="calendar-day-dot overdue"></span>';
+                else if (pending.length > 0) dots += '<span class="calendar-day-dot"></span>';
+                if (completed.length > 0) dots += '<span class="calendar-day-dot completed"></span>';
+                dots += '</div>';
+            }
+            
+            html += `
+                <div class="${classes}" data-date="${dateStr}">
+                    <span class="calendar-day-number">${day}</span>
+                    ${dots}
+                </div>
+            `;
+        }
+        
+        // Next month days
+        const totalCells = firstDay + daysInMonth;
+        const remainingCells = totalCells % 7 === 0 ? 0 : 7 - (totalCells % 7);
+        for (let day = 1; day <= remainingCells; day++) {
+            html += `<div class="calendar-day other-month"><span class="calendar-day-number">${day}</span></div>`;
+        }
+        
+        DOM.calendarDays.innerHTML = html;
+        
+        // Add click listeners
+        DOM.calendarDays.querySelectorAll('.calendar-day:not(.other-month)').forEach(dayEl => {
+            dayEl.addEventListener('click', () => {
+                const dateStr = dayEl.dataset.date;
+                AppState.calendarSelectedDay = dateStr;
+                this.renderCalendar();
+                this.renderCalendarTasks(dateStr);
+            });
+        });
+        
+        // Show today's tasks by default if no selection
+        if (!AppState.calendarSelectedDay) {
+            const todayStr = `${today.getFullYear()}-${String(today.getMonth() + 1).padStart(2, '0')}-${String(today.getDate()).padStart(2, '0')}`;
+            this.renderCalendarTasks(todayStr);
+        } else {
+            this.renderCalendarTasks(AppState.calendarSelectedDay);
+        }
+    },
+
+    getTasksByDate() {
+        const tasksByDate = {};
+        
+        AppState.messages.filter(m => m.isTask && m.taskDate).forEach(task => {
+            const dateStr = task.taskDate.split('T')[0];
+            if (!tasksByDate[dateStr]) tasksByDate[dateStr] = [];
+            tasksByDate[dateStr].push(task);
+        });
+        
+        return tasksByDate;
+    },
+
+    renderCalendarTasks(dateStr) {
+        const [year, month, day] = dateStr.split('-').map(Number);
+        const date = new Date(year, month - 1, day);
+        
+        // Format date display
+        const options = { weekday: 'long', day: 'numeric', month: 'long' };
+        DOM.calendarSelectedDate.textContent = date.toLocaleDateString('pt-BR', options);
+        
+        // Get tasks for this date
+        const tasksByDate = this.getTasksByDate();
+        const tasks = tasksByDate[dateStr] || [];
+        
+        if (tasks.length === 0) {
+            DOM.calendarTasksList.innerHTML = `
+                <div class="calendar-no-tasks">
+                    <i class="fas fa-calendar-check"></i>
+                    <p>Nenhuma tarefa para este dia</p>
+                </div>
+            `;
+            return;
+        }
+        
+        // Sort: pending first, then by time
+        tasks.sort((a, b) => {
+            if (a.taskCompleted !== b.taskCompleted) return a.taskCompleted ? 1 : -1;
+            if (a.taskTime && b.taskTime) return a.taskTime.localeCompare(b.taskTime);
+            return 0;
+        });
+        
+        let html = '';
+        tasks.forEach(task => {
+            const category = AppState.categories.find(c => c.id === task.categoryId);
+            const isCompleted = task.taskCompleted;
+            
+            html += `
+                <div class="calendar-task-item ${isCompleted ? 'completed' : ''}" data-id="${task.id}">
+                    <div class="calendar-task-checkbox ${isCompleted ? 'checked' : ''}" data-id="${task.id}">
+                        <i class="fas fa-check"></i>
+                    </div>
+                    <span class="calendar-task-text">${Utils.escapeHtml(task.text)}</span>
+                    ${task.taskTime ? `<span class="calendar-task-time">${task.taskTime}</span>` : ''}
+                    ${category ? `<span class="calendar-task-category" style="background: ${category.color}">${Utils.escapeHtml(category.name)}</span>` : ''}
+                </div>
+            `;
+        });
+        
+        DOM.calendarTasksList.innerHTML = html;
+        
+        // Add event listeners
+        DOM.calendarTasksList.querySelectorAll('.calendar-task-checkbox').forEach(checkbox => {
+            checkbox.addEventListener('click', (e) => {
+                e.stopPropagation();
+                this.toggleTaskComplete(checkbox.dataset.id);
+            });
+        });
+        
+        DOM.calendarTasksList.querySelectorAll('.calendar-task-item').forEach(item => {
+            item.addEventListener('click', () => {
+                this.openEditMessageModal(item.dataset.id);
+            });
+        });
     },
 
     renderTaskAlerts(tasks) {
@@ -748,6 +1213,156 @@ const App = {
         DOM.upcomingTasks.innerHTML = html;
     },
 
+    // Admin functions
+    async loadAdminData() {
+        if (!AppState.user || AppState.user.role !== 'admin') {
+            DOM.adminSection.style.display = 'none';
+            return;
+        }
+
+        DOM.adminSection.style.display = 'block';
+        await Promise.all([this.loadPendingUsers(), this.loadAllUsers()]);
+    },
+
+    async loadPendingUsers() {
+        try {
+            const response = await fetch('/api/auth/admin/pending-users');
+            const data = await response.json();
+
+            if (!response.ok) throw new Error(data.error);
+
+            DOM.pendingCount.textContent = data.users.length;
+            
+            if (data.users.length === 0) {
+                DOM.pendingUsersList.innerHTML = `
+                    <div class="admin-empty">
+                        <i class="fas fa-check-circle"></i>
+                        <p>Nenhum usuário pendente</p>
+                    </div>
+                `;
+                return;
+            }
+
+            let html = '';
+            data.users.forEach(user => {
+                html += `
+                    <div class="admin-user-item" data-id="${user.id}">
+                        <div class="admin-user-info">
+                            <div class="admin-user-name">${Utils.escapeHtml(user.name)}</div>
+                            <div class="admin-user-email">${Utils.escapeHtml(user.email)}</div>
+                            <div class="admin-user-date">${Utils.formatDate(user.createdAt)}</div>
+                        </div>
+                        <div class="admin-user-actions">
+                            <button class="admin-btn approve" onclick="App.approveUser('${user.id}')" title="Aprovar">
+                                <i class="fas fa-check"></i>
+                            </button>
+                            <button class="admin-btn reject" onclick="App.deleteUser('${user.id}')" title="Rejeitar">
+                                <i class="fas fa-times"></i>
+                            </button>
+                        </div>
+                    </div>
+                `;
+            });
+            DOM.pendingUsersList.innerHTML = html;
+        } catch (error) {
+            console.error('Load pending users error:', error);
+        }
+    },
+
+    async loadAllUsers() {
+        try {
+            const response = await fetch('/api/auth/admin/users');
+            const data = await response.json();
+
+            if (!response.ok) throw new Error(data.error);
+
+            let html = '';
+            data.users.forEach(user => {
+                const isCurrentUser = user.id === AppState.user.id;
+                const isAdmin = user.role === 'admin';
+                
+                html += `
+                    <div class="admin-user-item" data-id="${user.id}">
+                        <div class="admin-user-info">
+                            <div class="admin-user-name">
+                                ${Utils.escapeHtml(user.name)}
+                                ${isAdmin ? '<span class="admin-badge">ADMIN</span>' : ''}
+                                ${!user.approved ? '<span class="admin-badge" style="background:var(--warning)">PENDENTE</span>' : ''}
+                            </div>
+                            <div class="admin-user-email">${Utils.escapeHtml(user.email)}</div>
+                            <div class="admin-user-date">${user._count.messages} ideias</div>
+                        </div>
+                        ${!isCurrentUser ? `
+                            <div class="admin-user-actions">
+                                <button class="admin-btn toggle-admin" onclick="App.toggleUserRole('${user.id}')" title="${isAdmin ? 'Remover admin' : 'Tornar admin'}">
+                                    <i class="fas fa-crown"></i>
+                                </button>
+                                <button class="admin-btn reject" onclick="App.deleteUser('${user.id}')" title="Excluir">
+                                    <i class="fas fa-trash"></i>
+                                </button>
+                            </div>
+                        ` : ''}
+                    </div>
+                `;
+            });
+            DOM.allUsersList.innerHTML = html;
+        } catch (error) {
+            console.error('Load users error:', error);
+        }
+    },
+
+    async approveUser(userId) {
+        try {
+            const response = await fetch(`/api/auth/admin/approve/${userId}`, {
+                method: 'POST'
+            });
+            const data = await response.json();
+
+            if (!response.ok) throw new Error(data.error);
+
+            showToast('Usuário aprovado!');
+            await this.loadAdminData();
+        } catch (error) {
+            showToast(error.message || 'Erro ao aprovar usuário');
+        }
+    },
+
+    async deleteUser(userId) {
+        if (!confirm('Tem certeza que deseja excluir este usuário? Esta ação não pode ser desfeita.')) {
+            return;
+        }
+
+        try {
+            const response = await fetch(`/api/auth/admin/users/${userId}`, {
+                method: 'DELETE'
+            });
+            const data = await response.json();
+
+            if (!response.ok) throw new Error(data.error);
+
+            showToast('Usuário removido!');
+            await this.loadAdminData();
+        } catch (error) {
+            showToast(error.message || 'Erro ao excluir usuário');
+        }
+    },
+
+    async toggleUserRole(userId) {
+        try {
+            const response = await fetch(`/api/auth/admin/toggle-role/${userId}`, {
+                method: 'POST'
+            });
+            const data = await response.json();
+
+            if (!response.ok) throw new Error(data.error);
+
+            showToast(`Cargo alterado para ${data.user.role === 'admin' ? 'administrador' : 'usuário'}!`);
+            await this.loadAdminData();
+        } catch (error) {
+            showToast(error.message || 'Erro ao alterar cargo');
+        }
+    },
+
     // Render messages
     renderMessages(messages = null, container = DOM.messagesContainer) {
         const messagesToRender = messages || this.getFilteredMessages();
@@ -811,8 +1426,19 @@ const App = {
             html += `<span class="message-category" style="background: ${msg.category.color}">${Utils.escapeHtml(msg.category.name)}</span>`;
         }
 
+        // Images
+        if (msg.images && msg.images.length > 0) {
+            html += '<div class="message-images">';
+            msg.images.forEach(img => {
+                html += `<img src="${img}" class="message-image" onclick="App.openImageViewer('${img}')" alt="Imagem anexada">`;
+            });
+            html += '</div>';
+        }
+
         // Message text
-        html += `<div class="message-text">${Utils.escapeHtml(msg.text)}</div>`;
+        if (msg.text) {
+            html += `<div class="message-text">${Utils.escapeHtml(msg.text)}</div>`;
+        }
 
         // Task section
         if (msg.isTask) {
@@ -1049,6 +1675,172 @@ const App = {
         });
     },
 
+    // Kanban
+    renderKanban() {
+        const search = AppState.kanbanSearch.toLowerCase();
+        const categoryFilter = AppState.kanbanCategory;
+
+        // Get all tasks
+        let tasks = AppState.messages.filter(m => m.isTask);
+
+        // Apply filters
+        if (search) {
+            tasks = tasks.filter(t => t.text.toLowerCase().includes(search));
+        }
+        if (categoryFilter) {
+            tasks = tasks.filter(t => t.categoryId === categoryFilter);
+        }
+
+        // Separate by status
+        const pending = tasks.filter(t => !t.taskCompleted);
+        const completed = tasks.filter(t => t.taskCompleted);
+
+        // Update counts
+        DOM.kanbanPendingCount.textContent = pending.length;
+        DOM.kanbanCompletedCount.textContent = completed.length;
+
+        // Render pending
+        if (pending.length === 0) {
+            DOM.kanbanPending.innerHTML = `
+                <div class="kanban-empty">
+                    <i class="fas fa-clipboard-list"></i>
+                    <p>Nenhuma tarefa pendente</p>
+                </div>
+            `;
+        } else {
+            DOM.kanbanPending.innerHTML = pending
+                .sort((a, b) => {
+                    // Sort by date (closest first)
+                    if (a.taskDate && b.taskDate) return new Date(a.taskDate) - new Date(b.taskDate);
+                    if (a.taskDate) return -1;
+                    if (b.taskDate) return 1;
+                    return new Date(b.createdAt) - new Date(a.createdAt);
+                })
+                .map(t => this.renderKanbanCard(t))
+                .join('');
+        }
+
+        // Render completed
+        if (completed.length === 0) {
+            DOM.kanbanCompleted.innerHTML = `
+                <div class="kanban-empty">
+                    <i class="fas fa-check-circle"></i>
+                    <p>Nenhuma tarefa concluída</p>
+                </div>
+            `;
+        } else {
+            DOM.kanbanCompleted.innerHTML = completed
+                .sort((a, b) => new Date(b.updatedAt) - new Date(a.updatedAt))
+                .map(t => this.renderKanbanCard(t))
+                .join('');
+        }
+
+        // Add event listeners
+        document.querySelectorAll('.kanban-card-checkbox').forEach(checkbox => {
+            checkbox.addEventListener('click', (e) => {
+                e.stopPropagation();
+                const id = checkbox.closest('.kanban-card').dataset.id;
+                this.toggleTaskComplete(id);
+            });
+        });
+
+        document.querySelectorAll('.kanban-card').forEach(card => {
+            card.addEventListener('click', () => {
+                this.openEditMessageModal(card.dataset.id);
+            });
+        });
+
+        // Update category filter options
+        this.updateKanbanCategoryFilter();
+    },
+
+    renderKanbanCard(task) {
+        const category = AppState.categories.find(c => c.id === task.categoryId);
+        const isCompleted = task.taskCompleted;
+        
+        let dateClass = '';
+        let dateText = '';
+        
+        if (task.taskDate) {
+            const taskDate = new Date(task.taskDate);
+            const today = new Date();
+            today.setHours(0, 0, 0, 0);
+            taskDate.setHours(0, 0, 0, 0);
+            
+            const diffDays = Math.floor((taskDate - today) / (1000 * 60 * 60 * 24));
+            
+            if (diffDays < 0 && !isCompleted) {
+                dateClass = 'overdue';
+                dateText = `Atrasada ${Math.abs(diffDays)} dia(s)`;
+            } else if (diffDays === 0) {
+                dateClass = 'today';
+                dateText = 'Hoje';
+            } else if (diffDays === 1) {
+                dateText = 'Amanhã';
+            } else {
+                dateText = taskDate.toLocaleDateString('pt-BR', { day: '2-digit', month: 'short' });
+            }
+            
+            if (task.taskTime) {
+                dateText += ` às ${task.taskTime}`;
+            }
+        }
+
+        return `
+            <div class="kanban-card ${isCompleted ? 'completed' : ''}" data-id="${task.id}">
+                <div class="kanban-card-header">
+                    <div class="kanban-card-checkbox ${isCompleted ? 'checked' : ''}">
+                        <i class="fas fa-check"></i>
+                    </div>
+                    <div class="kanban-card-text">${Utils.escapeHtml(task.text)}</div>
+                </div>
+                ${category || dateText ? `
+                    <div class="kanban-card-footer">
+                        ${category ? `<span class="kanban-card-category" style="background: ${category.color}">${Utils.escapeHtml(category.name)}</span>` : '<span></span>'}
+                        ${dateText ? `<span class="kanban-card-date ${dateClass}"><i class="fas fa-calendar"></i> ${dateText}</span>` : ''}
+                    </div>
+                ` : ''}
+            </div>
+        `;
+    },
+
+    updateKanbanCategoryFilter() {
+        const categories = AppState.categories;
+        let html = '<option value="">Todos os temas</option>';
+        
+        categories.forEach(cat => {
+            const selected = AppState.kanbanCategory === cat.id ? 'selected' : '';
+            html += `<option value="${cat.id}" ${selected}>${Utils.escapeHtml(cat.name)}</option>`;
+        });
+        
+        DOM.kanbanCategoryFilter.innerHTML = html;
+    },
+
+    async toggleTaskComplete(id) {
+        try {
+            const message = AppState.messages.find(m => m.id === id);
+            if (!message) return;
+
+            const { message: updated } = await API.messages.update(id, {
+                taskCompleted: !message.taskCompleted
+            });
+
+            // Update in state
+            const index = AppState.messages.findIndex(m => m.id === id);
+            if (index !== -1) {
+                AppState.messages[index] = updated;
+            }
+
+            this.renderKanban();
+            this.renderMessages();
+            this.refreshDashboard();
+            
+            showToast(updated.taskCompleted ? 'Tarefa concluída!' : 'Tarefa reaberta');
+        } catch (error) {
+            showToast(error.message);
+        }
+    },
+
     renderProfile() {
         if (AppState.user) {
             DOM.profileName.textContent = AppState.user.name;
@@ -1057,14 +1849,15 @@ const App = {
     },
 
     // Message operations
-    async createMessage(text, categoryId, isTask, taskDate, taskTime) {
+    async createMessage(text, categoryId, isTask, taskDate, taskTime, images = []) {
         try {
             const { message } = await API.messages.create({
                 text,
                 categoryId: categoryId || null,
                 isTask: isTask || false,
                 taskDate: taskDate || null,
-                taskTime: taskTime || null
+                taskTime: taskTime || null,
+                images: images || []
             });
 
             AppState.messages.push(message);
@@ -1352,14 +2145,27 @@ const App = {
             await this.loadInitialData();
             showToast('Bem-vindo de volta!');
         } catch (error) {
-            showToast(error.message);
+            if (error.pendingApproval) {
+                showToast('Sua conta ainda não foi aprovada pelo admin.', 4000);
+            } else {
+                showToast(error.message);
+            }
         }
     },
 
     async register(name, email, password) {
         try {
-            const { user } = await API.auth.register(name, email, password);
-            AppState.user = user;
+            const response = await API.auth.register(name, email, password);
+            
+            // Check if pending approval
+            if (response.pendingApproval) {
+                showToast('Conta criada! Aguarde aprovação do admin.', 4000);
+                DOM.registerForm.style.display = 'none';
+                DOM.loginForm.style.display = 'block';
+                return;
+            }
+            
+            AppState.user = response.user;
             this.showMainApp();
             await this.loadInitialData();
             showToast('Conta criada com sucesso!');
@@ -1460,6 +2266,116 @@ const App = {
         }
     },
 
+    // Image handling
+    handleImageSelect(e, isCategory = false) {
+        const files = Array.from(e.target.files);
+        if (!files.length) return;
+
+        const pendingImages = isCategory ? AppState.categoryPendingImages : AppState.pendingImages;
+        const container = isCategory ? DOM.categoryImagePreviewContainer : DOM.imagePreviewContainer;
+
+        files.forEach(file => {
+            if (!file.type.startsWith('image/')) return;
+            
+            const reader = new FileReader();
+            reader.onload = (event) => {
+                pendingImages.push(event.target.result);
+                this.renderImagePreviews(isCategory);
+            };
+            reader.readAsDataURL(file);
+        });
+
+        // Clear input
+        e.target.value = '';
+    },
+
+    renderImagePreviews(isCategory = false) {
+        const pendingImages = isCategory ? AppState.categoryPendingImages : AppState.pendingImages;
+        const container = isCategory ? DOM.categoryImagePreviewContainer : DOM.imagePreviewContainer;
+
+        if (!container) return;
+
+        if (pendingImages.length === 0) {
+            container.style.display = 'none';
+            container.innerHTML = '';
+            return;
+        }
+
+        container.style.display = 'flex';
+        container.innerHTML = pendingImages.map((img, index) => `
+            <div class="image-preview">
+                <img src="${img}" alt="Preview">
+                <button class="remove-image" onclick="App.removeImage(${index}, ${isCategory})">
+                    <i class="fas fa-times"></i>
+                </button>
+            </div>
+        `).join('');
+    },
+
+    removeImage(index, isCategory = false) {
+        if (isCategory) {
+            AppState.categoryPendingImages.splice(index, 1);
+        } else {
+            AppState.pendingImages.splice(index, 1);
+        }
+        this.renderImagePreviews(isCategory);
+    },
+
+    clearPendingImages(isCategory = false) {
+        if (isCategory) {
+            AppState.categoryPendingImages = [];
+        } else {
+            AppState.pendingImages = [];
+        }
+        this.renderImagePreviews(isCategory);
+    },
+
+    // Image viewer
+    openImageViewer(src) {
+        DOM.imageViewerImg.src = src;
+        DOM.imageViewer.classList.add('active');
+    },
+
+    // Drawing
+    openDrawModal() {
+        openModal(DOM.drawModal);
+        // Wait for modal to be visible, then setup canvas
+        setTimeout(() => {
+            DrawingCanvas.setupCanvas();
+            DrawingCanvas.reset();
+        }, 100);
+    },
+
+    async saveDrawing() {
+        const imageData = DrawingCanvas.getImage();
+        
+        if (AppState.drawingForCategory) {
+            // Send to category
+            await this.createMessage(
+                '',
+                AppState.viewingCategoryId,
+                false,
+                null,
+                null,
+                [imageData]
+            );
+            this.renderCategoryMessagesView(AppState.viewingCategoryId);
+        } else {
+            // Send to main chat
+            await this.createMessage(
+                '',
+                AppState.selectedCategoryId,
+                AppState.isTaskMode,
+                AppState.isTaskMode ? DOM.taskDate.value : null,
+                AppState.isTaskMode ? DOM.taskTime.value : null,
+                [imageData]
+            );
+        }
+
+        closeModal(DOM.drawModal);
+        DrawingCanvas.reset();
+    },
+
     // Event listeners setup
     setupEventListeners() {
         // Auth forms
@@ -1545,18 +2461,22 @@ const App = {
         // Chat page
         DOM.sendBtn.addEventListener('click', async () => {
             const text = DOM.messageInput.value.trim();
-            if (!text) return;
+            const hasImages = AppState.pendingImages.length > 0;
+            
+            if (!text && !hasImages) return;
 
             await this.createMessage(
                 text,
                 AppState.selectedCategoryId,
                 AppState.isTaskMode,
                 AppState.isTaskMode ? DOM.taskDate.value : null,
-                AppState.isTaskMode ? DOM.taskTime.value : null
+                AppState.isTaskMode ? DOM.taskTime.value : null,
+                [...AppState.pendingImages]
             );
 
             DOM.messageInput.value = '';
             DOM.messageInput.style.height = 'auto';
+            this.clearPendingImages(false);
             resetInputOptions();
         });
 
@@ -1599,7 +2519,11 @@ const App = {
 
         // Voice Input (Speech-to-Text)
         if (DOM.voiceInputBtn) {
-            DOM.voiceInputBtn.addEventListener('click', () => SpeechToText.toggle());
+            DOM.voiceInputBtn.addEventListener('click', () => {
+                // Set target to main message input
+                SpeechToText.targetInput = DOM.messageInput;
+                SpeechToText.toggle();
+            });
         }
         if (DOM.voiceStopBtn) {
             DOM.voiceStopBtn.addEventListener('click', () => SpeechToText.stop());
@@ -1675,6 +2599,175 @@ const App = {
         // Category messages page
         DOM.backFromCategoryBtn.addEventListener('click', () => this.closeCategoryMessages());
 
+        // Category page input - Send message
+        DOM.categorySendBtn.addEventListener('click', async () => {
+            const text = DOM.categoryMessageInput.value.trim();
+            const hasImages = AppState.categoryPendingImages.length > 0;
+            
+            if ((!text && !hasImages) || !AppState.viewingCategoryId) return;
+
+            await this.createMessage(
+                text,
+                AppState.viewingCategoryId,
+                AppState.isCategoryTaskMode,
+                AppState.isCategoryTaskMode ? DOM.categoryTaskDate.value : null,
+                AppState.isCategoryTaskMode ? DOM.categoryTaskTime.value : null,
+                [...AppState.categoryPendingImages]
+            );
+
+            DOM.categoryMessageInput.value = '';
+            DOM.categoryMessageInput.style.height = 'auto';
+            this.clearPendingImages(true);
+            
+            // Reset task mode
+            AppState.isCategoryTaskMode = false;
+            DOM.categoryTaskOptions.style.display = 'none';
+            DOM.categoryAddTaskBtn.classList.remove('active');
+            
+            // Re-render messages
+            this.renderCategoryMessagesView(AppState.viewingCategoryId);
+        });
+
+        DOM.categoryMessageInput.addEventListener('keydown', (e) => {
+            if (e.key === 'Enter' && !e.shiftKey) {
+                e.preventDefault();
+                DOM.categorySendBtn.click();
+            }
+        });
+
+        DOM.categoryMessageInput.addEventListener('input', () => {
+            DOM.categoryMessageInput.style.height = 'auto';
+            DOM.categoryMessageInput.style.height = Math.min(DOM.categoryMessageInput.scrollHeight, 120) + 'px';
+        });
+
+        // Category page - Task mode toggle
+        DOM.categoryAddTaskBtn.addEventListener('click', () => {
+            AppState.isCategoryTaskMode = !AppState.isCategoryTaskMode;
+            DOM.categoryTaskOptions.style.display = AppState.isCategoryTaskMode ? 'block' : 'none';
+            DOM.categoryAddTaskBtn.classList.toggle('active', AppState.isCategoryTaskMode);
+            if (AppState.isCategoryTaskMode) {
+                DOM.categoryTaskDate.value = new Date().toISOString().split('T')[0];
+            }
+        });
+
+        DOM.categoryRemoveTaskBtn.addEventListener('click', () => {
+            AppState.isCategoryTaskMode = false;
+            DOM.categoryTaskOptions.style.display = 'none';
+            DOM.categoryAddTaskBtn.classList.remove('active');
+        });
+
+        // Category page - Voice input
+        if (DOM.categoryVoiceInputBtn) {
+            DOM.categoryVoiceInputBtn.addEventListener('click', () => {
+                // Switch to category input mode for speech
+                SpeechToText.targetInput = DOM.categoryMessageInput;
+                SpeechToText.toggle();
+            });
+        }
+        if (DOM.categoryVoiceStopBtn) {
+            DOM.categoryVoiceStopBtn.addEventListener('click', () => SpeechToText.stop());
+        }
+
+        // Theme buttons
+        if (DOM.themeLightBtn) {
+            DOM.themeLightBtn.addEventListener('click', () => ThemeManager.setTheme('light'));
+        }
+        if (DOM.themeDarkBtn) {
+            DOM.themeDarkBtn.addEventListener('click', () => ThemeManager.setTheme('dark'));
+        }
+        if (DOM.themeSystemBtn) {
+            DOM.themeSystemBtn.addEventListener('click', () => ThemeManager.setTheme('system'));
+        }
+
+        // Image attachment - Main chat
+        if (DOM.attachImageBtn) {
+            DOM.attachImageBtn.addEventListener('click', () => DOM.imageInput.click());
+        }
+        if (DOM.imageInput) {
+            DOM.imageInput.addEventListener('change', (e) => this.handleImageSelect(e, false));
+        }
+
+        // Image attachment - Category page
+        if (DOM.categoryAttachImageBtn) {
+            DOM.categoryAttachImageBtn.addEventListener('click', () => DOM.categoryImageInput.click());
+        }
+        if (DOM.categoryImageInput) {
+            DOM.categoryImageInput.addEventListener('change', (e) => this.handleImageSelect(e, true));
+        }
+
+        // Drawing - Main chat
+        if (DOM.drawMessageBtn) {
+            DOM.drawMessageBtn.addEventListener('click', () => {
+                AppState.drawingForCategory = false;
+                this.openDrawModal();
+            });
+        }
+
+        // Drawing - Category page
+        if (DOM.categoryDrawMessageBtn) {
+            DOM.categoryDrawMessageBtn.addEventListener('click', () => {
+                AppState.drawingForCategory = true;
+                this.openDrawModal();
+            });
+        }
+
+        // Draw modal controls
+        if (DOM.closeDrawModal) {
+            DOM.closeDrawModal.addEventListener('click', () => closeModal(DOM.drawModal));
+        }
+        if (DOM.cancelDrawBtn) {
+            DOM.cancelDrawBtn.addEventListener('click', () => closeModal(DOM.drawModal));
+        }
+        if (DOM.saveDrawBtn) {
+            DOM.saveDrawBtn.addEventListener('click', () => this.saveDrawing());
+        }
+        if (DOM.drawPencil) {
+            DOM.drawPencil.addEventListener('click', () => DrawingCanvas.setPencil());
+        }
+        if (DOM.drawEraser) {
+            DOM.drawEraser.addEventListener('click', () => DrawingCanvas.setEraser());
+        }
+        if (DOM.drawClear) {
+            DOM.drawClear.addEventListener('click', () => DrawingCanvas.clear());
+        }
+        if (DOM.drawSize) {
+            DOM.drawSize.addEventListener('input', (e) => DrawingCanvas.setSize(parseInt(e.target.value)));
+        }
+
+        // Draw colors
+        document.querySelectorAll('.draw-color').forEach(btn => {
+            btn.addEventListener('click', () => {
+                document.querySelectorAll('.draw-color').forEach(b => b.classList.remove('active'));
+                btn.classList.add('active');
+                DrawingCanvas.setColor(btn.dataset.color);
+            });
+        });
+
+        // Image viewer
+        if (DOM.closeImageViewer) {
+            DOM.closeImageViewer.addEventListener('click', () => {
+                DOM.imageViewer.classList.remove('active');
+            });
+        }
+        if (DOM.imageViewer) {
+            DOM.imageViewer.addEventListener('click', (e) => {
+                if (e.target === DOM.imageViewer) {
+                    DOM.imageViewer.classList.remove('active');
+                }
+            });
+        }
+
+        // Kanban filters
+        DOM.kanbanSearch.addEventListener('input', (e) => {
+            AppState.kanbanSearch = e.target.value;
+            this.renderKanban();
+        });
+
+        DOM.kanbanCategoryFilter.addEventListener('change', (e) => {
+            AppState.kanbanCategory = e.target.value;
+            this.renderKanban();
+        });
+
         // Profile page
         DOM.editProfileBtn.addEventListener('click', () => {
             DOM.editProfileName.value = AppState.user?.name || '';
@@ -1732,6 +2825,26 @@ const App = {
                 }
             });
         });
+
+        // Calendar navigation
+        if (DOM.calendarPrev) {
+            DOM.calendarPrev.addEventListener('click', () => {
+                AppState.calendarDate.setMonth(AppState.calendarDate.getMonth() - 1);
+                this.renderCalendar();
+            });
+        }
+
+        if (DOM.calendarNext) {
+            DOM.calendarNext.addEventListener('click', () => {
+                AppState.calendarDate.setMonth(AppState.calendarDate.getMonth() + 1);
+                this.renderCalendar();
+            });
+        }
+
+        // Admin refresh button
+        if (DOM.refreshUsersBtn) {
+            DOM.refreshUsersBtn.addEventListener('click', () => this.loadAdminData());
+        }
     }
 };
 

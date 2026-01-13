@@ -63,7 +63,13 @@ router.get('/', async (req, res) => {
             skip: parseInt(offset)
         });
 
-        res.json({ messages });
+        // Parse images for all messages
+        const parsedMessages = messages.map(msg => ({
+            ...msg,
+            images: msg.images ? JSON.parse(msg.images) : []
+        }));
+
+        res.json({ messages: parsedMessages });
     } catch (error) {
         console.error('Get messages error:', error);
         res.status(500).json({ error: 'Erro ao buscar mensagens.' });
@@ -93,7 +99,13 @@ router.get('/:id', async (req, res) => {
             return res.status(404).json({ error: 'Mensagem não encontrada.' });
         }
 
-        res.json({ message });
+        // Parse images
+        const parsedMessage = {
+            ...message,
+            images: message.images ? JSON.parse(message.images) : []
+        };
+
+        res.json({ message: parsedMessage });
     } catch (error) {
         console.error('Get message error:', error);
         res.status(500).json({ error: 'Erro ao buscar mensagem.' });
@@ -103,10 +115,11 @@ router.get('/:id', async (req, res) => {
 // Create message
 router.post('/', async (req, res) => {
     try {
-        const { text, categoryId, isTask, taskDate, taskTime } = req.body;
+        const { text, categoryId, isTask, taskDate, taskTime, images } = req.body;
 
-        if (!text || text.trim() === '') {
-            return res.status(400).json({ error: 'O texto da mensagem é obrigatório.' });
+        // Allow empty text if there are images
+        if ((!text || text.trim() === '') && (!images || images.length === 0)) {
+            return res.status(400).json({ error: 'O texto da mensagem ou uma imagem é obrigatório.' });
         }
 
         // Verify category belongs to user if provided
@@ -121,7 +134,8 @@ router.post('/', async (req, res) => {
 
         const message = await prisma.message.create({
             data: {
-                text: text.trim(),
+                text: text ? text.trim() : '',
+                images: images && images.length > 0 ? JSON.stringify(images) : null,
                 categoryId: categoryId || null,
                 isTask: isTask || false,
                 taskDate: taskDate ? new Date(taskDate) : null,
@@ -139,7 +153,13 @@ router.post('/', async (req, res) => {
             }
         });
 
-        res.status(201).json({ message });
+        // Parse images back to array for response
+        const responseMessage = {
+            ...message,
+            images: message.images ? JSON.parse(message.images) : []
+        };
+
+        res.status(201).json({ message: responseMessage });
     } catch (error) {
         console.error('Create message error:', error);
         res.status(500).json({ error: 'Erro ao criar mensagem.' });
