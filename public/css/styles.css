@@ -2580,17 +2580,10 @@ body {
         margin-bottom: 0;
     }
 
-    /* Make calendar fit the row height and scroll internally (prevents overlap with next section) */
-    .dashboard-row {
-        align-items: stretch;
-    }
-
-    .dashboard-row > * {
-        min-height: 0;
-    }
-
+    /* Calendar: keep it visually symmetric with the left column */
     .dashboard-row .calendar-card {
-        height: 100%;
+        max-height: 420px;
+        overflow: hidden;
         display: flex;
         flex-direction: column;
     }
