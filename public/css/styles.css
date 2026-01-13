@@ -2527,7 +2527,11 @@ body {
         grid-template-columns: 1fr 1fr;
         column-gap: var(--spacing-lg);
         row-gap: var(--spacing-xl);
-        align-items: start;
+        align-items: stretch;
+    }
+
+    .dashboard-row > * {
+        min-height: 0;
     }
     
     .dashboard-col {
@@ -2581,9 +2585,8 @@ body {
         margin-bottom: 0;
     }
 
-    /* Calendar: keep it visually symmetric with the left column */
     .dashboard-row .calendar-card {
-        max-height: 360px;
+        height: 100%;
         overflow: hidden;
         display: flex;
         flex-direction: column;
