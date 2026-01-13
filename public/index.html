@@ -192,35 +192,81 @@
                             </div>
                         </div>
 
-                        <!-- Activity Chart -->
-                        <div class="card">
-                            <div class="card-header">
-                                <h3><i class="fas fa-chart-bar"></i> Atividade dos últimos 7 dias</h3>
-                            </div>
-                            <div class="card-body">
-                                <div class="activity-chart" id="activityChart">
-                                    <!-- Chart bars will be rendered here -->
+                        <!-- Activity & Calendar Row (desktop side-by-side) -->
+                        <div class="dashboard-row">
+                            <!-- Left Column: Activity + Progress -->
+                            <div class="dashboard-col">
+                                <!-- Activity Chart -->
+                                <div class="card activity-card">
+                                    <div class="card-header">
+                                        <h3><i class="fas fa-chart-bar"></i> Atividade dos últimos 7 dias</h3>
+                                    </div>
+                                    <div class="card-body">
+                                        <div class="activity-chart" id="activityChart">
+                                            <!-- Chart bars will be rendered here -->
+                                        </div>
+                                    </div>
                                 </div>
-                            </div>
-                        </div>
 
-                        <!-- Tasks Overview -->
-                        <div class="card">
-                            <div class="card-header">
-                                <h3><i class="fas fa-check-circle"></i> Progresso de Tarefas</h3>
-                            </div>
-                            <div class="card-body">
-                                <div class="progress-container">
-                                    <div class="progress-bar">
-                                        <div class="progress-fill" id="taskProgress" style="width: 0%"></div>
+                                <!-- Tasks Overview -->
+                                <div class="card progress-card">
+                                    <div class="card-header">
+                                        <h3><i class="fas fa-check-circle"></i> Progresso de Tarefas</h3>
                                     </div>
-                                    <div class="progress-stats">
-                                        <span><i class="fas fa-check"></i> <span id="completedTasks">0</span> concluídas</span>
-                                        <span><i class="fas fa-clock"></i> <span id="pendingTasksDetail">0</span> pendentes</span>
+                                    <div class="card-body">
+                                        <div class="progress-container">
+                                            <div class="progress-bar">
+                                                <div class="progress-fill" id="taskProgress" style="width: 0%"></div>
+                                            </div>
+                                            <div class="progress-stats">
+                                                <span><i class="fas fa-check"></i> <span id="completedTasks">0</span> concluídas</span>
+                                                <span><i class="fas fa-clock"></i> <span id="pendingTasksDetail">0</span> pendentes</span>
+                                            </div>
+                                        </div>
+                                        <div class="task-alerts" id="taskAlerts">
+                                            <!-- Task alerts will be rendered here -->
+                                        </div>
                                     </div>
                                 </div>
-                                <div class="task-alerts" id="taskAlerts">
-                                    <!-- Task alerts will be rendered here -->
+                            </div>
+
+                            <!-- Right Column: Calendar -->
+                            <div class="card calendar-card">
+                                <div class="card-header">
+                                    <h3><i class="fas fa-calendar-alt"></i> Calendário</h3>
+                                    <div class="calendar-nav">
+                                        <button class="calendar-nav-btn" id="calendarPrev">
+                                            <i class="fas fa-chevron-left"></i>
+                                        </button>
+                                        <span class="calendar-month" id="calendarMonth">Janeiro 2026</span>
+                                        <button class="calendar-nav-btn" id="calendarNext">
+                                            <i class="fas fa-chevron-right"></i>
+                                        </button>
+                                    </div>
+                                </div>
+                                <div class="card-body">
+                                    <div class="calendar-grid">
+                                        <div class="calendar-weekdays">
+                                            <span>Dom</span>
+                                            <span>Seg</span>
+                                            <span>Ter</span>
+                                            <span>Qua</span>
+                                            <span>Qui</span>
+                                            <span>Sex</span>
+                                            <span>Sáb</span>
+                                        </div>
+                                        <div class="calendar-days" id="calendarDays">
+                                            <!-- Calendar days will be rendered here -->
+                                        </div>
+                                    </div>
+                                    <div class="calendar-tasks" id="calendarTasks">
+                                        <div class="calendar-tasks-header">
+                                            <span id="calendarSelectedDate">Selecione um dia</span>
+                                        </div>
+                                        <div class="calendar-tasks-list" id="calendarTasksList">
+                                            <!-- Tasks for selected day -->
+                                        </div>
+                                    </div>
                                 </div>
                             </div>
                         </div>
@@ -498,6 +544,35 @@
                                 <span>Sair</span>
                                 <i class="fas fa-chevron-right"></i>
                             </button>
+                        </div>
+
+                        <!-- Admin Section (hidden for non-admins) -->
+                        <div class="admin-section" id="adminSection" style="display: none;">
+                            <h3><i class="fas fa-shield-alt"></i> Administração</h3>
+                            
+                            <!-- Pending Users -->
+                            <div class="admin-card" id="pendingUsersCard">
+                                <div class="admin-card-header">
+                                    <span><i class="fas fa-user-clock"></i> Usuários Pendentes</span>
+                                    <span class="badge" id="pendingCount">0</span>
+                                </div>
+                                <div class="admin-list" id="pendingUsersList">
+                                    <!-- Pending users will be rendered here -->
+                                </div>
+                            </div>
+
+                            <!-- All Users -->
+                            <div class="admin-card">
+                                <div class="admin-card-header">
+                                    <span><i class="fas fa-users"></i> Todos os Usuários</span>
+                                    <button class="btn-sm" id="refreshUsersBtn">
+                                        <i class="fas fa-sync-alt"></i>
+                                    </button>
+                                </div>
+                                <div class="admin-list" id="allUsersList">
+                                    <!-- All users will be rendered here -->
+                                </div>
+                            </div>
                         </div>
 
                         <div class="app-info">

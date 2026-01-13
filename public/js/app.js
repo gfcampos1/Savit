@@ -29,7 +29,9 @@ const AppState = {
     categoryPendingImages: [],
     drawingForCategory: false,
     kanbanSearch: '',
-    kanbanCategory: ''
+    kanbanCategory: '',
+    calendarDate: new Date(),
+    calendarSelectedDay: null
 };
 
 // =============================================
@@ -535,6 +537,13 @@ const DOM = {
     statPendingTasks: document.getElementById('statPendingTasks'),
     statStreak: document.getElementById('statStreak'),
     activityChart: document.getElementById('activityChart'),
+    calendarDays: document.getElementById('calendarDays'),
+    calendarMonth: document.getElementById('calendarMonth'),
+    calendarPrev: document.getElementById('calendarPrev'),
+    calendarNext: document.getElementById('calendarNext'),
+    calendarTasks: document.getElementById('calendarTasks'),
+    calendarTasksList: document.getElementById('calendarTasksList'),
+    calendarSelectedDate: document.getElementById('calendarSelectedDate'),
     taskProgress: document.getElementById('taskProgress'),
     completedTasks: document.getElementById('completedTasks'),
     pendingTasksDetail: document.getElementById('pendingTasksDetail'),
@@ -544,6 +553,13 @@ const DOM = {
     upcomingTasks: document.getElementById('upcomingTasks'),
     quickAddBtn: document.getElementById('quickAddBtn'),
     viewAllMessages: document.getElementById('viewAllMessages'),
+    
+    // Admin
+    adminSection: document.getElementById('adminSection'),
+    pendingUsersList: document.getElementById('pendingUsersList'),
+    pendingCount: document.getElementById('pendingCount'),
+    allUsersList: document.getElementById('allUsersList'),
+    refreshUsersBtn: document.getElementById('refreshUsersBtn'),
 
     // Chat Page
     messagesContainer: document.getElementById('messagesContainer'),
@@ -823,6 +839,8 @@ const App = {
             this.refreshCategories();
         } else if (page === 'kanban') {
             this.renderKanban();
+        } else if (page === 'profile') {
+            this.loadAdminData();
         }
     },
 
@@ -891,6 +909,9 @@ const App = {
         // Upcoming tasks
         this.renderUpcomingTasks(stats.recent.upcomingTasks);
 
+        // Calendar
+        this.renderCalendar();
+
         // Profile stats
         DOM.profileTotalMessages.textContent = stats.messages.total;
         DOM.profileTotalCategories.textContent = stats.categories.total;
@@ -914,6 +935,176 @@ const App = {
         });
 
         DOM.activityChart.innerHTML = html;
+    },
+
+    // Calendar
+    renderCalendar() {
+        const date = AppState.calendarDate;
+        const year = date.getFullYear();
+        const month = date.getMonth();
+        
+        // Update month display
+        const monthNames = ['Janeiro', 'Fevereiro', 'Março', 'Abril', 'Maio', 'Junho',
+                           'Julho', 'Agosto', 'Setembro', 'Outubro', 'Novembro', 'Dezembro'];
+        DOM.calendarMonth.textContent = `${monthNames[month]} ${year}`;
+        
+        // Get first day of month and total days
+        const firstDay = new Date(year, month, 1).getDay();
+        const daysInMonth = new Date(year, month + 1, 0).getDate();
+        const daysInPrevMonth = new Date(year, month, 0).getDate();
+        
+        // Get tasks by date
+        const tasksByDate = this.getTasksByDate();
+        
+        // Today
+        const today = new Date();
+        today.setHours(0, 0, 0, 0);
+        
+        let html = '';
+        
+        // Previous month days
+        for (let i = firstDay - 1; i >= 0; i--) {
+            const day = daysInPrevMonth - i;
+            html += `<div class="calendar-day other-month"><span class="calendar-day-number">${day}</span></div>`;
+        }
+        
+        // Current month days
+        for (let day = 1; day <= daysInMonth; day++) {
+            const dateStr = `${year}-${String(month + 1).padStart(2, '0')}-${String(day).padStart(2, '0')}`;
+            const dayDate = new Date(year, month, day);
+            dayDate.setHours(0, 0, 0, 0);
+            
+            const isToday = dayDate.getTime() === today.getTime();
+            const isSelected = AppState.calendarSelectedDay === dateStr;
+            const tasks = tasksByDate[dateStr] || [];
+            
+            let classes = 'calendar-day';
+            if (isToday) classes += ' today';
+            if (isSelected) classes += ' selected';
+            
+            // Task dots
+            let dots = '';
+            if (tasks.length > 0) {
+                const pending = tasks.filter(t => !t.taskCompleted);
+                const completed = tasks.filter(t => t.taskCompleted);
+                const overdue = pending.filter(t => dayDate < today);
+                
+                dots = '<div class="calendar-day-dots">';
+                if (overdue.length > 0) dots += '<span class="calendar-day-dot overdue"></span>';
+                else if (pending.length > 0) dots += '<span class="calendar-day-dot"></span>';
+                if (completed.length > 0) dots += '<span class="calendar-day-dot completed"></span>';
+                dots += '</div>';
+            }
+            
+            html += `
+                <div class="${classes}" data-date="${dateStr}">
+                    <span class="calendar-day-number">${day}</span>
+                    ${dots}
+                </div>
+            `;
+        }
+        
+        // Next month days
+        const totalCells = firstDay + daysInMonth;
+        const remainingCells = totalCells % 7 === 0 ? 0 : 7 - (totalCells % 7);
+        for (let day = 1; day <= remainingCells; day++) {
+            html += `<div class="calendar-day other-month"><span class="calendar-day-number">${day}</span></div>`;
+        }
+        
+        DOM.calendarDays.innerHTML = html;
+        
+        // Add click listeners
+        DOM.calendarDays.querySelectorAll('.calendar-day:not(.other-month)').forEach(dayEl => {
+            dayEl.addEventListener('click', () => {
+                const dateStr = dayEl.dataset.date;
+                AppState.calendarSelectedDay = dateStr;
+                this.renderCalendar();
+                this.renderCalendarTasks(dateStr);
+            });
+        });
+        
+        // Show today's tasks by default if no selection
+        if (!AppState.calendarSelectedDay) {
+            const todayStr = `${today.getFullYear()}-${String(today.getMonth() + 1).padStart(2, '0')}-${String(today.getDate()).padStart(2, '0')}`;
+            this.renderCalendarTasks(todayStr);
+        } else {
+            this.renderCalendarTasks(AppState.calendarSelectedDay);
+        }
+    },
+
+    getTasksByDate() {
+        const tasksByDate = {};
+        
+        AppState.messages.filter(m => m.isTask && m.taskDate).forEach(task => {
+            const dateStr = task.taskDate.split('T')[0];
+            if (!tasksByDate[dateStr]) tasksByDate[dateStr] = [];
+            tasksByDate[dateStr].push(task);
+        });
+        
+        return tasksByDate;
+    },
+
+    renderCalendarTasks(dateStr) {
+        const [year, month, day] = dateStr.split('-').map(Number);
+        const date = new Date(year, month - 1, day);
+        
+        // Format date display
+        const options = { weekday: 'long', day: 'numeric', month: 'long' };
+        DOM.calendarSelectedDate.textContent = date.toLocaleDateString('pt-BR', options);
+        
+        // Get tasks for this date
+        const tasksByDate = this.getTasksByDate();
+        const tasks = tasksByDate[dateStr] || [];
+        
+        if (tasks.length === 0) {
+            DOM.calendarTasksList.innerHTML = `
+                <div class="calendar-no-tasks">
+                    <i class="fas fa-calendar-check"></i>
+                    <p>Nenhuma tarefa para este dia</p>
+                </div>
+            `;
+            return;
+        }
+        
+        // Sort: pending first, then by time
+        tasks.sort((a, b) => {
+            if (a.taskCompleted !== b.taskCompleted) return a.taskCompleted ? 1 : -1;
+            if (a.taskTime && b.taskTime) return a.taskTime.localeCompare(b.taskTime);
+            return 0;
+        });
+        
+        let html = '';
+        tasks.forEach(task => {
+            const category = AppState.categories.find(c => c.id === task.categoryId);
+            const isCompleted = task.taskCompleted;
+            
+            html += `
+                <div class="calendar-task-item ${isCompleted ? 'completed' : ''}" data-id="${task.id}">
+                    <div class="calendar-task-checkbox ${isCompleted ? 'checked' : ''}" data-id="${task.id}">
+                        <i class="fas fa-check"></i>
+                    </div>
+                    <span class="calendar-task-text">${Utils.escapeHtml(task.text)}</span>
+                    ${task.taskTime ? `<span class="calendar-task-time">${task.taskTime}</span>` : ''}
+                    ${category ? `<span class="calendar-task-category" style="background: ${category.color}">${Utils.escapeHtml(category.name)}</span>` : ''}
+                </div>
+            `;
+        });
+        
+        DOM.calendarTasksList.innerHTML = html;
+        
+        // Add event listeners
+        DOM.calendarTasksList.querySelectorAll('.calendar-task-checkbox').forEach(checkbox => {
+            checkbox.addEventListener('click', (e) => {
+                e.stopPropagation();
+                this.toggleTaskComplete(checkbox.dataset.id);
+            });
+        });
+        
+        DOM.calendarTasksList.querySelectorAll('.calendar-task-item').forEach(item => {
+            item.addEventListener('click', () => {
+                this.openEditMessageModal(item.dataset.id);
+            });
+        });
     },
 
     renderTaskAlerts(tasks) {
@@ -1020,6 +1211,156 @@ const App = {
         });
 
         DOM.upcomingTasks.innerHTML = html;
+    },
+
+    // Admin functions
+    async loadAdminData() {
+        if (!AppState.user || AppState.user.role !== 'admin') {
+            DOM.adminSection.style.display = 'none';
+            return;
+        }
+
+        DOM.adminSection.style.display = 'block';
+        await Promise.all([this.loadPendingUsers(), this.loadAllUsers()]);
+    },
+
+    async loadPendingUsers() {
+        try {
+            const response = await fetch('/api/auth/admin/pending-users');
+            const data = await response.json();
+
+            if (!response.ok) throw new Error(data.error);
+
+            DOM.pendingCount.textContent = data.users.length;
+            
+            if (data.users.length === 0) {
+                DOM.pendingUsersList.innerHTML = `
+                    <div class="admin-empty">
+                        <i class="fas fa-check-circle"></i>
+                        <p>Nenhum usuário pendente</p>
+                    </div>
+                `;
+                return;
+            }
+
+            let html = '';
+            data.users.forEach(user => {
+                html += `
+                    <div class="admin-user-item" data-id="${user.id}">
+                        <div class="admin-user-info">
+                            <div class="admin-user-name">${Utils.escapeHtml(user.name)}</div>
+                            <div class="admin-user-email">${Utils.escapeHtml(user.email)}</div>
+                            <div class="admin-user-date">${Utils.formatDate(user.createdAt)}</div>
+                        </div>
+                        <div class="admin-user-actions">
+                            <button class="admin-btn approve" onclick="App.approveUser('${user.id}')" title="Aprovar">
+                                <i class="fas fa-check"></i>
+                            </button>
+                            <button class="admin-btn reject" onclick="App.deleteUser('${user.id}')" title="Rejeitar">
+                                <i class="fas fa-times"></i>
+                            </button>
+                        </div>
+                    </div>
+                `;
+            });
+            DOM.pendingUsersList.innerHTML = html;
+        } catch (error) {
+            console.error('Load pending users error:', error);
+        }
+    },
+
+    async loadAllUsers() {
+        try {
+            const response = await fetch('/api/auth/admin/users');
+            const data = await response.json();
+
+            if (!response.ok) throw new Error(data.error);
+
+            let html = '';
+            data.users.forEach(user => {
+                const isCurrentUser = user.id === AppState.user.id;
+                const isAdmin = user.role === 'admin';
+                
+                html += `
+                    <div class="admin-user-item" data-id="${user.id}">
+                        <div class="admin-user-info">
+                            <div class="admin-user-name">
+                                ${Utils.escapeHtml(user.name)}
+                                ${isAdmin ? '<span class="admin-badge">ADMIN</span>' : ''}
+                                ${!user.approved ? '<span class="admin-badge" style="background:var(--warning)">PENDENTE</span>' : ''}
+                            </div>
+                            <div class="admin-user-email">${Utils.escapeHtml(user.email)}</div>
+                            <div class="admin-user-date">${user._count.messages} ideias</div>
+                        </div>
+                        ${!isCurrentUser ? `
+                            <div class="admin-user-actions">
+                                <button class="admin-btn toggle-admin" onclick="App.toggleUserRole('${user.id}')" title="${isAdmin ? 'Remover admin' : 'Tornar admin'}">
+                                    <i class="fas fa-crown"></i>
+                                </button>
+                                <button class="admin-btn reject" onclick="App.deleteUser('${user.id}')" title="Excluir">
+                                    <i class="fas fa-trash"></i>
+                                </button>
+                            </div>
+                        ` : ''}
+                    </div>
+                `;
+            });
+            DOM.allUsersList.innerHTML = html;
+        } catch (error) {
+            console.error('Load users error:', error);
+        }
+    },
+
+    async approveUser(userId) {
+        try {
+            const response = await fetch(`/api/auth/admin/approve/${userId}`, {
+                method: 'POST'
+            });
+            const data = await response.json();
+
+            if (!response.ok) throw new Error(data.error);
+
+            showToast('Usuário aprovado!');
+            await this.loadAdminData();
+        } catch (error) {
+            showToast(error.message || 'Erro ao aprovar usuário');
+        }
+    },
+
+    async deleteUser(userId) {
+        if (!confirm('Tem certeza que deseja excluir este usuário? Esta ação não pode ser desfeita.')) {
+            return;
+        }
+
+        try {
+            const response = await fetch(`/api/auth/admin/users/${userId}`, {
+                method: 'DELETE'
+            });
+            const data = await response.json();
+
+            if (!response.ok) throw new Error(data.error);
+
+            showToast('Usuário removido!');
+            await this.loadAdminData();
+        } catch (error) {
+            showToast(error.message || 'Erro ao excluir usuário');
+        }
+    },
+
+    async toggleUserRole(userId) {
+        try {
+            const response = await fetch(`/api/auth/admin/toggle-role/${userId}`, {
+                method: 'POST'
+            });
+            const data = await response.json();
+
+            if (!response.ok) throw new Error(data.error);
+
+            showToast(`Cargo alterado para ${data.user.role === 'admin' ? 'administrador' : 'usuário'}!`);
+            await this.loadAdminData();
+        } catch (error) {
+            showToast(error.message || 'Erro ao alterar cargo');
+        }
     },
 
     // Render messages
@@ -1804,14 +2145,27 @@ const App = {
             await this.loadInitialData();
             showToast('Bem-vindo de volta!');
         } catch (error) {
-            showToast(error.message);
+            if (error.pendingApproval) {
+                showToast('Sua conta ainda não foi aprovada pelo admin.', 4000);
+            } else {
+                showToast(error.message);
+            }
         }
     },
 
     async register(name, email, password) {
         try {
-            const { user } = await API.auth.register(name, email, password);
-            AppState.user = user;
+            const response = await API.auth.register(name, email, password);
+            
+            // Check if pending approval
+            if (response.pendingApproval) {
+                showToast('Conta criada! Aguarde aprovação do admin.', 4000);
+                DOM.registerForm.style.display = 'none';
+                DOM.loginForm.style.display = 'block';
+                return;
+            }
+            
+            AppState.user = response.user;
             this.showMainApp();
             await this.loadInitialData();
             showToast('Conta criada com sucesso!');
@@ -2471,6 +2825,26 @@ const App = {
                 }
             });
         });
+
+        // Calendar navigation
+        if (DOM.calendarPrev) {
+            DOM.calendarPrev.addEventListener('click', () => {
+                AppState.calendarDate.setMonth(AppState.calendarDate.getMonth() - 1);
+                this.renderCalendar();
+            });
+        }
+
+        if (DOM.calendarNext) {
+            DOM.calendarNext.addEventListener('click', () => {
+                AppState.calendarDate.setMonth(AppState.calendarDate.getMonth() + 1);
+                this.renderCalendar();
+            });
+        }
+
+        // Admin refresh button
+        if (DOM.refreshUsersBtn) {
+            DOM.refreshUsersBtn.addEventListener('click', () => this.loadAdminData());
+        }
     }
 };
 

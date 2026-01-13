@@ -50,12 +50,18 @@ router.post('/register', async (req, res) => {
         // Hash password
         const hashedPassword = await bcrypt.hash(password, 12);
 
+        // Check if this is the first user (make them admin and approved)
+        const userCount = await prisma.user.count();
+        const isFirstUser = userCount === 0;
+
         // Create user
         const user = await prisma.user.create({
             data: {
                 email: email.toLowerCase(),
                 password: hashedPassword,
                 name,
+                role: isFirstUser ? 'admin' : 'user',
+                approved: isFirstUser, // First user is auto-approved
                 // Create default categories
                 categories: {
                     create: [
@@ -70,9 +76,19 @@ router.post('/register', async (req, res) => {
                 email: true,
                 name: true,
                 avatar: true,
+                role: true,
+                approved: true,
                 createdAt: true
             }
         });
+
+        // If user needs approval, don't generate token
+        if (!user.approved) {
+            return res.status(201).json({
+                message: 'Conta criada! Aguarde a aprovação do administrador.',
+                pendingApproval: true
+            });
+        }
 
         // Generate token
         const token = generateToken(user.id);
@@ -117,6 +133,14 @@ router.post('/login', async (req, res) => {
             return res.status(401).json({ error: 'Email ou senha incorretos.' });
         }
 
+        // Check if user is approved
+        if (!user.approved) {
+            return res.status(403).json({ 
+                error: 'Sua conta ainda não foi aprovada pelo administrador.',
+                pendingApproval: true
+            });
+        }
+
         // Generate token
         const token = generateToken(user.id);
 
@@ -130,6 +154,7 @@ router.post('/login', async (req, res) => {
                 email: user.email,
                 name: user.name,
                 avatar: user.avatar,
+                role: user.role,
                 createdAt: user.createdAt
             },
             token
@@ -215,6 +240,134 @@ router.put('/password', auth, async (req, res) => {
     } catch (error) {
         console.error('Change password error:', error);
         res.status(500).json({ error: 'Erro ao alterar senha.' });
+    }
+});
+
+// Admin middleware
+const isAdmin = (req, res, next) => {
+    if (req.user.role !== 'admin') {
+        return res.status(403).json({ error: 'Acesso negado. Apenas administradores.' });
+    }
+    next();
+};
+
+// Get pending users (admin only)
+router.get('/admin/pending-users', auth, isAdmin, async (req, res) => {
+    try {
+        const pendingUsers = await prisma.user.findMany({
+            where: { approved: false },
+            select: {
+                id: true,
+                email: true,
+                name: true,
+                createdAt: true
+            },
+            orderBy: { createdAt: 'desc' }
+        });
+
+        res.json({ users: pendingUsers });
+    } catch (error) {
+        console.error('Get pending users error:', error);
+        res.status(500).json({ error: 'Erro ao buscar usuários pendentes.' });
+    }
+});
+
+// Get all users (admin only)
+router.get('/admin/users', auth, isAdmin, async (req, res) => {
+    try {
+        const users = await prisma.user.findMany({
+            select: {
+                id: true,
+                email: true,
+                name: true,
+                role: true,
+                approved: true,
+                createdAt: true,
+                _count: {
+                    select: { messages: true }
+                }
+            },
+            orderBy: { createdAt: 'desc' }
+        });
+
+        res.json({ users });
+    } catch (error) {
+        console.error('Get users error:', error);
+        res.status(500).json({ error: 'Erro ao buscar usuários.' });
+    }
+});
+
+// Approve user (admin only)
+router.post('/admin/approve/:userId', auth, isAdmin, async (req, res) => {
+    try {
+        const { userId } = req.params;
+
+        const user = await prisma.user.update({
+            where: { id: userId },
+            data: { approved: true },
+            select: {
+                id: true,
+                email: true,
+                name: true,
+                approved: true
+            }
+        });
+
+        res.json({ message: 'Usuário aprovado com sucesso!', user });
+    } catch (error) {
+        console.error('Approve user error:', error);
+        res.status(500).json({ error: 'Erro ao aprovar usuário.' });
+    }
+});
+
+// Reject/Delete user (admin only)
+router.delete('/admin/users/:userId', auth, isAdmin, async (req, res) => {
+    try {
+        const { userId } = req.params;
+
+        // Prevent admin from deleting themselves
+        if (userId === req.user.id) {
+            return res.status(400).json({ error: 'Você não pode excluir sua própria conta.' });
+        }
+
+        await prisma.user.delete({
+            where: { id: userId }
+        });
+
+        res.json({ message: 'Usuário removido com sucesso!' });
+    } catch (error) {
+        console.error('Delete user error:', error);
+        res.status(500).json({ error: 'Erro ao remover usuário.' });
+    }
+});
+
+// Toggle admin role (admin only)
+router.post('/admin/toggle-role/:userId', auth, isAdmin, async (req, res) => {
+    try {
+        const { userId } = req.params;
+
+        // Prevent admin from changing their own role
+        if (userId === req.user.id) {
+            return res.status(400).json({ error: 'Você não pode alterar seu próprio cargo.' });
+        }
+
+        const user = await prisma.user.findUnique({ where: { id: userId } });
+        
+        const updatedUser = await prisma.user.update({
+            where: { id: userId },
+            data: { role: user.role === 'admin' ? 'user' : 'admin' },
+            select: {
+                id: true,
+                email: true,
+                name: true,
+                role: true
+            }
+        });
+
+        res.json({ message: 'Cargo alterado com sucesso!', user: updatedUser });
+    } catch (error) {
+        console.error('Toggle role error:', error);
+        res.status(500).json({ error: 'Erro ao alterar cargo.' });
     }
 });
 
