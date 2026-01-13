@@ -728,8 +728,103 @@ body {
 }
 
 /* =============================================
-   Progress Bar
+   Progress Overview (Circular)
    ============================================= */
+.progress-overview {
+    display: flex;
+    align-items: center;
+    gap: var(--spacing-lg);
+}
+
+.progress-circle-container {
+    flex-shrink: 0;
+}
+
+.progress-circle {
+    position: relative;
+    width: 100px;
+    height: 100px;
+}
+
+.progress-circle svg {
+    width: 100%;
+    height: 100%;
+    transform: rotate(-90deg);
+}
+
+.progress-circle-bg {
+    fill: none;
+    stroke: var(--input-bg);
+    stroke-width: 3;
+}
+
+.progress-circle-fill {
+    fill: none;
+    stroke: var(--teal-green);
+    stroke-width: 3;
+    stroke-linecap: round;
+    transition: stroke-dasharray 0.5s ease;
+}
+
+.progress-circle-text {
+    position: absolute;
+    top: 50%;
+    left: 50%;
+    transform: translate(-50%, -50%);
+    text-align: center;
+}
+
+.progress-percent {
+    font-size: 1.5rem;
+    font-weight: 700;
+    color: var(--teal-green);
+}
+
+.progress-details {
+    flex: 1;
+    display: flex;
+    flex-direction: column;
+    gap: var(--spacing-md);
+}
+
+.progress-detail-item {
+    display: flex;
+    align-items: center;
+    gap: var(--spacing-sm);
+}
+
+.progress-detail-item i {
+    font-size: 1.25rem;
+    width: 28px;
+    text-align: center;
+}
+
+.progress-detail-item.completed i {
+    color: var(--success);
+}
+
+.progress-detail-item.pending i {
+    color: var(--warning);
+}
+
+.progress-detail-info {
+    display: flex;
+    flex-direction: column;
+}
+
+.progress-detail-value {
+    font-size: 1.25rem;
+    font-weight: 600;
+    color: var(--text-primary);
+    line-height: 1.2;
+}
+
+.progress-detail-label {
+    font-size: var(--font-size-xs);
+    color: var(--text-muted);
+}
+
+/* Legacy progress bar (keep for compatibility) */
 .progress-container {
     margin-bottom: var(--spacing-md);
 }
@@ -2448,6 +2543,16 @@ body {
         margin-bottom: 0;
     }
     
+    .dashboard-row .calendar-card .calendar-tasks {
+        max-height: 80px;
+        overflow: hidden;
+    }
+    
+    .dashboard-row .calendar-card .calendar-tasks-list {
+        max-height: 50px;
+        overflow-y: auto;
+    }
+    
     .dashboard-row .calendar-day {
         width: 32px;
         height: 32px;
@@ -2456,10 +2561,6 @@ body {
     
     .dashboard-row .calendar-weekdays span {
         font-size: 11px;
-    }
-    
-    .dashboard-row .calendar-tasks-list {
-        max-height: 120px;
     }
     
     /* Messages wider */

@@ -544,7 +544,8 @@ const DOM = {
     calendarTasks: document.getElementById('calendarTasks'),
     calendarTasksList: document.getElementById('calendarTasksList'),
     calendarSelectedDate: document.getElementById('calendarSelectedDate'),
-    taskProgress: document.getElementById('taskProgress'),
+    progressCircleFill: document.getElementById('progressCircleFill'),
+    progressPercent: document.getElementById('progressPercent'),
     completedTasks: document.getElementById('completedTasks'),
     pendingTasksDetail: document.getElementById('pendingTasksDetail'),
     taskAlerts: document.getElementById('taskAlerts'),
@@ -892,8 +893,14 @@ const App = {
         // Activity chart
         this.renderActivityChart(stats.activity.last7Days);
 
-        // Task progress
-        DOM.taskProgress.style.width = `${stats.tasks.completionRate}%`;
+        // Task progress (circular)
+        const completionRate = stats.tasks.completionRate || 0;
+        if (DOM.progressCircleFill) {
+            DOM.progressCircleFill.setAttribute('stroke-dasharray', `${completionRate}, 100`);
+        }
+        if (DOM.progressPercent) {
+            DOM.progressPercent.textContent = `${Math.round(completionRate)}%`;
+        }
         DOM.completedTasks.textContent = stats.tasks.completed;
         DOM.pendingTasksDetail.textContent = stats.tasks.pending;
 

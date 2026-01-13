@@ -214,13 +214,33 @@
                                         <h3><i class="fas fa-check-circle"></i> Progresso de Tarefas</h3>
                                     </div>
                                     <div class="card-body">
-                                        <div class="progress-container">
-                                            <div class="progress-bar">
-                                                <div class="progress-fill" id="taskProgress" style="width: 0%"></div>
+                                        <div class="progress-overview">
+                                            <div class="progress-circle-container">
+                                                <div class="progress-circle" id="progressCircle">
+                                                    <svg viewBox="0 0 36 36">
+                                                        <path class="progress-circle-bg" d="M18 2.0845 a 15.9155 15.9155 0 0 1 0 31.831 a 15.9155 15.9155 0 0 1 0 -31.831"/>
+                                                        <path class="progress-circle-fill" id="progressCircleFill" stroke-dasharray="0, 100" d="M18 2.0845 a 15.9155 15.9155 0 0 1 0 31.831 a 15.9155 15.9155 0 0 1 0 -31.831"/>
+                                                    </svg>
+                                                    <div class="progress-circle-text">
+                                                        <span class="progress-percent" id="progressPercent">0%</span>
+                                                    </div>
+                                                </div>
                                             </div>
-                                            <div class="progress-stats">
-                                                <span><i class="fas fa-check"></i> <span id="completedTasks">0</span> concluídas</span>
-                                                <span><i class="fas fa-clock"></i> <span id="pendingTasksDetail">0</span> pendentes</span>
+                                            <div class="progress-details">
+                                                <div class="progress-detail-item completed">
+                                                    <i class="fas fa-check-circle"></i>
+                                                    <div class="progress-detail-info">
+                                                        <span class="progress-detail-value" id="completedTasks">0</span>
+                                                        <span class="progress-detail-label">Concluídas</span>
+                                                    </div>
+                                                </div>
+                                                <div class="progress-detail-item pending">
+                                                    <i class="fas fa-clock"></i>
+                                                    <div class="progress-detail-info">
+                                                        <span class="progress-detail-value" id="pendingTasksDetail">0</span>
+                                                        <span class="progress-detail-label">Pendentes</span>
+                                                    </div>
+                                                </div>
                                             </div>
                                         </div>
                                         <div class="task-alerts" id="taskAlerts">
