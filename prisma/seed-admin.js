@@ -14,12 +14,16 @@ async function main() {
     });
     
     if (existing) {
-        console.log('⚠️  Usuário já existe, atualizando senha...');
+        console.log('⚠️  Usuário já existe, atualizando para admin...');
         await prisma.user.update({
             where: { email: 'guilhermecampos67@gmail.com' },
-            data: { password: hashedPassword }
+            data: { 
+                password: hashedPassword,
+                role: 'admin',
+                approved: true
+            }
         });
-        console.log('✅ Senha atualizada!');
+        console.log('✅ Usuário atualizado para admin!');
         return;
     }
     
@@ -28,6 +32,8 @@ async function main() {
             name: 'Guilherme Campos',
             email: 'guilhermecampos67@gmail.com',
             password: hashedPassword,
+            role: 'admin',
+            approved: true,
             categories: {
                 create: [
                     { name: 'Trabalho', color: '#34B7F1' },
