@@ -768,7 +768,7 @@ const Markdown = {
         let inCode = false;
         let codeLines = [];
         let paraLines = [];
-        let listStack = []; // { type: 'ul'|'ol', indent: number }
+        let listStack = []; // { type: 'ul'|'ol', indent: number, liOpen: boolean }
 
         const flushParagraph = () => {
             if (paraLines.length === 0) return;
@@ -778,28 +778,87 @@ const Markdown = {
             paraLines = [];
         };
 
-        const closeListsTo = (targetIndent) => {
-            while (listStack.length > 0 && listStack[listStack.length - 1].indent >= targetIndent) {
+        const closeTopLiIfOpen = () => {
+            const top = listStack[listStack.length - 1];
+            if (top && top.liOpen) {
+                out.push('</li>');
+                top.liOpen = false;
+            }
+        };
+
+        const closeAllLists = () => {
+            while (listStack.length > 0) {
+                closeTopLiIfOpen();
                 out.push(`</${listStack[listStack.length - 1].type}>`);
                 listStack.pop();
             }
         };
 
-        const ensureList = (type, indent) => {
-            const top = listStack[listStack.length - 1];
-            if (top && top.type === type && top.indent === indent) return;
+        const closeListsToIndent = (targetIndent) => {
+            while (listStack.length > 0 && listStack[listStack.length - 1].indent > targetIndent) {
+                closeTopLiIfOpen();
+                out.push(`</${listStack[listStack.length - 1].type}>`);
+                listStack.pop();
+            }
+        };
 
-            // If deeper indent, open nested lists; if shallower, close.
-            if (!top || indent > top.indent) {
-                out.push(`<${type}>`);
-                listStack.push({ type, indent });
-                return;
+        const openList = (type, indent) => {
+            out.push(`<${type}>`);
+            listStack.push({ type, indent, liOpen: false });
+        };
+
+        const ensureListForItem = (type, indent) => {
+            // If there's no list yet, start one. If the user indents the first item,
+            // still start at indent 0 to avoid orphan nesting.
+            if (listStack.length === 0) {
+                openList(type, 0);
             }
 
-            // Same indent but different type
-            closeListsTo(indent);
-            out.push(`<${type}>`);
-            listStack.push({ type, indent });
+            let top = listStack[listStack.length - 1];
+
+            // Deeper indent: create nested lists inside the current open <li>
+            if (indent > top.indent) {
+                if (!top.liOpen) {
+                    out.push('<li>');
+                    top.liOpen = true;
+                }
+
+                while (indent > top.indent) {
+                    const nextIndent = top.indent + 1;
+                    openList(type, nextIndent);
+                    top = listStack[listStack.length - 1];
+
+                    // If we still need to go deeper, open a container <li>
+                    if (indent > top.indent) {
+                        out.push('<li>');
+                        top.liOpen = true;
+                    }
+                }
+            }
+
+            // Shallower indent: close deeper lists
+            if (indent < top.indent) {
+                closeListsToIndent(indent);
+                top = listStack[listStack.length - 1];
+                if (!top) {
+                    openList(type, 0);
+                    top = listStack[listStack.length - 1];
+                }
+            }
+
+            // Same indent: ensure correct list type
+            if (top.indent === indent && top.type !== type) {
+                closeTopLiIfOpen();
+                out.push(`</${top.type}>`);
+                listStack.pop();
+                openList(type, indent);
+                top = listStack[listStack.length - 1];
+            }
+
+            // Same list level: close previous item before starting a new one
+            if (top.indent === indent) {
+                closeTopLiIfOpen();
+            }
         };
 
         const flushCode = () => {
@@ -825,7 +884,7 @@ const Markdown = {
                     flushCode();
                 } else {
                     flushParagraph();
-                    closeListsTo(0);
+                    closeAllLists();
                     inCode = true;
                 }
                 continue;
@@ -839,7 +898,7 @@ const Markdown = {
             // Blank line
             if (!line.trim()) {
                 flushParagraph();
-                closeListsTo(0);
+                closeAllLists();
                 continue;
             }
 
@@ -847,7 +906,7 @@ const Markdown = {
             const headingMatch = line.match(/^\s*(#{1,6})\s+(.*)$/);
             if (headingMatch) {
                 flushParagraph();
-                closeListsTo(0);
+                closeAllLists();
                 const level = headingMatch[1].length;
                 const content = Markdown.formatInline(Markdown.escapeHtml(headingMatch[2] || ''));
                 out.push(`<h${level}>${content}</h${level}>`);
@@ -857,7 +916,7 @@ const Markdown = {
             // Blockquote (contiguous)
             if (/^\s*>\s?/.test(line)) {
                 flushParagraph();
-                closeListsTo(0);
+                closeAllLists();
                 const quoteLines = [];
                 let j = i;
                 while (j < lines.length && /^\s*>\s?/.test(lines[j])) {
@@ -880,21 +939,17 @@ const Markdown = {
                 const type = ulMatch ? 'ul' : 'ol';
                 const contentRaw = ulMatch ? ulMatch[3] : olMatch[3];
 
-                // Close lists if indent decreased
-                while (listStack.length > 0 && listStack[listStack.length - 1].indent > indent) {
-                    out.push(`</${listStack[listStack.length - 1].type}>`);
-                    listStack.pop();
-                }
-
-                ensureList(type, indent);
-
+                ensureListForItem(type, indent);
                 const content = Markdown.formatInline(Markdown.escapeHtml(contentRaw || ''));
-                out.push(`<li>${content}</li>`);
+                out.push(`<li>${content}`);
+                if (listStack.length > 0) {
+                    listStack[listStack.length - 1].liOpen = true;
+                }
                 continue;
             }
 
             // Normal paragraph line
-            closeListsTo(0);
+            closeAllLists();
             paraLines.push(line);
         }
 
@@ -904,7 +959,7 @@ const Markdown = {
         }
 
         flushParagraph();
-        closeListsTo(0);
+        closeAllLists();
 
         return out.join('');
     }
