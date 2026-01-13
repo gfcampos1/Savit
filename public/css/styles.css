@@ -1171,6 +1171,8 @@ body {
     background: var(--input-bg);
     border-radius: var(--radius-xl);
     padding: var(--spacing-sm) var(--spacing-md);
+    flex-wrap: wrap;
+    flex: 1;
 }
 
 .selected-category {
@@ -1234,7 +1236,8 @@ body {
     border-radius: var(--radius-sm);
 }
 
-#messageInput {
+#messageInput,
+#categoryMessageInput {
     flex: 1;
     border: none;
     background: transparent;
