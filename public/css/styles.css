@@ -96,8 +96,9 @@ body {
     flex-direction: column;
     height: 100vh;
     height: 100dvh;
-    max-width: 100%;
+    width: 100%;
     position: relative;
+    overflow: hidden;
 }
 
 /* =============================================
@@ -238,6 +239,7 @@ body {
     flex: 1;
     overflow: hidden;
     position: relative;
+    order: 1;
 }
 
 .page {
@@ -257,6 +259,18 @@ body {
 }
 
 /* =============================================
+   Main Content Area
+   ============================================= */
+.main-content {
+    flex: 1;
+    display: flex;
+    flex-direction: column;
+    overflow: hidden;
+    min-width: 0;
+    height: 100%;
+}
+
+/* =============================================
    Bottom Navigation
    ============================================= */
 .bottom-nav {
@@ -266,6 +280,8 @@ body {
     padding: var(--spacing-sm) 0;
     padding-bottom: calc(var(--spacing-sm) + env(safe-area-inset-bottom));
     z-index: var(--z-nav);
+    flex-shrink: 0;
+    order: 2;
 }
 
 .nav-item {
@@ -1869,17 +1885,6 @@ body {
 }
 
 /* =============================================
-   Main Content Area
-   ============================================= */
-.main-content {
-    flex: 1;
-    display: flex;
-    flex-direction: column;
-    overflow: hidden;
-    min-width: 0;
-}
-
-/* =============================================
    Responsive Design
    ============================================= */
 
@@ -1909,13 +1914,16 @@ body {
 @media (min-width: 1024px) {
     .main-app {
         max-width: 100%;
+        width: 100%;
         flex-direction: row;
         border: none;
+        margin: 0;
     }
     
     /* Show sidebar, hide bottom nav */
     .sidebar {
         display: flex;
+        height: 100%;
     }
     
     .bottom-nav {
@@ -1924,13 +1932,18 @@ body {
     
     /* Adjust main content */
     .main-content {
-        max-width: 900px;
+        flex: 1;
+        max-width: none;
+        height: 100%;
+        display: flex;
+        flex-direction: column;
         border-left: 1px solid var(--border-color);
         border-right: 1px solid var(--border-color);
     }
     
     .pages-container {
         flex: 1;
+        overflow: hidden;
     }
     
     .page-content {
