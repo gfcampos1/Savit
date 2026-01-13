@@ -27,7 +27,9 @@ const AppState = {
     theme: 'dark',
     pendingImages: [],
     categoryPendingImages: [],
-    drawingForCategory: false
+    drawingForCategory: false,
+    kanbanSearch: '',
+    kanbanCategory: ''
 };
 
 // =============================================
@@ -512,8 +514,18 @@ const DOM = {
     homePage: document.getElementById('homePage'),
     chatPage: document.getElementById('chatPage'),
     categoriesPage: document.getElementById('categoriesPage'),
+    kanbanPage: document.getElementById('kanbanPage'),
     profilePage: document.getElementById('profilePage'),
     categoryMessagesPage: document.getElementById('categoryMessagesPage'),
+
+    // Kanban
+    kanbanBoard: document.getElementById('kanbanBoard'),
+    kanbanPending: document.getElementById('kanbanPending'),
+    kanbanCompleted: document.getElementById('kanbanCompleted'),
+    kanbanPendingCount: document.getElementById('kanbanPendingCount'),
+    kanbanCompletedCount: document.getElementById('kanbanCompletedCount'),
+    kanbanSearch: document.getElementById('kanbanSearch'),
+    kanbanCategoryFilter: document.getElementById('kanbanCategoryFilter'),
 
     // Home Page
     userName: document.getElementById('userName'),
@@ -809,6 +821,8 @@ const App = {
             this.refreshMessages();
         } else if (page === 'categories') {
             this.refreshCategories();
+        } else if (page === 'kanban') {
+            this.renderKanban();
         }
     },
 
@@ -1318,6 +1332,172 @@ const App = {
                 closeModal(DOM.categorySelectorModal);
             });
         });
+    },
+
+    // Kanban
+    renderKanban() {
+        const search = AppState.kanbanSearch.toLowerCase();
+        const categoryFilter = AppState.kanbanCategory;
+
+        // Get all tasks
+        let tasks = AppState.messages.filter(m => m.isTask);
+
+        // Apply filters
+        if (search) {
+            tasks = tasks.filter(t => t.text.toLowerCase().includes(search));
+        }
+        if (categoryFilter) {
+            tasks = tasks.filter(t => t.categoryId === categoryFilter);
+        }
+
+        // Separate by status
+        const pending = tasks.filter(t => !t.taskCompleted);
+        const completed = tasks.filter(t => t.taskCompleted);
+
+        // Update counts
+        DOM.kanbanPendingCount.textContent = pending.length;
+        DOM.kanbanCompletedCount.textContent = completed.length;
+
+        // Render pending
+        if (pending.length === 0) {
+            DOM.kanbanPending.innerHTML = `
+                <div class="kanban-empty">
+                    <i class="fas fa-clipboard-list"></i>
+                    <p>Nenhuma tarefa pendente</p>
+                </div>
+            `;
+        } else {
+            DOM.kanbanPending.innerHTML = pending
+                .sort((a, b) => {
+                    // Sort by date (closest first)
+                    if (a.taskDate && b.taskDate) return new Date(a.taskDate) - new Date(b.taskDate);
+                    if (a.taskDate) return -1;
+                    if (b.taskDate) return 1;
+                    return new Date(b.createdAt) - new Date(a.createdAt);
+                })
+                .map(t => this.renderKanbanCard(t))
+                .join('');
+        }
+
+        // Render completed
+        if (completed.length === 0) {
+            DOM.kanbanCompleted.innerHTML = `
+                <div class="kanban-empty">
+                    <i class="fas fa-check-circle"></i>
+                    <p>Nenhuma tarefa concluída</p>
+                </div>
+            `;
+        } else {
+            DOM.kanbanCompleted.innerHTML = completed
+                .sort((a, b) => new Date(b.updatedAt) - new Date(a.updatedAt))
+                .map(t => this.renderKanbanCard(t))
+                .join('');
+        }
+
+        // Add event listeners
+        document.querySelectorAll('.kanban-card-checkbox').forEach(checkbox => {
+            checkbox.addEventListener('click', (e) => {
+                e.stopPropagation();
+                const id = checkbox.closest('.kanban-card').dataset.id;
+                this.toggleTaskComplete(id);
+            });
+        });
+
+        document.querySelectorAll('.kanban-card').forEach(card => {
+            card.addEventListener('click', () => {
+                this.openEditMessageModal(card.dataset.id);
+            });
+        });
+
+        // Update category filter options
+        this.updateKanbanCategoryFilter();
+    },
+
+    renderKanbanCard(task) {
+        const category = AppState.categories.find(c => c.id === task.categoryId);
+        const isCompleted = task.taskCompleted;
+        
+        let dateClass = '';
+        let dateText = '';
+        
+        if (task.taskDate) {
+            const taskDate = new Date(task.taskDate);
+            const today = new Date();
+            today.setHours(0, 0, 0, 0);
+            taskDate.setHours(0, 0, 0, 0);
+            
+            const diffDays = Math.floor((taskDate - today) / (1000 * 60 * 60 * 24));
+            
+            if (diffDays < 0 && !isCompleted) {
+                dateClass = 'overdue';
+                dateText = `Atrasada ${Math.abs(diffDays)} dia(s)`;
+            } else if (diffDays === 0) {
+                dateClass = 'today';
+                dateText = 'Hoje';
+            } else if (diffDays === 1) {
+                dateText = 'Amanhã';
+            } else {
+                dateText = taskDate.toLocaleDateString('pt-BR', { day: '2-digit', month: 'short' });
+            }
+            
+            if (task.taskTime) {
+                dateText += ` às ${task.taskTime}`;
+            }
+        }
+
+        return `
+            <div class="kanban-card ${isCompleted ? 'completed' : ''}" data-id="${task.id}">
+                <div class="kanban-card-header">
+                    <div class="kanban-card-checkbox ${isCompleted ? 'checked' : ''}">
+                        <i class="fas fa-check"></i>
+                    </div>
+                    <div class="kanban-card-text">${Utils.escapeHtml(task.text)}</div>
+                </div>
+                ${category || dateText ? `
+                    <div class="kanban-card-footer">
+                        ${category ? `<span class="kanban-card-category" style="background: ${category.color}">${Utils.escapeHtml(category.name)}</span>` : '<span></span>'}
+                        ${dateText ? `<span class="kanban-card-date ${dateClass}"><i class="fas fa-calendar"></i> ${dateText}</span>` : ''}
+                    </div>
+                ` : ''}
+            </div>
+        `;
+    },
+
+    updateKanbanCategoryFilter() {
+        const categories = AppState.categories;
+        let html = '<option value="">Todos os temas</option>';
+        
+        categories.forEach(cat => {
+            const selected = AppState.kanbanCategory === cat.id ? 'selected' : '';
+            html += `<option value="${cat.id}" ${selected}>${Utils.escapeHtml(cat.name)}</option>`;
+        });
+        
+        DOM.kanbanCategoryFilter.innerHTML = html;
+    },
+
+    async toggleTaskComplete(id) {
+        try {
+            const message = AppState.messages.find(m => m.id === id);
+            if (!message) return;
+
+            const { message: updated } = await API.messages.update(id, {
+                taskCompleted: !message.taskCompleted
+            });
+
+            // Update in state
+            const index = AppState.messages.findIndex(m => m.id === id);
+            if (index !== -1) {
+                AppState.messages[index] = updated;
+            }
+
+            this.renderKanban();
+            this.renderMessages();
+            this.refreshDashboard();
+            
+            showToast(updated.taskCompleted ? 'Tarefa concluída!' : 'Tarefa reaberta');
+        } catch (error) {
+            showToast(error.message);
+        }
     },
 
     renderProfile() {
@@ -2222,6 +2402,17 @@ const App = {
                 }
             });
         }
+
+        // Kanban filters
+        DOM.kanbanSearch.addEventListener('input', (e) => {
+            AppState.kanbanSearch = e.target.value;
+            this.renderKanban();
+        });
+
+        DOM.kanbanCategoryFilter.addEventListener('change', (e) => {
+            AppState.kanbanCategory = e.target.value;
+            this.renderKanban();
+        });
 
         // Profile page
         DOM.editProfileBtn.addEventListener('click', () => {

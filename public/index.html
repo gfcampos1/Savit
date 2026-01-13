@@ -98,6 +98,10 @@
                         <i class="fas fa-folder"></i>
                         <span>Temas</span>
                     </button>
+                    <button class="sidebar-nav-item" data-page="kanban">
+                        <i class="fas fa-columns"></i>
+                        <span>Kanban</span>
+                    </button>
                     <button class="sidebar-nav-item" data-page="profile">
                         <i class="fas fa-user"></i>
                         <span>Perfil</span>
@@ -126,6 +130,10 @@
                     <button class="nav-item" data-page="categories">
                         <i class="fas fa-folder"></i>
                         <span>Temas</span>
+                    </button>
+                    <button class="nav-item" data-page="kanban">
+                        <i class="fas fa-columns"></i>
+                        <span>Kanban</span>
                     </button>
                     <button class="nav-item" data-page="profile">
                         <i class="fas fa-user"></i>
@@ -371,6 +379,51 @@
                     <div class="page-content">
                         <div class="categories-list" id="categoriesList">
                             <!-- Categories will be rendered here -->
+                        </div>
+                    </div>
+                </div>
+
+                <!-- Kanban Page -->
+                <div class="page" id="kanbanPage">
+                    <header class="page-header">
+                        <h1>Kanban</h1>
+                    </header>
+
+                    <div class="kanban-filters">
+                        <div class="kanban-search">
+                            <i class="fas fa-search"></i>
+                            <input type="text" id="kanbanSearch" placeholder="Buscar tarefas...">
+                        </div>
+                        <select id="kanbanCategoryFilter" class="kanban-filter-select">
+                            <option value="">Todos os temas</option>
+                        </select>
+                    </div>
+
+                    <div class="kanban-board" id="kanbanBoard">
+                        <div class="kanban-column" data-status="pending">
+                            <div class="kanban-column-header">
+                                <span class="kanban-column-title">
+                                    <i class="fas fa-clock"></i>
+                                    Pendentes
+                                </span>
+                                <span class="kanban-column-count" id="kanbanPendingCount">0</span>
+                            </div>
+                            <div class="kanban-column-content" id="kanbanPending">
+                                <!-- Pending tasks -->
+                            </div>
+                        </div>
+
+                        <div class="kanban-column" data-status="completed">
+                            <div class="kanban-column-header">
+                                <span class="kanban-column-title">
+                                    <i class="fas fa-check-circle"></i>
+                                    Concluídas
+                                </span>
+                                <span class="kanban-column-count" id="kanbanCompletedCount">0</span>
+                            </div>
+                            <div class="kanban-column-content" id="kanbanCompleted">
+                                <!-- Completed tasks -->
+                            </div>
                         </div>
                     </div>
                 </div>
