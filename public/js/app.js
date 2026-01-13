@@ -587,6 +587,11 @@ const DOM = {
     taskDate: document.getElementById('taskDate'),
     taskTime: document.getElementById('taskTime'),
 
+    // Formatting toolbars
+    formatToolbar: document.getElementById('formatToolbar'),
+    categoryFormatToolbar: document.getElementById('categoryFormatToolbar'),
+    editFormatToolbar: document.getElementById('editFormatToolbar'),
+
     // Sidebar (Desktop)
     sidebarAvatar: document.getElementById('sidebarAvatar'),
     sidebarUsername: document.getElementById('sidebarUsername'),
@@ -697,6 +702,425 @@ const DOM = {
     // Context Menu
     contextMenu: document.getElementById('contextMenu')
 };
+
+// =============================================
+// Markdown Helpers (safe, minimal)
+// =============================================
+
+const Markdown = {
+    indentSize: 4,
+
+    normalizeNewlines(text) {
+        return String(text || '').replace(/\r\n?/g, '\n');
+    },
+
+    escapeHtml(text) {
+        return String(text)
+            .replace(/&/g, '&amp;')
+            .replace(/</g, '&lt;')
+            .replace(/>/g, '&gt;')
+            .replace(/"/g, '&quot;')
+            .replace(/'/g, '&#039;');
+    },
+
+    isSafeUrl(url) {
+        const trimmed = String(url || '').trim();
+        if (!trimmed) return false;
+
+        // Allow http(s) and mailto only
+        return /^https?:\/\//i.test(trimmed) || /^mailto:/i.test(trimmed);
+    },
+
+    formatInline(escapedText) {
+        if (!escapedText) return '';
+
+        let html = escapedText;
+
+        // Inline code
+        html = html.replace(/`([^`]+)`/g, '<code>$1</code>');
+
+        // Links: [text](url)
+        html = html.replace(/\[([^\]]+)\]\(([^\)]+)\)/g, (match, linkText, url) => {
+            const rawUrl = String(url || '').trim();
+            if (!Markdown.isSafeUrl(rawUrl)) {
+                return match;
+            }
+            const safeHref = Markdown.escapeHtml(rawUrl);
+            return `<a href="${safeHref}" target="_blank" rel="noopener noreferrer">${linkText}</a>`;
+        });
+
+        // Bold
+        html = html.replace(/\*\*([^\n*][^\n]*?)\*\*/g, '<strong>$1</strong>');
+
+        // Italic (simple)
+        html = html.replace(/(^|[^*])\*([^\n*][^\n]*?)\*(?!\*)/g, '$1<em>$2</em>');
+
+        return html;
+    },
+
+    render(text) {
+        const source = Markdown.normalizeNewlines(text);
+        if (!source.trim()) return '';
+
+        const lines = source.split('\n');
+        const out = [];
+
+        let inCode = false;
+        let codeLines = [];
+        let paraLines = [];
+        let listStack = []; // { type: 'ul'|'ol', indent: number }
+
+        const flushParagraph = () => {
+            if (paraLines.length === 0) return;
+            const escaped = paraLines.map(l => Markdown.escapeHtml(l));
+            const joined = escaped.join('<br>');
+            out.push(`<p>${Markdown.formatInline(joined)}</p>`);
+            paraLines = [];
+        };
+
+        const closeListsTo = (targetIndent) => {
+            while (listStack.length > 0 && listStack[listStack.length - 1].indent >= targetIndent) {
+                out.push(`</${listStack[listStack.length - 1].type}>`);
+                listStack.pop();
+            }
+        };
+
+        const ensureList = (type, indent) => {
+            const top = listStack[listStack.length - 1];
+            if (top && top.type === type && top.indent === indent) return;
+
+            // If deeper indent, open nested lists; if shallower, close.
+            if (!top || indent > top.indent) {
+                out.push(`<${type}>`);
+                listStack.push({ type, indent });
+                return;
+            }
+
+            // Same indent but different type
+            closeListsTo(indent);
+            out.push(`<${type}>`);
+            listStack.push({ type, indent });
+        };
+
+        const flushCode = () => {
+            const escaped = Markdown.escapeHtml(codeLines.join('\n'));
+            out.push(`<pre><code>${escaped}</code></pre>`);
+            codeLines = [];
+        };
+
+        const computeIndent = (line) => {
+            const m = line.match(/^(\s*)/);
+            const spaces = (m?.[1] || '').replace(/\t/g, ' '.repeat(Markdown.indentSize)).length;
+            return Math.floor(spaces / Markdown.indentSize);
+        };
+
+        for (let i = 0; i < lines.length; i++) {
+            const rawLine = lines[i];
+            const line = rawLine;
+
+            // Code fences
+            if (/^\s*```/.test(line)) {
+                if (inCode) {
+                    inCode = false;
+                    flushCode();
+                } else {
+                    flushParagraph();
+                    closeListsTo(0);
+                    inCode = true;
+                }
+                continue;
+            }
+
+            if (inCode) {
+                codeLines.push(line);
+                continue;
+            }
+
+            // Blank line
+            if (!line.trim()) {
+                flushParagraph();
+                closeListsTo(0);
+                continue;
+            }
+
+            // Headings
+            const headingMatch = line.match(/^\s*(#{1,6})\s+(.*)$/);
+            if (headingMatch) {
+                flushParagraph();
+                closeListsTo(0);
+                const level = headingMatch[1].length;
+                const content = Markdown.formatInline(Markdown.escapeHtml(headingMatch[2] || ''));
+                out.push(`<h${level}>${content}</h${level}>`);
+                continue;
+            }
+
+            // Blockquote (contiguous)
+            if (/^\s*>\s?/.test(line)) {
+                flushParagraph();
+                closeListsTo(0);
+                const quoteLines = [];
+                let j = i;
+                while (j < lines.length && /^\s*>\s?/.test(lines[j])) {
+                    quoteLines.push(lines[j].replace(/^\s*>\s?/, ''));
+                    j++;
+                }
+                i = j - 1;
+                const escapedQuote = quoteLines.map(l => Markdown.escapeHtml(l)).join('<br>');
+                out.push(`<blockquote>${Markdown.formatInline(escapedQuote)}</blockquote>`);
+                continue;
+            }
+
+            // Lists
+            const ulMatch = line.match(/^(\s*)([-*+])\s+(.*)$/);
+            const olMatch = line.match(/^(\s*)(\d+)\.\s+(.*)$/);
+            if (ulMatch || olMatch) {
+                flushParagraph();
+
+                const indent = computeIndent(line);
+                const type = ulMatch ? 'ul' : 'ol';
+                const contentRaw = ulMatch ? ulMatch[3] : olMatch[3];
+
+                // Close lists if indent decreased
+                while (listStack.length > 0 && listStack[listStack.length - 1].indent > indent) {
+                    out.push(`</${listStack[listStack.length - 1].type}>`);
+                    listStack.pop();
+                }
+
+                ensureList(type, indent);
+
+                const content = Markdown.formatInline(Markdown.escapeHtml(contentRaw || ''));
+                out.push(`<li>${content}</li>`);
+                continue;
+            }
+
+            // Normal paragraph line
+            closeListsTo(0);
+            paraLines.push(line);
+        }
+
+        if (inCode) {
+            // Unclosed fence: still render as code.
+            flushCode();
+        }
+
+        flushParagraph();
+        closeListsTo(0);
+
+        return out.join('');
+    }
+};
+
+// =============================================
+// Textarea Formatting Helpers
+// =============================================
+
+const TextareaFormat = {
+    getSelection(textarea) {
+        const value = textarea.value;
+        const start = textarea.selectionStart ?? 0;
+        const end = textarea.selectionEnd ?? 0;
+        return { value, start, end, selected: value.slice(start, end) };
+    },
+
+    setSelection(textarea, start, end) {
+        textarea.focus();
+        textarea.setSelectionRange(start, end);
+    },
+
+    replaceRange(textarea, start, end, replacement) {
+        const value = textarea.value;
+        textarea.value = value.slice(0, start) + replacement + value.slice(end);
+    },
+
+    wrap(textarea, left, right, placeholder = '') {
+        const { start, end, selected } = TextareaFormat.getSelection(textarea);
+        const content = selected || placeholder;
+        const replacement = left + content + right;
+        TextareaFormat.replaceRange(textarea, start, end, replacement);
+
+        const cursorStart = start + left.length;
+        const cursorEnd = start + left.length + content.length;
+        TextareaFormat.setSelection(textarea, cursorStart, cursorEnd);
+        textarea.dispatchEvent(new Event('input'));
+    },
+
+    prefixLines(textarea, prefix) {
+        const { value, start, end } = TextareaFormat.getSelection(textarea);
+        const lineStart = value.lastIndexOf('\n', start - 1) + 1;
+        const lineEnd = value.indexOf('\n', end);
+        const blockEnd = lineEnd === -1 ? value.length : lineEnd;
+
+        const block = value.slice(lineStart, blockEnd);
+        const replaced = block
+            .split('\n')
+            .map(line => (line.trim().length ? prefix + line : line))
+            .join('\n');
+
+        TextareaFormat.replaceRange(textarea, lineStart, blockEnd, replaced);
+        TextareaFormat.setSelection(textarea, lineStart, lineStart + replaced.length);
+        textarea.dispatchEvent(new Event('input'));
+    },
+
+    indent(textarea) {
+        const indentStr = ' '.repeat(Markdown.indentSize);
+        TextareaFormat.prefixLines(textarea, indentStr);
+    },
+
+    outdent(textarea) {
+        const { value, start, end } = TextareaFormat.getSelection(textarea);
+        const lineStart = value.lastIndexOf('\n', start - 1) + 1;
+        const lineEnd = value.indexOf('\n', end);
+        const blockEnd = lineEnd === -1 ? value.length : lineEnd;
+
+        const block = value.slice(lineStart, blockEnd);
+        const replaced = block
+            .split('\n')
+            .map(line => line.replace(new RegExp(`^ {1,${Markdown.indentSize}}`), ''))
+            .join('\n');
+
+        TextareaFormat.replaceRange(textarea, lineStart, blockEnd, replaced);
+        TextareaFormat.setSelection(textarea, lineStart, lineStart + replaced.length);
+        textarea.dispatchEvent(new Event('input'));
+    },
+
+    insertLink(textarea) {
+        const { start, end, selected } = TextareaFormat.getSelection(textarea);
+        const text = selected || 'texto';
+        const url = window.prompt('Cole o link (https://...)');
+        if (!url) return;
+
+        const replacement = `[${text}](${url})`;
+        TextareaFormat.replaceRange(textarea, start, end, replacement);
+
+        // Select the URL for quick editing
+        const urlStart = start + text.length + 3; // `[`.length + text + `](`
+        const urlEnd = urlStart + String(url).length;
+        TextareaFormat.setSelection(textarea, urlStart, urlEnd);
+        textarea.dispatchEvent(new Event('input'));
+    }
+};
+
+function setupFormattingToolbar(toolbarEl, textareaEl) {
+    if (!toolbarEl || !textareaEl) return;
+
+    const previewEl = toolbarEl.parentElement?.querySelector('.format-preview') || null;
+    let isPreviewing = false;
+
+    const updatePreview = () => {
+        if (!previewEl) return;
+        previewEl.innerHTML = `<div class="message-text">${Markdown.render(textareaEl.value)}</div>`;
+    };
+
+    const setPreviewMode = (enabled) => {
+        if (!previewEl) return;
+        isPreviewing = enabled;
+        if (enabled) {
+            updatePreview();
+            previewEl.style.display = 'block';
+            textareaEl.style.display = 'none';
+        } else {
+            previewEl.style.display = 'none';
+            textareaEl.style.display = '';
+            textareaEl.focus();
+        }
+
+        // Toggle icon (eye / eye-slash)
+        const previewBtnIcon = toolbarEl.querySelector('button[data-format="preview"] i');
+        if (previewBtnIcon) {
+            previewBtnIcon.classList.toggle('fa-eye', !enabled);
+            previewBtnIcon.classList.toggle('fa-eye-slash', enabled);
+        }
+    };
+
+    toolbarEl.addEventListener('click', (e) => {
+        const btn = e.target.closest('button[data-format]');
+        if (!btn) return;
+        e.preventDefault();
+        const action = btn.dataset.format;
+
+        switch (action) {
+            case 'bold':
+                TextareaFormat.wrap(textareaEl, '**', '**', 'negrito');
+                break;
+            case 'italic':
+                TextareaFormat.wrap(textareaEl, '*', '*', 'itálico');
+                break;
+            case 'h2':
+                TextareaFormat.prefixLines(textareaEl, '## ');
+                break;
+            case 'ul':
+                TextareaFormat.prefixLines(textareaEl, '- ');
+                break;
+            case 'ol':
+                TextareaFormat.prefixLines(textareaEl, '1. ');
+                break;
+            case 'indent':
+                TextareaFormat.indent(textareaEl);
+                break;
+            case 'outdent':
+                TextareaFormat.outdent(textareaEl);
+                break;
+            case 'quote':
+                TextareaFormat.prefixLines(textareaEl, '> ');
+                break;
+            case 'code': {
+                const sel = TextareaFormat.getSelection(textareaEl);
+                if (sel.selected && sel.selected.includes('\n')) {
+                    TextareaFormat.wrap(textareaEl, '```\n', '\n```');
+                } else {
+                    TextareaFormat.wrap(textareaEl, '`', '`', 'código');
+                }
+                break;
+            }
+            case 'link':
+                TextareaFormat.insertLink(textareaEl);
+                break;
+            case 'preview':
+                if (!previewEl) return;
+                setPreviewMode(!isPreviewing);
+                break;
+        }
+    });
+
+    textareaEl.addEventListener('keydown', (e) => {
+        if (isPreviewing) {
+            // Shouldn't happen since textarea is hidden, but keep safe.
+            return;
+        }
+
+        // Tabs for indent/outdent
+        if (e.key === 'Tab') {
+            e.preventDefault();
+            if (e.shiftKey) {
+                TextareaFormat.outdent(textareaEl);
+            } else {
+                TextareaFormat.indent(textareaEl);
+            }
+            return;
+        }
+
+        // Shortcuts
+        if (!e.ctrlKey && !e.metaKey) return;
+
+        const key = e.key.toLowerCase();
+        if (key === 'b') {
+            e.preventDefault();
+            TextareaFormat.wrap(textareaEl, '**', '**', 'negrito');
+        } else if (key === 'i') {
+            e.preventDefault();
+            TextareaFormat.wrap(textareaEl, '*', '*', 'itálico');
+        } else if (key === 'k') {
+            e.preventDefault();
+            TextareaFormat.insertLink(textareaEl);
+        }
+    });
+
+    textareaEl.addEventListener('input', () => {
+        if (isPreviewing) {
+            updatePreview();
+        }
+    });
+}
 
 // =============================================
 // App Controller
@@ -1444,7 +1868,7 @@ const App = {
 
         // Message text
         if (msg.text) {
-            html += `<div class="message-text">${Utils.escapeHtml(msg.text)}</div>`;
+            html += `<div class="message-text">${Markdown.render(msg.text)}</div>`;
         }
 
         // Task section
@@ -1879,8 +2303,15 @@ const App = {
 
     async updateMessage(id) {
         try {
+            const rawText = DOM.editMessageText.value;
+            const textForCheck = rawText.trim();
+            if (!textForCheck) {
+                showToast('Digite uma mensagem');
+                return;
+            }
+
             const { message } = await API.messages.update(id, {
-                text: DOM.editMessageText.value.trim(),
+                text: rawText.trimEnd(),
                 categoryId: DOM.editMessageCategory.value || null,
                 isTask: DOM.editMessageIsTask.checked,
                 taskDate: DOM.editMessageIsTask.checked ? DOM.editTaskDate.value : null,
@@ -2466,14 +2897,18 @@ const App = {
         });
 
         // Chat page
+        setupFormattingToolbar(DOM.formatToolbar, DOM.messageInput);
+
         DOM.sendBtn.addEventListener('click', async () => {
-            const text = DOM.messageInput.value.trim();
+            const rawText = DOM.messageInput.value;
+            const textForCheck = rawText.trim();
+            const textToSend = rawText.trimEnd();
             const hasImages = AppState.pendingImages.length > 0;
             
-            if (!text && !hasImages) return;
+            if (!textForCheck && !hasImages) return;
 
             await this.createMessage(
-                text,
+                textToSend,
                 AppState.selectedCategoryId,
                 AppState.isTaskMode,
                 AppState.isTaskMode ? DOM.taskDate.value : null,
@@ -2591,6 +3026,7 @@ const App = {
 
         // Edit message modal
         DOM.closeEditMessageModal.addEventListener('click', () => closeModal(DOM.editMessageModal));
+        setupFormattingToolbar(DOM.editFormatToolbar, DOM.editMessageText);
         DOM.editMessageIsTask.addEventListener('change', () => {
             DOM.editTaskFields.style.display = DOM.editMessageIsTask.checked ? 'block' : 'none';
         });
@@ -2606,15 +3042,19 @@ const App = {
         // Category messages page
         DOM.backFromCategoryBtn.addEventListener('click', () => this.closeCategoryMessages());
 
+        setupFormattingToolbar(DOM.categoryFormatToolbar, DOM.categoryMessageInput);
+
         // Category page input - Send message
         DOM.categorySendBtn.addEventListener('click', async () => {
-            const text = DOM.categoryMessageInput.value.trim();
+            const rawText = DOM.categoryMessageInput.value;
+            const textForCheck = rawText.trim();
+            const textToSend = rawText.trimEnd();
             const hasImages = AppState.categoryPendingImages.length > 0;
             
-            if ((!text && !hasImages) || !AppState.viewingCategoryId) return;
+            if ((!textForCheck && !hasImages) || !AppState.viewingCategoryId) return;
 
             await this.createMessage(
-                text,
+                textToSend,
                 AppState.viewingCategoryId,
                 AppState.isCategoryTaskMode,
                 AppState.isCategoryTaskMode ? DOM.categoryTaskDate.value : null,
