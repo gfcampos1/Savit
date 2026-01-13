@@ -2431,7 +2431,7 @@ body {
         display: grid;
         grid-template-columns: 1fr 1fr;
         gap: var(--spacing-lg);
-        align-items: stretch;
+        align-items: start;
     }
     
     .dashboard-col {
@@ -2444,24 +2444,8 @@ body {
         margin-bottom: 0;
     }
     
-    .dashboard-col .progress-card {
-        flex: 1;
-    }
-    
-    .dashboard-col .progress-card .card-body {
-        display: flex;
-        flex-direction: column;
-        height: 100%;
-    }
-    
-    .dashboard-col .progress-card .task-alerts {
-        flex: 1;
-        overflow-y: auto;
-    }
-    
     .dashboard-row .calendar-card {
         margin-bottom: 0;
-        max-height: fit-content;
     }
     
     .dashboard-row .calendar-day {
