@@ -2540,28 +2540,38 @@ body {
     }
     
     /* Limit progress card height */
-    .dashboard-col .progress-card {
-        max-height: 180px;
+    .dashboard-col .card.progress-card {
+        height: 160px;
+        max-height: 160px;
         overflow: hidden;
+        flex-shrink: 0;
     }
     
-    .dashboard-col .progress-card .card-body {
-        padding: var(--spacing-md);
+    .dashboard-col .card.progress-card .card-body {
+        padding: var(--spacing-sm) var(--spacing-md);
     }
     
-    .dashboard-col .progress-card .progress-overview {
-        gap: var(--spacing-md);
+    .dashboard-col .card.progress-card .progress-overview {
+        gap: var(--spacing-sm);
     }
     
-    .dashboard-col .progress-card .progress-circle {
-        width: 80px;
-        height: 80px;
+    .dashboard-col .card.progress-card .progress-circle {
+        width: 70px;
+        height: 70px;
     }
     
-    .dashboard-col .progress-card .progress-percent {
-        font-size: 1.25rem;
+    .dashboard-col .card.progress-card .progress-percent {
+        font-size: 1.1rem;
     }
     
+    .dashboard-col .card.progress-card .progress-detail-value {
+        font-size: 1rem;
+    }
+    
+    .dashboard-col .card.progress-card .task-alerts {
+        display: none;
+    }
+
     .dashboard-row .calendar-card {
         margin-bottom: 0;
     }
