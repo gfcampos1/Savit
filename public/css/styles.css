@@ -2579,14 +2579,44 @@ body {
     .dashboard-row .calendar-card {
         margin-bottom: 0;
     }
-    
-    .dashboard-row .calendar-card .calendar-tasks {
-        max-height: 80px;
+
+    /* Make calendar fit the row height and scroll internally (prevents overlap with next section) */
+    .dashboard-row {
+        align-items: stretch;
+    }
+
+    .dashboard-row > * {
+        min-height: 0;
+    }
+
+    .dashboard-row .calendar-card {
+        height: 100%;
+        display: flex;
+        flex-direction: column;
+    }
+
+    .dashboard-row .calendar-card .card-body {
+        flex: 1;
+        min-height: 0;
+        display: flex;
+        flex-direction: column;
         overflow: hidden;
     }
-    
+
+    .dashboard-row .calendar-card .calendar-grid {
+        flex: 0 0 auto;
+    }
+
+    .dashboard-row .calendar-card .calendar-tasks {
+        flex: 1;
+        min-height: 0;
+        overflow: hidden;
+    }
+
     .dashboard-row .calendar-card .calendar-tasks-list {
-        max-height: 50px;
+        flex: 1;
+        min-height: 0;
+        max-height: none;
         overflow-y: auto;
     }
     
