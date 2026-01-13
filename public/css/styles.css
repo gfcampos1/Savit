@@ -2616,7 +2616,6 @@ body {
 
     .dashboard-row .top-categories-card {
         grid-column: 1 / -1;
-        margin-top: var(--spacing-xl);
     }
     
     .dashboard-row .calendar-day {
