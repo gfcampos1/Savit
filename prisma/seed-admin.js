@@ -1,33 +1,35 @@
-// Script para criar usuário admin no Railway
+// Seed de admin (NÃO coloque credenciais no código)
+// Uso:
+//   SEED_ADMIN_EMAIL="..." SEED_ADMIN_PASSWORD="..." node prisma/seed-admin.js
+// O usuário será criado/atualizado com role=admin e approved=true.
+
 const { PrismaClient } = require('@prisma/client');
 const bcrypt = require('bcryptjs');
 
 const prisma = new PrismaClient();
 
 async function main() {
-    // Criar usuário admin
-    const hashedPassword = await bcrypt.hash('C@sa17061992#', 10);
-    
-    // Verificar se já existe
-    const existing = await prisma.user.findUnique({
-        where: { email: 'guilhermecampos67@gmail.com' }
-    });
-    
-    if (existing) {
-        console.log('⚠️  Usuário já existe, atualizando senha...');
-        await prisma.user.update({
-            where: { email: 'guilhermecampos67@gmail.com' },
-            data: { password: hashedPassword }
-        });
-        console.log('✅ Senha atualizada!');
-        return;
+    const email = (process.env.SEED_ADMIN_EMAIL || '').trim().toLowerCase();
+    const passwordPlain = process.env.SEED_ADMIN_PASSWORD || '';
+    const name = (process.env.SEED_ADMIN_NAME || 'Admin').trim();
+
+    if (!email) {
+        throw new Error('SEED_ADMIN_EMAIL não informado');
     }
-    
-    const user = await prisma.user.create({
-        data: {
-            name: 'Guilherme Campos',
-            email: 'guilhermecampos67@gmail.com',
+    if (!passwordPlain) {
+        throw new Error('SEED_ADMIN_PASSWORD não informado');
+    }
+
+    const hashedPassword = await bcrypt.hash(passwordPlain, 12);
+
+    const user = await prisma.user.upsert({
+        where: { email },
+        create: {
+            name,
+            email,
             password: hashedPassword,
+            role: 'admin',
+            approved: true,
             categories: {
                 create: [
                     { name: 'Trabalho', color: '#34B7F1' },
@@ -37,20 +39,27 @@ async function main() {
                 ]
             }
         },
-        include: {
-            categories: true
+        update: {
+            name,
+            password: hashedPassword,
+            role: 'admin',
+            approved: true,
+        },
+        select: {
+            id: true,
+            email: true,
+            name: true,
+            role: true,
+            approved: true,
         }
     });
-    
-    console.log('\n✅ Usuário admin criado com sucesso!\n');
-    console.log('📧 Email: guilhermecampos67@gmail.com');
-    console.log('🔑 Senha: C@sa17061992#');
-    console.log('\n📁 Categorias:', user.categories.map(c => c.name).join(', '));
+
+    console.log('✅ Admin seed OK:', user);
 }
 
 main()
     .catch((e) => {
-        console.error('Erro:', e);
+        console.error('Erro:', e.message || e);
         process.exit(1);
     })
     .finally(async () => {
