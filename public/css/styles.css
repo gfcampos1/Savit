@@ -1478,7 +1478,7 @@ body {
     border-radius: 10px;
     border: 1px solid rgba(255, 255, 255, 0.12);
     background: rgba(255, 255, 255, 0.08);
-    color: rgba(255, 255, 255, 0.92);
+    color: var(--text-primary);
     cursor: pointer;
     display: inline-flex;
     align-items: center;
@@ -1517,6 +1517,31 @@ body {
     background: rgba(0, 0, 0, 0.18);
     max-height: 220px;
     overflow: auto;
+}
+
+/* Light theme adjustments for toolbar visibility */
+[data-theme="light"] .format-toolbar {
+    background: rgba(0, 0, 0, 0.03);
+    border: 1px solid rgba(0, 0, 0, 0.08);
+}
+
+[data-theme="light"] .format-toolbar .format-btn {
+    background: rgba(0, 0, 0, 0.04);
+    border: 1px solid rgba(0, 0, 0, 0.12);
+    color: var(--text-primary);
+}
+
+[data-theme="light"] .format-toolbar .format-btn:hover {
+    background: rgba(0, 0, 0, 0.08);
+}
+
+[data-theme="light"] .format-toolbar .format-sep {
+    background: rgba(0, 0, 0, 0.15);
+}
+
+[data-theme="light"] .format-preview {
+    border: 1px solid rgba(0, 0, 0, 0.10);
+    background: rgba(0, 0, 0, 0.04);
 }
 
 .format-preview .message-text {
