@@ -439,6 +439,47 @@
                             <!-- Category messages will be rendered here -->
                         </div>
                     </main>
+
+                    <!-- Category Message Input -->
+                    <div class="input-container" id="categoryInputContainer">
+                        <div class="input-options">
+                            <button class="option-btn" id="categoryAddTaskBtn" title="Criar tarefa">
+                                <i class="fas fa-check-square"></i>
+                            </button>
+                            <button class="option-btn" id="categoryVoiceInputBtn" title="Gravar por voz">
+                                <i class="fas fa-microphone"></i>
+                            </button>
+                        </div>
+                        <div class="input-wrapper">
+                            <div class="task-options" id="categoryTaskOptions" style="display: none;">
+                                <div class="task-header">
+                                    <i class="fas fa-check-square"></i>
+                                    <span>Tarefa</span>
+                                    <i class="fas fa-times" id="categoryRemoveTaskBtn"></i>
+                                </div>
+                                <div class="task-datetime">
+                                    <input type="date" id="categoryTaskDate">
+                                    <input type="time" id="categoryTaskTime">
+                                </div>
+                            </div>
+                            <div class="voice-recording" id="categoryVoiceRecording" style="display: none;">
+                                <div class="voice-indicator">
+                                    <i class="fas fa-microphone"></i>
+                                    <span class="voice-text">Ouvindo...</span>
+                                    <div class="voice-waves">
+                                        <span></span><span></span><span></span><span></span>
+                                    </div>
+                                </div>
+                                <button class="voice-stop-btn" id="categoryVoiceStopBtn">
+                                    <i class="fas fa-stop"></i>
+                                </button>
+                            </div>
+                            <textarea id="categoryMessageInput" placeholder="Nova ideia nesta categoria..." rows="1"></textarea>
+                            <button class="send-btn" id="categorySendBtn">
+                                <i class="fas fa-paper-plane"></i>
+                            </button>
+                        </div>
+                    </div>
                 </div>
             </div>
             <!-- End Pages Container -->

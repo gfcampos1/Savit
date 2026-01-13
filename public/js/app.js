@@ -15,6 +15,7 @@ const AppState = {
     currentPage: 'home',
     selectedCategoryId: null,
     isTaskMode: false,
+    isCategoryTaskMode: false,
     editingMessageId: null,
     editingCategoryId: null,
     selectedColorForCategory: '#25D366',
@@ -106,6 +107,7 @@ const SpeechToText = {
     recognition: null,
     isRecording: false,
     isSupported: false,
+    targetInput: null, // Dynamic target input
 
     init() {
         // Check if Speech Recognition is supported
@@ -150,20 +152,21 @@ const SpeechToText = {
                 }
             }
 
-            // Update input with transcription
-            if (DOM.messageInput) {
-                const currentText = DOM.messageInput.value;
-                const cursorPos = DOM.messageInput.selectionStart || currentText.length;
+            // Update input with transcription - use targetInput or default to messageInput
+            const input = this.targetInput || DOM.messageInput;
+            if (input) {
+                const currentText = input.value;
+                const cursorPos = input.selectionStart || currentText.length;
                 
                 if (finalTranscript) {
                     // Add final transcript with proper spacing
                     const before = currentText.substring(0, cursorPos);
                     const after = currentText.substring(cursorPos);
                     const space = before.length > 0 && !before.endsWith(' ') ? ' ' : '';
-                    DOM.messageInput.value = before + space + finalTranscript + after;
+                    input.value = before + space + finalTranscript + after;
                     
                     // Trigger input event for auto-resize
-                    DOM.messageInput.dispatchEvent(new Event('input'));
+                    input.dispatchEvent(new Event('input'));
                 }
             }
         };
@@ -249,19 +252,41 @@ const SpeechToText = {
     },
 
     updateUI(isRecording) {
-        if (DOM.voiceInputBtn) {
+        // Determine if we're in category page or main chat
+        const isInCategoryPage = this.targetInput === DOM.categoryMessageInput;
+        
+        // Main chat voice button
+        if (DOM.voiceInputBtn && !isInCategoryPage) {
             DOM.voiceInputBtn.classList.toggle('recording', isRecording);
             DOM.voiceInputBtn.querySelector('i').className = isRecording 
                 ? 'fas fa-stop' 
                 : 'fas fa-microphone';
         }
         
-        if (DOM.voiceRecording) {
+        // Category page voice button
+        if (DOM.categoryVoiceInputBtn && isInCategoryPage) {
+            DOM.categoryVoiceInputBtn.classList.toggle('recording', isRecording);
+            DOM.categoryVoiceInputBtn.querySelector('i').className = isRecording 
+                ? 'fas fa-stop' 
+                : 'fas fa-microphone';
+        }
+        
+        // Main chat voice recording UI
+        if (DOM.voiceRecording && !isInCategoryPage) {
             DOM.voiceRecording.style.display = isRecording ? 'flex' : 'none';
         }
         
-        if (DOM.messageInput) {
+        // Category page voice recording UI
+        if (DOM.categoryVoiceRecording && isInCategoryPage) {
+            DOM.categoryVoiceRecording.style.display = isRecording ? 'flex' : 'none';
+        }
+        
+        // Hide/show appropriate input
+        if (!isInCategoryPage && DOM.messageInput) {
             DOM.messageInput.style.display = isRecording ? 'none' : 'block';
+        }
+        if (isInCategoryPage && DOM.categoryMessageInput) {
+            DOM.categoryMessageInput.style.display = isRecording ? 'none' : 'block';
         }
     }
 };
@@ -366,6 +391,16 @@ const DOM = {
     backFromCategoryBtn: document.getElementById('backFromCategoryBtn'),
     categoryMessagesTitle: document.getElementById('categoryMessagesTitle'),
     categoryMessagesContainer: document.getElementById('categoryMessagesContainer'),
+    categoryMessageInput: document.getElementById('categoryMessageInput'),
+    categorySendBtn: document.getElementById('categorySendBtn'),
+    categoryAddTaskBtn: document.getElementById('categoryAddTaskBtn'),
+    categoryTaskOptions: document.getElementById('categoryTaskOptions'),
+    categoryTaskDate: document.getElementById('categoryTaskDate'),
+    categoryTaskTime: document.getElementById('categoryTaskTime'),
+    categoryRemoveTaskBtn: document.getElementById('categoryRemoveTaskBtn'),
+    categoryVoiceInputBtn: document.getElementById('categoryVoiceInputBtn'),
+    categoryVoiceRecording: document.getElementById('categoryVoiceRecording'),
+    categoryVoiceStopBtn: document.getElementById('categoryVoiceStopBtn'),
 
     // Modals
     categorySelectorModal: document.getElementById('categorySelectorModal'),
@@ -1599,7 +1634,11 @@ const App = {
 
         // Voice Input (Speech-to-Text)
         if (DOM.voiceInputBtn) {
-            DOM.voiceInputBtn.addEventListener('click', () => SpeechToText.toggle());
+            DOM.voiceInputBtn.addEventListener('click', () => {
+                // Set target to main message input
+                SpeechToText.targetInput = DOM.messageInput;
+                SpeechToText.toggle();
+            });
         }
         if (DOM.voiceStopBtn) {
             DOM.voiceStopBtn.addEventListener('click', () => SpeechToText.stop());
@@ -1674,6 +1713,71 @@ const App = {
 
         // Category messages page
         DOM.backFromCategoryBtn.addEventListener('click', () => this.closeCategoryMessages());
+
+        // Category page input - Send message
+        DOM.categorySendBtn.addEventListener('click', async () => {
+            const text = DOM.categoryMessageInput.value.trim();
+            if (!text || !AppState.viewingCategoryId) return;
+
+            await this.createMessage(
+                text,
+                AppState.viewingCategoryId,
+                AppState.isCategoryTaskMode,
+                AppState.isCategoryTaskMode ? DOM.categoryTaskDate.value : null,
+                AppState.isCategoryTaskMode ? DOM.categoryTaskTime.value : null
+            );
+
+            DOM.categoryMessageInput.value = '';
+            DOM.categoryMessageInput.style.height = 'auto';
+            
+            // Reset task mode
+            AppState.isCategoryTaskMode = false;
+            DOM.categoryTaskOptions.style.display = 'none';
+            DOM.categoryAddTaskBtn.classList.remove('active');
+            
+            // Re-render messages
+            this.renderCategoryMessagesView(AppState.viewingCategoryId);
+        });
+
+        DOM.categoryMessageInput.addEventListener('keydown', (e) => {
+            if (e.key === 'Enter' && !e.shiftKey) {
+                e.preventDefault();
+                DOM.categorySendBtn.click();
+            }
+        });
+
+        DOM.categoryMessageInput.addEventListener('input', () => {
+            DOM.categoryMessageInput.style.height = 'auto';
+            DOM.categoryMessageInput.style.height = Math.min(DOM.categoryMessageInput.scrollHeight, 120) + 'px';
+        });
+
+        // Category page - Task mode toggle
+        DOM.categoryAddTaskBtn.addEventListener('click', () => {
+            AppState.isCategoryTaskMode = !AppState.isCategoryTaskMode;
+            DOM.categoryTaskOptions.style.display = AppState.isCategoryTaskMode ? 'block' : 'none';
+            DOM.categoryAddTaskBtn.classList.toggle('active', AppState.isCategoryTaskMode);
+            if (AppState.isCategoryTaskMode) {
+                DOM.categoryTaskDate.value = new Date().toISOString().split('T')[0];
+            }
+        });
+
+        DOM.categoryRemoveTaskBtn.addEventListener('click', () => {
+            AppState.isCategoryTaskMode = false;
+            DOM.categoryTaskOptions.style.display = 'none';
+            DOM.categoryAddTaskBtn.classList.remove('active');
+        });
+
+        // Category page - Voice input
+        if (DOM.categoryVoiceInputBtn) {
+            DOM.categoryVoiceInputBtn.addEventListener('click', () => {
+                // Switch to category input mode for speech
+                SpeechToText.targetInput = DOM.categoryMessageInput;
+                SpeechToText.toggle();
+            });
+        }
+        if (DOM.categoryVoiceStopBtn) {
+            DOM.categoryVoiceStopBtn.addEventListener('click', () => SpeechToText.stop());
+        }
 
         // Profile page
         DOM.editProfileBtn.addEventListener('click', () => {
