@@ -32,6 +32,7 @@
     --spacing-md: 12px;
     --spacing-lg: 16px;
     --spacing-xl: 24px;
+    --spacing-xxl: 48px;
     
     /* Border radius */
     --radius-sm: 4px;
@@ -1938,7 +1939,7 @@ body {
         display: flex;
         flex-direction: column;
         border-left: 1px solid var(--border-color);
-        border-right: 1px solid var(--border-color);
+        border-right: none;
     }
     
     .pages-container {
@@ -1947,7 +1948,10 @@ body {
     }
     
     .page-content {
-        padding: var(--spacing-xl) var(--spacing-xl) calc(var(--spacing-xl) + 20px);
+        padding: var(--spacing-xl) var(--spacing-xxl) calc(var(--spacing-xl) + 20px);
+        max-width: 1400px;
+        margin: 0 auto;
+        width: 100%;
     }
     
     .fab {
@@ -1999,12 +2003,9 @@ body {
         width: 280px;
     }
     
-    .main-content {
-        max-width: 1000px;
-    }
-    
     .page-content {
-        padding: var(--spacing-xl) 48px;
+        padding: var(--spacing-xl) 64px;
+        max-width: 1600px;
     }
     
     .stats-grid {
