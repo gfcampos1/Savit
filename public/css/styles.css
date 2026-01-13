@@ -2583,7 +2583,7 @@ body {
 
     /* Calendar: keep it visually symmetric with the left column */
     .dashboard-row .calendar-card {
-        max-height: 420px;
+        max-height: 360px;
         overflow: hidden;
         display: flex;
         flex-direction: column;
