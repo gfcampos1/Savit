@@ -1,10 +1,12 @@
-const CACHE_NAME = 'savit-v2';
+const CACHE_NAME = 'savit-v3';
 const STATIC_ASSETS = [
     '/',
     '/index.html',
     '/css/styles.css',
     '/js/api.js',
     '/js/app.js',
+    '/vendor/MindElixirLite.css',
+    '/vendor/MindElixirLite.iife.js',
     '/manifest.json'
 ];
 

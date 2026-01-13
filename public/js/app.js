@@ -699,6 +699,14 @@ const DOM = {
     quickAddTaskTime: document.getElementById('quickAddTaskTime'),
     saveQuickAddBtn: document.getElementById('saveQuickAddBtn'),
 
+    // Mind Map
+    mindMapModal: document.getElementById('mindMapModal'),
+    closeMindMapModal: document.getElementById('closeMindMapModal'),
+    mindMapEditor: document.getElementById('mindMapEditor'),
+    cancelMindMapBtn: document.getElementById('cancelMindMapBtn'),
+    insertMindMapBtn: document.getElementById('insertMindMapBtn'),
+    mindMapHelp: document.getElementById('mindMapHelp'),
+
     // Context Menu
     contextMenu: document.getElementById('contextMenu')
 };
@@ -767,6 +775,9 @@ const Markdown = {
 
         let inCode = false;
         let codeLines = [];
+
+        let inMindMap = false;
+        let mindMapLines = [];
         let paraLines = [];
         let listStack = []; // { type: 'ul'|'ol', indent: number, liOpen: boolean }
 
@@ -877,6 +888,36 @@ const Markdown = {
             const rawLine = lines[i];
             const line = rawLine;
 
+            // Mind map fences: ```savit-mindmap ... ```
+            if (!inCode && /^\s*```\s*savit-mindmap\s*$/.test(line)) {
+                flushParagraph();
+                closeAllLists();
+                inMindMap = true;
+                mindMapLines = [];
+                continue;
+            }
+
+            if (inMindMap) {
+                if (/^\s*```\s*$/.test(line)) {
+                    inMindMap = false;
+                    const jsonRaw = mindMapLines.join('\n').trim();
+                    const encoded = Markdown.escapeHtml(encodeURIComponent(jsonRaw));
+                    out.push(
+                        `<div class="mindmap-embed" data-mindmap="${encoded}">` +
+                        `<div class="mindmap-embed-toolbar">` +
+                        `<div class="mindmap-embed-title">Mapa mental</div>` +
+                        `<button class="mindmap-embed-open" type="button">Abrir</button>` +
+                        `</div>` +
+                        `<div class="mindmap-embed-canvas" aria-label="Mapa mental"></div>` +
+                        `</div>`
+                    );
+                    mindMapLines = [];
+                } else {
+                    mindMapLines.push(line);
+                }
+                continue;
+            }
+
             // Code fences
             if (/^\s*```/.test(line)) {
                 if (inCode) {
@@ -958,10 +999,219 @@ const Markdown = {
             flushCode();
         }
 
+        if (inMindMap) {
+            // Unclosed mindmap fence: render as text paragraph.
+            inMindMap = false;
+            paraLines.push('```savit-mindmap');
+            paraLines.push(...mindMapLines);
+        }
+
         flushParagraph();
         closeAllLists();
 
         return out.join('');
+    }
+};
+
+// =============================================
+// Mind Map UI (MindElixirLite)
+// =============================================
+
+const MindMapUI = {
+    mind: null,
+    activeTextarea: null,
+    replaceRange: null,
+    viewOnly: false,
+
+    isAvailable() {
+        return typeof window.MindElixirLite === 'function';
+    },
+
+    getTheme() {
+        const isLight = document.documentElement.getAttribute('data-theme') === 'light';
+        return isLight ? window.MindElixirLite.THEME : window.MindElixirLite.DARK_THEME;
+    },
+
+    defaultData(topic = 'Ideia') {
+        return {
+            nodeData: {
+                id: 'root',
+                topic,
+                children: []
+            },
+            direction: window.MindElixirLite.RIGHT,
+            theme: this.getTheme()
+        };
+    },
+
+    extractMindMapBlock(text, nearIndex) {
+        const src = String(text || '');
+        const fence = '```savit-mindmap';
+
+        const before = src.lastIndexOf(fence, nearIndex);
+        if (before === -1) return null;
+
+        const startLine = src.lastIndexOf('\n', before);
+        const blockStart = startLine === -1 ? 0 : startLine + 1;
+
+        // Ensure this is exactly a fence line
+        const afterFenceLine = src.indexOf('\n', before);
+        if (afterFenceLine === -1) return null;
+        const fenceLine = src.slice(before, afterFenceLine).trim();
+        if (fenceLine !== fence) return null;
+
+        const close = src.indexOf('\n```', afterFenceLine);
+        if (close === -1) return null;
+
+        const blockEnd = close + '\n```'.length;
+        const json = src.slice(afterFenceLine + 1, close).trim();
+        return { start: blockStart, end: blockEnd, json };
+    },
+
+    openForTextarea(textarea) {
+        if (!this.isAvailable()) {
+            showToast('Mapa mental indisponível (biblioteca não carregou)');
+            return;
+        }
+        if (!DOM.mindMapModal || !DOM.mindMapEditor) return;
+
+        this.activeTextarea = textarea;
+        this.viewOnly = false;
+
+        const selStart = textarea.selectionStart ?? 0;
+        const block = this.extractMindMapBlock(textarea.value, selStart);
+        this.replaceRange = block ? { start: block.start, end: block.end } : null;
+
+        let data;
+        if (block?.json) {
+            try {
+                data = JSON.parse(block.json);
+            } catch {
+                data = this.defaultData('Ideia');
+            }
+        } else {
+            const selectedText = (textarea.value || '').slice(selStart, textarea.selectionEnd ?? selStart).trim();
+            data = this.defaultData(selectedText || 'Ideia');
+        }
+
+        this._initMind(data, { editable: true });
+        DOM.insertMindMapBtn.textContent = this.replaceRange ? 'Atualizar na mensagem' : 'Inserir na mensagem';
+        DOM.insertMindMapBtn.style.display = '';
+
+        openModal(DOM.mindMapModal);
+    },
+
+    openViewerFromJson(jsonString) {
+        if (!this.isAvailable()) {
+            showToast('Mapa mental indisponível (biblioteca não carregou)');
+            return;
+        }
+        if (!DOM.mindMapModal || !DOM.mindMapEditor) return;
+
+        this.activeTextarea = null;
+        this.replaceRange = null;
+        this.viewOnly = true;
+
+        let data;
+        try {
+            data = JSON.parse(jsonString);
+        } catch {
+            data = this.defaultData('Mapa');
+        }
+
+        this._initMind(data, { editable: false });
+        DOM.insertMindMapBtn.style.display = 'none';
+        openModal(DOM.mindMapModal);
+    },
+
+    _initMind(data, { editable }) {
+        // Clean container
+        DOM.mindMapEditor.innerHTML = '';
+        this.mind?.destroy?.();
+
+        this.mind = new window.MindElixirLite({
+            el: DOM.mindMapEditor,
+            direction: data.direction ?? window.MindElixirLite.RIGHT,
+            draggable: editable,
+            editable,
+            contextMenu: editable,
+            toolBar: editable,
+            keypress: editable
+        });
+
+        // Ensure theme matches current UI
+        if (!data.theme) data.theme = this.getTheme();
+        this.mind.init(data);
+    },
+
+    close() {
+        if (DOM.mindMapModal) closeModal(DOM.mindMapModal);
+        this.activeTextarea = null;
+        this.replaceRange = null;
+        this.viewOnly = false;
+    },
+
+    insertIntoActiveTextarea() {
+        if (!this.mind || !this.activeTextarea) return;
+
+        const data = this.mind.getData();
+        data.theme = this.getTheme();
+        const json = JSON.stringify(data);
+        const block = `\n\n\`\`\`savit-mindmap\n${json}\n\`\`\`\n\n`;
+
+        if (this.replaceRange) {
+            TextareaFormat.replaceRange(this.activeTextarea, this.replaceRange.start, this.replaceRange.end, block);
+            const cursor = this.replaceRange.start + block.length;
+            TextareaFormat.setSelection(this.activeTextarea, cursor, cursor);
+        } else {
+            const start = this.activeTextarea.selectionStart ?? this.activeTextarea.value.length;
+            const end = this.activeTextarea.selectionEnd ?? start;
+            TextareaFormat.replaceRange(this.activeTextarea, start, end, block);
+            const cursor = start + block.length;
+            TextareaFormat.setSelection(this.activeTextarea, cursor, cursor);
+        }
+
+        this.activeTextarea.dispatchEvent(new Event('input'));
+        this.close();
+    },
+
+    hydrateEmbeds(container) {
+        if (!this.isAvailable() || !container) return;
+
+        container.querySelectorAll('.mindmap-embed').forEach(embed => {
+            if (embed.dataset.hydrated === '1') return;
+            const encoded = embed.getAttribute('data-mindmap') || '';
+            let jsonRaw = encoded;
+            try {
+                jsonRaw = decodeURIComponent(encoded);
+            } catch {
+                jsonRaw = encoded;
+            }
+            let data;
+            try {
+                data = JSON.parse(jsonRaw);
+            } catch {
+                data = this.defaultData('Mapa');
+            }
+
+            const canvas = embed.querySelector('.mindmap-embed-canvas');
+            if (!canvas) return;
+            canvas.innerHTML = '';
+
+            const mind = new window.MindElixirLite({
+                el: canvas,
+                direction: data.direction ?? window.MindElixirLite.RIGHT,
+                draggable: false,
+                editable: false,
+                contextMenu: false,
+                toolBar: false,
+                keypress: false
+            });
+
+            if (!data.theme) data.theme = this.getTheme();
+            mind.init(data);
+            embed.dataset.hydrated = '1';
+        });
     }
 };
 
@@ -1064,6 +1314,7 @@ function setupFormattingToolbar(toolbarEl, textareaEl) {
     const updatePreview = () => {
         if (!previewEl) return;
         previewEl.innerHTML = `<div class="message-text">${Markdown.render(textareaEl.value)}</div>`;
+        MindMapUI.hydrateEmbeds(previewEl);
     };
 
     const setPreviewMode = (enabled) => {
@@ -1129,6 +1380,9 @@ function setupFormattingToolbar(toolbarEl, textareaEl) {
             }
             case 'link':
                 TextareaFormat.insertLink(textareaEl);
+                break;
+            case 'mindmap':
+                MindMapUI.openForTextarea(textareaEl);
                 break;
             case 'preview':
                 if (!previewEl) return;
@@ -1889,6 +2143,9 @@ const App = {
 
         container.innerHTML = html;
 
+        // Hydrate mind maps
+        MindMapUI.hydrateEmbeds(container);
+
         // Scroll to bottom if main container
         if (container === DOM.messagesContainer) {
             this.scrollToBottom();
@@ -1961,6 +2218,24 @@ const App = {
     },
 
     attachMessageEventListeners(container) {
+        // Mind map open button
+        container.querySelectorAll('.mindmap-embed-open').forEach(btn => {
+            btn.addEventListener('click', (e) => {
+                e.preventDefault();
+                e.stopPropagation();
+                const embed = btn.closest('.mindmap-embed');
+                if (!embed) return;
+                const encoded = embed.getAttribute('data-mindmap') || '';
+                let jsonRaw = encoded;
+                try {
+                    jsonRaw = decodeURIComponent(encoded);
+                } catch {
+                    jsonRaw = encoded;
+                }
+                MindMapUI.openViewerFromJson(jsonRaw);
+            });
+        });
+
         // Task checkboxes
         container.querySelectorAll('.task-checkbox').forEach(checkbox => {
             checkbox.addEventListener('click', (e) => {
@@ -3349,6 +3624,17 @@ const App = {
         }
     }
 };
+
+// Mind map modal wiring
+if (DOM.closeMindMapModal) {
+    DOM.closeMindMapModal.addEventListener('click', () => MindMapUI.close());
+}
+if (DOM.cancelMindMapBtn) {
+    DOM.cancelMindMapBtn.addEventListener('click', () => MindMapUI.close());
+}
+if (DOM.insertMindMapBtn) {
+    DOM.insertMindMapBtn.addEventListener('click', () => MindMapUI.insertIntoActiveTextarea());
+}
 
 // =============================================
 // Helper Functions

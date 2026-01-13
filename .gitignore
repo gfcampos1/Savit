@@ -36,4 +36,5 @@ build/
 
 # Prisma
 prisma/*.db
+prisma/*.db.bak
 prisma/*.db-journal

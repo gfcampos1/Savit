@@ -13,6 +13,7 @@
     <link rel="apple-touch-icon" sizes="180x180" href="icons/icon-180.png">
     <title>Savit - Suas Ideias</title>
     <link rel="stylesheet" href="css/styles.css">
+    <link rel="stylesheet" href="vendor/MindElixirLite.css">
     <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.4.0/css/all.min.css">
 </head>
 <body>
@@ -443,6 +444,7 @@
                                 <button class="format-btn" type="button" data-format="code" title="Bloco de código"><i class="fas fa-code"></i></button>
                                 <button class="format-btn" type="button" data-format="link" title="Link (Ctrl+K)"><i class="fas fa-link"></i></button>
                                 <span class="format-sep" aria-hidden="true"></span>
+                                <button class="format-btn" type="button" data-format="mindmap" title="Mapa mental"><i class="fas fa-diagram-project"></i></button>
                                 <button class="format-btn" type="button" data-format="preview" title="Pré-visualizar"><i class="fas fa-eye"></i></button>
                             </div>
                             <div class="format-preview" aria-label="Pré-visualização" style="display: none;"></div>
@@ -698,6 +700,7 @@
                                 <button class="format-btn" type="button" data-format="code" title="Bloco de código"><i class="fas fa-code"></i></button>
                                 <button class="format-btn" type="button" data-format="link" title="Link (Ctrl+K)"><i class="fas fa-link"></i></button>
                                 <span class="format-sep" aria-hidden="true"></span>
+                                <button class="format-btn" type="button" data-format="mindmap" title="Mapa mental"><i class="fas fa-diagram-project"></i></button>
                                 <button class="format-btn" type="button" data-format="preview" title="Pré-visualizar"><i class="fas fa-eye"></i></button>
                             </div>
                             <div class="format-preview" aria-label="Pré-visualização" style="display: none;"></div>
@@ -801,6 +804,7 @@
                             <button class="format-btn" type="button" data-format="code" title="Bloco de código"><i class="fas fa-code"></i></button>
                             <button class="format-btn" type="button" data-format="link" title="Link (Ctrl+K)"><i class="fas fa-link"></i></button>
                             <span class="format-sep" aria-hidden="true"></span>
+                            <button class="format-btn" type="button" data-format="mindmap" title="Mapa mental"><i class="fas fa-diagram-project"></i></button>
                             <button class="format-btn" type="button" data-format="preview" title="Pré-visualizar"><i class="fas fa-eye"></i></button>
                         </div>
                         <div class="format-preview" aria-label="Pré-visualização" style="display: none;"></div>
@@ -831,6 +835,28 @@
                         <i class="fas fa-trash"></i> Excluir
                     </button>
                     <button class="btn btn-primary" id="saveEditMessageBtn">Salvar</button>
+                </div>
+            </div>
+        </div>
+
+        <!-- Mind Map Modal -->
+        <div class="modal" id="mindMapModal">
+            <div class="modal-content mindmap-modal">
+                <div class="modal-header">
+                    <h3>Mapa Mental</h3>
+                    <button class="close-modal" id="closeMindMapModal">
+                        <i class="fas fa-times"></i>
+                    </button>
+                </div>
+                <div class="modal-body">
+                    <div class="mindmap-help" id="mindMapHelp">
+                        <strong>Dicas:</strong> clique no nó para selecionar, duplo-clique para editar. <strong>Tab</strong> cria um subtópico (filho), <strong>Enter</strong> cria um tópico no mesmo nível.
+                    </div>
+                    <div class="mindmap-editor" id="mindMapEditor" aria-label="Editor de mapa mental"></div>
+                </div>
+                <div class="modal-footer">
+                    <button class="btn btn-secondary" id="cancelMindMapBtn">Cancelar</button>
+                    <button class="btn btn-primary" id="insertMindMapBtn">Inserir na mensagem</button>
                 </div>
             </div>
         </div>
@@ -999,6 +1025,7 @@
         </div>
     </div>
 
+    <script src="vendor/MindElixirLite.iife.js"></script>
     <script src="js/api.js"></script>
     <script src="js/app.js"></script>
 </body>

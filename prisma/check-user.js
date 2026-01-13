@@ -2,22 +2,28 @@ const { PrismaClient } = require('@prisma/client');
 const prisma = new PrismaClient();
 
 async function main() {
+    const email = (process.env.CHECK_USER_EMAIL || '').trim().toLowerCase();
+    if (!email) {
+        throw new Error('CHECK_USER_EMAIL não informado');
+    }
+
     const user = await prisma.user.findUnique({
-        where: { email: 'guilhermecampos67@gmail.com' }
+        where: { email },
+        select: { id: true, email: true, role: true, approved: true, name: true }
     });
-    
-    console.log('User data:', JSON.stringify(user, null, 2));
-    
-    // Force update
+
+    console.log('User:', user);
+
     const updated = await prisma.user.update({
-        where: { email: 'guilhermecampos67@gmail.com' },
-        data: { 
+        where: { email },
+        data: {
             role: 'admin',
             approved: true
-        }
+        },
+        select: { id: true, email: true, role: true, approved: true, name: true }
     });
-    
-    console.log('\nUpdated user:', JSON.stringify(updated, null, 2));
+
+    console.log('Updated user:', updated);
 }
 
 main()
