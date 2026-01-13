@@ -23,7 +23,11 @@ const AppState = {
     searchCategory: '',
     searchDate: '',
     viewingCategoryId: null,
-    isLoading: false
+    isLoading: false,
+    theme: 'dark',
+    pendingImages: [],
+    categoryPendingImages: [],
+    drawingForCategory: false
 };
 
 // =============================================
@@ -292,6 +296,193 @@ const SpeechToText = {
 };
 
 // =============================================
+// Theme Manager
+// =============================================
+
+const ThemeManager = {
+    init() {
+        // Load saved theme or detect system preference
+        const savedTheme = localStorage.getItem('savit-theme') || 'system';
+        this.setTheme(savedTheme);
+        
+        // Listen for system theme changes
+        window.matchMedia('(prefers-color-scheme: dark)').addEventListener('change', (e) => {
+            if (AppState.theme === 'system') {
+                this.applyTheme(e.matches ? 'dark' : 'light');
+            }
+        });
+    },
+
+    setTheme(theme) {
+        AppState.theme = theme;
+        localStorage.setItem('savit-theme', theme);
+        
+        if (theme === 'system') {
+            const prefersDark = window.matchMedia('(prefers-color-scheme: dark)').matches;
+            this.applyTheme(prefersDark ? 'dark' : 'light');
+        } else {
+            this.applyTheme(theme);
+        }
+        
+        this.updateButtons();
+    },
+
+    applyTheme(theme) {
+        if (theme === 'light') {
+            document.documentElement.setAttribute('data-theme', 'light');
+        } else {
+            document.documentElement.removeAttribute('data-theme');
+        }
+    },
+
+    updateButtons() {
+        document.querySelectorAll('.theme-option').forEach(btn => {
+            btn.classList.toggle('active', btn.dataset.theme === AppState.theme);
+        });
+    }
+};
+
+// =============================================
+// Drawing Canvas
+// =============================================
+
+const DrawingCanvas = {
+    canvas: null,
+    ctx: null,
+    isDrawing: false,
+    currentColor: '#000000',
+    currentSize: 5,
+    isEraser: false,
+    lastX: 0,
+    lastY: 0,
+
+    init() {
+        this.canvas = DOM.drawCanvas;
+        if (!this.canvas) return;
+        
+        this.ctx = this.canvas.getContext('2d');
+        this.setupCanvas();
+        this.bindEvents();
+    },
+
+    setupCanvas() {
+        const container = DOM.canvasContainer;
+        const rect = container.getBoundingClientRect();
+        
+        // Set canvas size
+        this.canvas.width = rect.width || 500;
+        this.canvas.height = rect.height || 400;
+        
+        // Fill with white background
+        this.clear();
+    },
+
+    bindEvents() {
+        // Mouse events
+        this.canvas.addEventListener('mousedown', (e) => this.startDrawing(e));
+        this.canvas.addEventListener('mousemove', (e) => this.draw(e));
+        this.canvas.addEventListener('mouseup', () => this.stopDrawing());
+        this.canvas.addEventListener('mouseout', () => this.stopDrawing());
+
+        // Touch events
+        this.canvas.addEventListener('touchstart', (e) => {
+            e.preventDefault();
+            this.startDrawing(e.touches[0]);
+        });
+        this.canvas.addEventListener('touchmove', (e) => {
+            e.preventDefault();
+            this.draw(e.touches[0]);
+        });
+        this.canvas.addEventListener('touchend', () => this.stopDrawing());
+    },
+
+    getPosition(e) {
+        const rect = this.canvas.getBoundingClientRect();
+        const scaleX = this.canvas.width / rect.width;
+        const scaleY = this.canvas.height / rect.height;
+        
+        return {
+            x: (e.clientX - rect.left) * scaleX,
+            y: (e.clientY - rect.top) * scaleY
+        };
+    },
+
+    startDrawing(e) {
+        this.isDrawing = true;
+        const pos = this.getPosition(e);
+        this.lastX = pos.x;
+        this.lastY = pos.y;
+    },
+
+    draw(e) {
+        if (!this.isDrawing) return;
+        
+        const pos = this.getPosition(e);
+        
+        this.ctx.beginPath();
+        this.ctx.moveTo(this.lastX, this.lastY);
+        this.ctx.lineTo(pos.x, pos.y);
+        this.ctx.strokeStyle = this.isEraser ? '#FFFFFF' : this.currentColor;
+        this.ctx.lineWidth = this.currentSize;
+        this.ctx.lineCap = 'round';
+        this.ctx.lineJoin = 'round';
+        this.ctx.stroke();
+        
+        this.lastX = pos.x;
+        this.lastY = pos.y;
+    },
+
+    stopDrawing() {
+        this.isDrawing = false;
+    },
+
+    setColor(color) {
+        this.currentColor = color;
+        this.isEraser = false;
+        DOM.drawPencil.classList.add('active');
+        DOM.drawEraser.classList.remove('active');
+    },
+
+    setSize(size) {
+        this.currentSize = size;
+    },
+
+    setEraser() {
+        this.isEraser = true;
+        DOM.drawEraser.classList.add('active');
+        DOM.drawPencil.classList.remove('active');
+    },
+
+    setPencil() {
+        this.isEraser = false;
+        DOM.drawPencil.classList.add('active');
+        DOM.drawEraser.classList.remove('active');
+    },
+
+    clear() {
+        this.ctx.fillStyle = '#FFFFFF';
+        this.ctx.fillRect(0, 0, this.canvas.width, this.canvas.height);
+    },
+
+    getImage() {
+        return this.canvas.toDataURL('image/png');
+    },
+
+    reset() {
+        this.clear();
+        this.currentColor = '#000000';
+        this.currentSize = 5;
+        this.isEraser = false;
+        if (DOM.drawSize) DOM.drawSize.value = 5;
+        document.querySelectorAll('.draw-color').forEach((btn, i) => {
+            btn.classList.toggle('active', i === 0);
+        });
+        DOM.drawPencil?.classList.add('active');
+        DOM.drawEraser?.classList.remove('active');
+    }
+};
+
+// =============================================
 // DOM Elements
 // =============================================
 
@@ -401,6 +592,34 @@ const DOM = {
     categoryVoiceInputBtn: document.getElementById('categoryVoiceInputBtn'),
     categoryVoiceRecording: document.getElementById('categoryVoiceRecording'),
     categoryVoiceStopBtn: document.getElementById('categoryVoiceStopBtn'),
+    categoryAttachImageBtn: document.getElementById('categoryAttachImageBtn'),
+    categoryImageInput: document.getElementById('categoryImageInput'),
+    categoryImagePreviewContainer: document.getElementById('categoryImagePreviewContainer'),
+    categoryDrawMessageBtn: document.getElementById('categoryDrawMessageBtn'),
+
+    // Theme
+    themeLightBtn: document.getElementById('themeLightBtn'),
+    themeDarkBtn: document.getElementById('themeDarkBtn'),
+    themeSystemBtn: document.getElementById('themeSystemBtn'),
+
+    // Image & Drawing
+    attachImageBtn: document.getElementById('attachImageBtn'),
+    imageInput: document.getElementById('imageInput'),
+    imagePreviewContainer: document.getElementById('imagePreviewContainer'),
+    drawMessageBtn: document.getElementById('drawMessageBtn'),
+    drawModal: document.getElementById('drawModal'),
+    closeDrawModal: document.getElementById('closeDrawModal'),
+    drawCanvas: document.getElementById('drawCanvas'),
+    canvasContainer: document.getElementById('canvasContainer'),
+    drawPencil: document.getElementById('drawPencil'),
+    drawEraser: document.getElementById('drawEraser'),
+    drawClear: document.getElementById('drawClear'),
+    drawSize: document.getElementById('drawSize'),
+    cancelDrawBtn: document.getElementById('cancelDrawBtn'),
+    saveDrawBtn: document.getElementById('saveDrawBtn'),
+    imageViewer: document.getElementById('imageViewer'),
+    imageViewerImg: document.getElementById('imageViewerImg'),
+    closeImageViewer: document.getElementById('closeImageViewer'),
 
     // Modals
     categorySelectorModal: document.getElementById('categorySelectorModal'),
@@ -518,6 +737,12 @@ const App = {
         
         // Initialize Speech-to-Text
         SpeechToText.init();
+        
+        // Initialize Drawing Canvas
+        DrawingCanvas.init();
+        
+        // Initialize Theme Manager
+        ThemeManager.init();
     },
 
     // Load initial data
@@ -846,8 +1071,19 @@ const App = {
             html += `<span class="message-category" style="background: ${msg.category.color}">${Utils.escapeHtml(msg.category.name)}</span>`;
         }
 
+        // Images
+        if (msg.images && msg.images.length > 0) {
+            html += '<div class="message-images">';
+            msg.images.forEach(img => {
+                html += `<img src="${img}" class="message-image" onclick="App.openImageViewer('${img}')" alt="Imagem anexada">`;
+            });
+            html += '</div>';
+        }
+
         // Message text
-        html += `<div class="message-text">${Utils.escapeHtml(msg.text)}</div>`;
+        if (msg.text) {
+            html += `<div class="message-text">${Utils.escapeHtml(msg.text)}</div>`;
+        }
 
         // Task section
         if (msg.isTask) {
@@ -1092,14 +1328,15 @@ const App = {
     },
 
     // Message operations
-    async createMessage(text, categoryId, isTask, taskDate, taskTime) {
+    async createMessage(text, categoryId, isTask, taskDate, taskTime, images = []) {
         try {
             const { message } = await API.messages.create({
                 text,
                 categoryId: categoryId || null,
                 isTask: isTask || false,
                 taskDate: taskDate || null,
-                taskTime: taskTime || null
+                taskTime: taskTime || null,
+                images: images || []
             });
 
             AppState.messages.push(message);
@@ -1495,6 +1732,116 @@ const App = {
         }
     },
 
+    // Image handling
+    handleImageSelect(e, isCategory = false) {
+        const files = Array.from(e.target.files);
+        if (!files.length) return;
+
+        const pendingImages = isCategory ? AppState.categoryPendingImages : AppState.pendingImages;
+        const container = isCategory ? DOM.categoryImagePreviewContainer : DOM.imagePreviewContainer;
+
+        files.forEach(file => {
+            if (!file.type.startsWith('image/')) return;
+            
+            const reader = new FileReader();
+            reader.onload = (event) => {
+                pendingImages.push(event.target.result);
+                this.renderImagePreviews(isCategory);
+            };
+            reader.readAsDataURL(file);
+        });
+
+        // Clear input
+        e.target.value = '';
+    },
+
+    renderImagePreviews(isCategory = false) {
+        const pendingImages = isCategory ? AppState.categoryPendingImages : AppState.pendingImages;
+        const container = isCategory ? DOM.categoryImagePreviewContainer : DOM.imagePreviewContainer;
+
+        if (!container) return;
+
+        if (pendingImages.length === 0) {
+            container.style.display = 'none';
+            container.innerHTML = '';
+            return;
+        }
+
+        container.style.display = 'flex';
+        container.innerHTML = pendingImages.map((img, index) => `
+            <div class="image-preview">
+                <img src="${img}" alt="Preview">
+                <button class="remove-image" onclick="App.removeImage(${index}, ${isCategory})">
+                    <i class="fas fa-times"></i>
+                </button>
+            </div>
+        `).join('');
+    },
+
+    removeImage(index, isCategory = false) {
+        if (isCategory) {
+            AppState.categoryPendingImages.splice(index, 1);
+        } else {
+            AppState.pendingImages.splice(index, 1);
+        }
+        this.renderImagePreviews(isCategory);
+    },
+
+    clearPendingImages(isCategory = false) {
+        if (isCategory) {
+            AppState.categoryPendingImages = [];
+        } else {
+            AppState.pendingImages = [];
+        }
+        this.renderImagePreviews(isCategory);
+    },
+
+    // Image viewer
+    openImageViewer(src) {
+        DOM.imageViewerImg.src = src;
+        DOM.imageViewer.classList.add('active');
+    },
+
+    // Drawing
+    openDrawModal() {
+        openModal(DOM.drawModal);
+        // Wait for modal to be visible, then setup canvas
+        setTimeout(() => {
+            DrawingCanvas.setupCanvas();
+            DrawingCanvas.reset();
+        }, 100);
+    },
+
+    async saveDrawing() {
+        const imageData = DrawingCanvas.getImage();
+        
+        if (AppState.drawingForCategory) {
+            // Send to category
+            await this.createMessage(
+                '',
+                AppState.viewingCategoryId,
+                false,
+                null,
+                null,
+                [imageData]
+            );
+            this.renderCategoryMessagesView(AppState.viewingCategoryId);
+        } else {
+            // Send to main chat
+            await this.createMessage(
+                '',
+                AppState.selectedCategoryId,
+                AppState.isTaskMode,
+                AppState.isTaskMode ? DOM.taskDate.value : null,
+                AppState.isTaskMode ? DOM.taskTime.value : null,
+                [imageData]
+            );
+        }
+
+        closeModal(DOM.drawModal);
+        DrawingCanvas.reset();
+    },
+
     // Event listeners setup
     setupEventListeners() {
         // Auth forms
@@ -1580,18 +1927,22 @@ const App = {
         // Chat page
         DOM.sendBtn.addEventListener('click', async () => {
             const text = DOM.messageInput.value.trim();
-            if (!text) return;
+            const hasImages = AppState.pendingImages.length > 0;
+            
+            if (!text && !hasImages) return;
 
             await this.createMessage(
                 text,
                 AppState.selectedCategoryId,
                 AppState.isTaskMode,
                 AppState.isTaskMode ? DOM.taskDate.value : null,
-                AppState.isTaskMode ? DOM.taskTime.value : null
+                AppState.isTaskMode ? DOM.taskTime.value : null,
+                [...AppState.pendingImages]
             );
 
             DOM.messageInput.value = '';
             DOM.messageInput.style.height = 'auto';
+            this.clearPendingImages(false);
             resetInputOptions();
         });
 
@@ -1717,18 +2068,22 @@ const App = {
         // Category page input - Send message
         DOM.categorySendBtn.addEventListener('click', async () => {
             const text = DOM.categoryMessageInput.value.trim();
-            if (!text || !AppState.viewingCategoryId) return;
+            const hasImages = AppState.categoryPendingImages.length > 0;
+            
+            if ((!text && !hasImages) || !AppState.viewingCategoryId) return;
 
             await this.createMessage(
                 text,
                 AppState.viewingCategoryId,
                 AppState.isCategoryTaskMode,
                 AppState.isCategoryTaskMode ? DOM.categoryTaskDate.value : null,
-                AppState.isCategoryTaskMode ? DOM.categoryTaskTime.value : null
+                AppState.isCategoryTaskMode ? DOM.categoryTaskTime.value : null,
+                [...AppState.categoryPendingImages]
             );
 
             DOM.categoryMessageInput.value = '';
             DOM.categoryMessageInput.style.height = 'auto';
+            this.clearPendingImages(true);
             
             // Reset task mode
             AppState.isCategoryTaskMode = false;
@@ -1777,6 +2132,95 @@ const App = {
         }
         if (DOM.categoryVoiceStopBtn) {
             DOM.categoryVoiceStopBtn.addEventListener('click', () => SpeechToText.stop());
+        }
+
+        // Theme buttons
+        if (DOM.themeLightBtn) {
+            DOM.themeLightBtn.addEventListener('click', () => ThemeManager.setTheme('light'));
+        }
+        if (DOM.themeDarkBtn) {
+            DOM.themeDarkBtn.addEventListener('click', () => ThemeManager.setTheme('dark'));
+        }
+        if (DOM.themeSystemBtn) {
+            DOM.themeSystemBtn.addEventListener('click', () => ThemeManager.setTheme('system'));
+        }
+
+        // Image attachment - Main chat
+        if (DOM.attachImageBtn) {
+            DOM.attachImageBtn.addEventListener('click', () => DOM.imageInput.click());
+        }
+        if (DOM.imageInput) {
+            DOM.imageInput.addEventListener('change', (e) => this.handleImageSelect(e, false));
+        }
+
+        // Image attachment - Category page
+        if (DOM.categoryAttachImageBtn) {
+            DOM.categoryAttachImageBtn.addEventListener('click', () => DOM.categoryImageInput.click());
+        }
+        if (DOM.categoryImageInput) {
+            DOM.categoryImageInput.addEventListener('change', (e) => this.handleImageSelect(e, true));
+        }
+
+        // Drawing - Main chat
+        if (DOM.drawMessageBtn) {
+            DOM.drawMessageBtn.addEventListener('click', () => {
+                AppState.drawingForCategory = false;
+                this.openDrawModal();
+            });
+        }
+
+        // Drawing - Category page
+        if (DOM.categoryDrawMessageBtn) {
+            DOM.categoryDrawMessageBtn.addEventListener('click', () => {
+                AppState.drawingForCategory = true;
+                this.openDrawModal();
+            });
+        }
+
+        // Draw modal controls
+        if (DOM.closeDrawModal) {
+            DOM.closeDrawModal.addEventListener('click', () => closeModal(DOM.drawModal));
+        }
+        if (DOM.cancelDrawBtn) {
+            DOM.cancelDrawBtn.addEventListener('click', () => closeModal(DOM.drawModal));
+        }
+        if (DOM.saveDrawBtn) {
+            DOM.saveDrawBtn.addEventListener('click', () => this.saveDrawing());
+        }
+        if (DOM.drawPencil) {
+            DOM.drawPencil.addEventListener('click', () => DrawingCanvas.setPencil());
+        }
+        if (DOM.drawEraser) {
+            DOM.drawEraser.addEventListener('click', () => DrawingCanvas.setEraser());
+        }
+        if (DOM.drawClear) {
+            DOM.drawClear.addEventListener('click', () => DrawingCanvas.clear());
+        }
+        if (DOM.drawSize) {
+            DOM.drawSize.addEventListener('input', (e) => DrawingCanvas.setSize(parseInt(e.target.value)));
+        }
+
+        // Draw colors
+        document.querySelectorAll('.draw-color').forEach(btn => {
+            btn.addEventListener('click', () => {
+                document.querySelectorAll('.draw-color').forEach(b => b.classList.remove('active'));
+                btn.classList.add('active');
+                DrawingCanvas.setColor(btn.dataset.color);
+            });
+        });
+
+        // Image viewer
+        if (DOM.closeImageViewer) {
+            DOM.closeImageViewer.addEventListener('click', () => {
+                DOM.imageViewer.classList.remove('active');
+            });
+        }
+        if (DOM.imageViewer) {
+            DOM.imageViewer.addEventListener('click', (e) => {
+                if (e.target === DOM.imageViewer) {
+                    DOM.imageViewer.classList.remove('active');
+                }
+            });
         }
 
         // Profile page

@@ -309,9 +309,16 @@
                             <button class="option-btn" id="addTaskBtn" title="Criar tarefa">
                                 <i class="fas fa-check-square"></i>
                             </button>
+                            <button class="option-btn" id="attachImageBtn" title="Anexar imagem">
+                                <i class="fas fa-image"></i>
+                            </button>
+                            <button class="option-btn" id="drawMessageBtn" title="Desenhar">
+                                <i class="fas fa-paint-brush"></i>
+                            </button>
                             <button class="option-btn" id="voiceInputBtn" title="Gravar por voz">
                                 <i class="fas fa-microphone"></i>
                             </button>
+                            <input type="file" id="imageInput" class="attachment-input" accept="image/*" multiple>
                         </div>
                         <div class="input-wrapper">
                             <div class="selected-category" id="selectedCategory" style="display: none;">
@@ -328,6 +335,9 @@
                                     <input type="date" id="taskDate">
                                     <input type="time" id="taskTime">
                                 </div>
+                            </div>
+                            <div class="image-preview-container" id="imagePreviewContainer" style="display: none;">
+                                <!-- Image previews will be added here -->
                             </div>
                             <div class="voice-recording" id="voiceRecording" style="display: none;">
                                 <div class="voice-indicator">
@@ -396,6 +406,25 @@
                         </div>
 
                         <div class="profile-menu">
+                            <!-- Theme Selector -->
+                            <div class="theme-selector">
+                                <span class="theme-selector-title">Tema do aplicativo</span>
+                                <div class="theme-options">
+                                    <button class="theme-option" data-theme="light" id="themeLightBtn">
+                                        <i class="fas fa-sun"></i>
+                                        <span>Claro</span>
+                                    </button>
+                                    <button class="theme-option active" data-theme="dark" id="themeDarkBtn">
+                                        <i class="fas fa-moon"></i>
+                                        <span>Escuro</span>
+                                    </button>
+                                    <button class="theme-option" data-theme="system" id="themeSystemBtn">
+                                        <i class="fas fa-desktop"></i>
+                                        <span>Sistema</span>
+                                    </button>
+                                </div>
+                            </div>
+
                             <button class="menu-item" id="editProfileBtn">
                                 <i class="fas fa-edit"></i>
                                 <span>Editar perfil</span>
@@ -446,9 +475,16 @@
                             <button class="option-btn" id="categoryAddTaskBtn" title="Criar tarefa">
                                 <i class="fas fa-check-square"></i>
                             </button>
+                            <button class="option-btn" id="categoryAttachImageBtn" title="Anexar imagem">
+                                <i class="fas fa-image"></i>
+                            </button>
+                            <button class="option-btn" id="categoryDrawMessageBtn" title="Desenhar">
+                                <i class="fas fa-paint-brush"></i>
+                            </button>
                             <button class="option-btn" id="categoryVoiceInputBtn" title="Gravar por voz">
                                 <i class="fas fa-microphone"></i>
                             </button>
+                            <input type="file" id="categoryImageInput" class="attachment-input" accept="image/*" multiple>
                         </div>
                         <div class="input-wrapper">
                             <div class="task-options" id="categoryTaskOptions" style="display: none;">
@@ -461,6 +497,9 @@
                                     <input type="date" id="categoryTaskDate">
                                     <input type="time" id="categoryTaskTime">
                                 </div>
+                            </div>
+                            <div class="image-preview-container" id="categoryImagePreviewContainer" style="display: none;">
+                                <!-- Image previews will be added here -->
                             </div>
                             <div class="voice-recording" id="categoryVoiceRecording" style="display: none;">
                                 <div class="voice-indicator">
@@ -693,6 +732,63 @@
             <div class="context-menu-item" data-action="delete">
                 <i class="fas fa-trash"></i> Excluir
             </div>
+        </div>
+
+        <!-- Draw Modal -->
+        <div class="modal draw-modal" id="drawModal">
+            <div class="modal-content">
+                <div class="modal-header">
+                    <h3>Desenhar</h3>
+                    <button class="close-modal" id="closeDrawModal">
+                        <i class="fas fa-times"></i>
+                    </button>
+                </div>
+                <div class="modal-body">
+                    <div class="draw-toolbar">
+                        <button class="draw-tool active" id="drawPencil" title="Lápis">
+                            <i class="fas fa-pencil-alt"></i>
+                        </button>
+                        <button class="draw-tool" id="drawEraser" title="Borracha">
+                            <i class="fas fa-eraser"></i>
+                        </button>
+                        <button class="draw-tool" id="drawClear" title="Limpar tudo">
+                            <i class="fas fa-trash"></i>
+                        </button>
+                        <div class="draw-size">
+                            <i class="fas fa-circle" style="font-size: 8px;"></i>
+                            <input type="range" id="drawSize" min="1" max="30" value="5">
+                            <i class="fas fa-circle" style="font-size: 16px;"></i>
+                        </div>
+                        <div class="draw-colors">
+                            <button class="draw-color active" style="background: #000000;" data-color="#000000"></button>
+                            <button class="draw-color" style="background: #ffffff;" data-color="#ffffff"></button>
+                            <button class="draw-color" style="background: #ef4444;" data-color="#ef4444"></button>
+                            <button class="draw-color" style="background: #f97316;" data-color="#f97316"></button>
+                            <button class="draw-color" style="background: #eab308;" data-color="#eab308"></button>
+                            <button class="draw-color" style="background: #22c55e;" data-color="#22c55e"></button>
+                            <button class="draw-color" style="background: #3b82f6;" data-color="#3b82f6"></button>
+                            <button class="draw-color" style="background: #8b5cf6;" data-color="#8b5cf6"></button>
+                        </div>
+                    </div>
+                    <div class="canvas-container" id="canvasContainer">
+                        <canvas id="drawCanvas"></canvas>
+                    </div>
+                    <div class="draw-actions">
+                        <button class="btn btn-secondary" id="cancelDrawBtn">Cancelar</button>
+                        <button class="btn btn-primary" id="saveDrawBtn">
+                            <i class="fas fa-paper-plane"></i> Enviar
+                        </button>
+                    </div>
+                </div>
+            </div>
+        </div>
+
+        <!-- Image Viewer -->
+        <div class="image-viewer" id="imageViewer">
+            <button class="image-viewer-close" id="closeImageViewer">
+                <i class="fas fa-times"></i>
+            </button>
+            <img id="imageViewerImg" src="" alt="Imagem">
         </div>
     </div>
 

@@ -40,6 +40,7 @@ model Category {
 model Message {
   id            String    @id @default(cuid())
   text          String
+  images        String?   // JSON array of base64 images
   isTask        Boolean   @default(false)
   taskDate      DateTime?
   taskTime      String?
