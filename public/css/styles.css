@@ -2525,7 +2525,8 @@ body {
     .dashboard-row {
         display: grid;
         grid-template-columns: 1fr 1fr;
-        gap: var(--spacing-lg);
+        column-gap: var(--spacing-lg);
+        row-gap: var(--spacing-xl);
         align-items: start;
     }
     
