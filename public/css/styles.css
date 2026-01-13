@@ -2539,6 +2539,29 @@ body {
         margin-bottom: 0;
     }
     
+    /* Limit progress card height */
+    .dashboard-col .progress-card {
+        max-height: 180px;
+        overflow: hidden;
+    }
+    
+    .dashboard-col .progress-card .card-body {
+        padding: var(--spacing-md);
+    }
+    
+    .dashboard-col .progress-card .progress-overview {
+        gap: var(--spacing-md);
+    }
+    
+    .dashboard-col .progress-card .progress-circle {
+        width: 80px;
+        height: 80px;
+    }
+    
+    .dashboard-col .progress-card .progress-percent {
+        font-size: 1.25rem;
+    }
+    
     .dashboard-row .calendar-card {
         margin-bottom: 0;
     }
