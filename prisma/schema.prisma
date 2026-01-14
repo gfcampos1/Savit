@@ -50,15 +50,37 @@ model Category {
   nameHash  String?  @map("name_hash")
   color     String   @default("#25D366")
   userId    String
+  sectionId String?
   createdAt DateTime @default(now())
   updatedAt DateTime @updatedAt
 
   user     User      @relation(fields: [userId], references: [id], onDelete: Cascade)
+  section  CategorySection? @relation(fields: [sectionId], references: [id], onDelete: SetNull)
   messages Message[]
 
   @@index([userId])
   @@index([nameHash])
+  @@index([sectionId])
   @@map("categories")
+}
+
+model CategorySection {
+  id        String   @id @default(cuid())
+  name      String
+  nameHash  String   @map("name_hash")
+  position  Int      @default(0)
+  userId    String
+  createdAt DateTime @default(now())
+  updatedAt DateTime @updatedAt
+
+  user       User       @relation(fields: [userId], references: [id], onDelete: Cascade)
+  categories Category[]
+
+  @@index([userId])
+  @@index([nameHash])
+  @@index([position])
+  @@unique([userId, nameHash])
+  @@map("category_sections")
 }
 
 model Message {

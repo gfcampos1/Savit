@@ -11,6 +11,7 @@ const AppState = {
     user: null,
     messages: [],
     categories: [],
+    categorySections: [],
     stats: null,
     currentPage: 'home',
     selectedCategoryId: null,
@@ -31,7 +32,11 @@ const AppState = {
     kanbanSearch: '',
     kanbanCategory: '',
     calendarDate: new Date(),
-    calendarSelectedDay: null
+    calendarSelectedDay: null,
+    sectionSortMode: 'manual',
+    movingCategoryId: null,
+    renamingSectionId: null,
+    deletingSectionId: null
 };
 
 // =============================================
@@ -629,6 +634,8 @@ const DOM = {
 
     // Categories Page
     newCategoryBtn: document.getElementById('newCategoryBtn'),
+    newSectionBtn: document.getElementById('newSectionBtn'),
+    toggleSectionSortBtn: document.getElementById('toggleSectionSortBtn'),
     categoriesList: document.getElementById('categoriesList'),
 
     // Profile Page
@@ -690,10 +697,40 @@ const DOM = {
     categorySelectorModal: document.getElementById('categorySelectorModal'),
     closeCategorySelectorModal: document.getElementById('closeCategorySelectorModal'),
     categorySelectorList: document.getElementById('categorySelectorList'),
+    // Sections modal
+    sectionsModal: document.getElementById('sectionsModal'),
+    closeSectionsModal: document.getElementById('closeSectionsModal'),
+    closeSectionsBtn: document.getElementById('closeSectionsBtn'),
+    newSectionName: document.getElementById('newSectionName'),
+    createSectionBtn: document.getElementById('createSectionBtn'),
+    sectionsList: document.getElementById('sectionsList'),
+    sectionsSortModeBtn: document.getElementById('sectionsSortModeBtn'),
+
+    // Move category modal
+    moveCategoryModal: document.getElementById('moveCategoryModal'),
+    closeMoveCategoryModal: document.getElementById('closeMoveCategoryModal'),
+    cancelMoveCategoryBtn: document.getElementById('cancelMoveCategoryBtn'),
+    confirmMoveCategoryBtn: document.getElementById('confirmMoveCategoryBtn'),
+    moveCategoryName: document.getElementById('moveCategoryName'),
+    moveCategorySectionSelect: document.getElementById('moveCategorySectionSelect'),
+
+    // Rename/delete section modals
+    renameSectionModal: document.getElementById('renameSectionModal'),
+    closeRenameSectionModal: document.getElementById('closeRenameSectionModal'),
+    cancelRenameSectionBtn: document.getElementById('cancelRenameSectionBtn'),
+    saveRenameSectionBtn: document.getElementById('saveRenameSectionBtn'),
+    renameSectionInput: document.getElementById('renameSectionInput'),
+
+    deleteSectionModal: document.getElementById('deleteSectionModal'),
+    closeDeleteSectionModal: document.getElementById('closeDeleteSectionModal'),
+    cancelDeleteSectionBtn: document.getElementById('cancelDeleteSectionBtn'),
+    confirmDeleteSectionBtn: document.getElementById('confirmDeleteSectionBtn'),
+    deleteSectionName: document.getElementById('deleteSectionName'),
     categoryModal: document.getElementById('categoryModal'),
     closeCategoryModal: document.getElementById('closeCategoryModal'),
     categoryModalTitle: document.getElementById('categoryModalTitle'),
     categoryName: document.getElementById('categoryName'),
+    categorySectionSelect: document.getElementById('categorySectionSelect'),
     colorPicker: document.getElementById('colorPicker'),
     customColor: document.getElementById('customColor'),
     cancelCategoryBtn: document.getElementById('cancelCategoryBtn'),
@@ -1053,6 +1090,7 @@ const MindMapUI = {
     activeTextarea: null,
     replaceRange: null,
     viewOnly: false,
+    _pendingInit: null,
 
     isAvailable() {
         return typeof window.MindElixirLite === 'function';
@@ -1125,11 +1163,11 @@ const MindMapUI = {
             data = this.defaultData(selectedText || 'Ideia');
         }
 
-        this._initMind(data, { editable: true });
         DOM.insertMindMapBtn.textContent = this.replaceRange ? 'Atualizar na mensagem' : 'Inserir na mensagem';
         DOM.insertMindMapBtn.style.display = '';
 
         openModal(DOM.mindMapModal);
+        this._scheduleInitMind(data, { editable: true });
     },
 
     openViewerFromJson(jsonString) {
@@ -1150,9 +1188,21 @@ const MindMapUI = {
             data = this.defaultData('Mapa');
         }
 
-        this._initMind(data, { editable: false });
         DOM.insertMindMapBtn.style.display = 'none';
         openModal(DOM.mindMapModal);
+        this._scheduleInitMind(data, { editable: false });
+    },
+
+    _scheduleInitMind(data, { editable }) {
+        if (!DOM.mindMapEditor) return;
+        if (this._pendingInit) {
+            cancelAnimationFrame(this._pendingInit);
+            this._pendingInit = null;
+        }
+        this._pendingInit = requestAnimationFrame(() => {
+            this._pendingInit = null;
+            this._initMind(data, { editable });
+        });
     },
 
     _initMind(data, { editable }) {
@@ -1173,10 +1223,29 @@ const MindMapUI = {
         // Ensure theme matches current UI
         if (!data.theme) data.theme = this.getTheme();
         this.mind.init(data);
+
+        // Center after first layout
+        setTimeout(() => {
+            try {
+                this.mind?.toCenter?.();
+            } catch {
+                // ignore
+            }
+        }, 0);
     },
 
     close() {
         if (DOM.mindMapModal) closeModal(DOM.mindMapModal);
+        if (this._pendingInit) {
+            cancelAnimationFrame(this._pendingInit);
+            this._pendingInit = null;
+        }
+        try {
+            this.mind?.destroy?.();
+        } catch {
+            // ignore
+        }
+        this.mind = null;
         this.activeTextarea = null;
         this.replaceRange = null;
         this.viewOnly = false;
@@ -1339,13 +1408,27 @@ const TextareaFormat = {
 function setupFormattingToolbar(toolbarEl, textareaEl) {
     if (!toolbarEl || !textareaEl) return;
 
-    const previewEl = toolbarEl.parentElement?.querySelector('.format-preview') || null;
-    let isPreviewing = false;
+    const wrapperEl = textareaEl.closest('.input-wrapper') || null;
+    const previewEl = wrapperEl?.querySelector('.format-preview') || null;
+    let isPreviewing = true;
+    let previewUpdateTimer = null;
 
     const updatePreview = () => {
         if (!previewEl) return;
         previewEl.innerHTML = `<div class="message-text">${Markdown.render(textareaEl.value)}</div>`;
         MindMapUI.hydrateEmbeds(previewEl);
+    };
+
+    const schedulePreviewUpdate = () => {
+        if (!isPreviewing) return;
+        if (!previewEl) return;
+        if (previewUpdateTimer) {
+            clearTimeout(previewUpdateTimer);
+        }
+        previewUpdateTimer = setTimeout(() => {
+            previewUpdateTimer = null;
+            updatePreview();
+        }, 120);
     };
 
     const setPreviewMode = (enabled) => {
@@ -1354,10 +1437,8 @@ function setupFormattingToolbar(toolbarEl, textareaEl) {
         if (enabled) {
             updatePreview();
             previewEl.style.display = 'block';
-            textareaEl.style.display = 'none';
         } else {
             previewEl.style.display = 'none';
-            textareaEl.style.display = '';
             textareaEl.focus();
         }
 
@@ -1423,11 +1504,6 @@ function setupFormattingToolbar(toolbarEl, textareaEl) {
     });
 
     textareaEl.addEventListener('keydown', (e) => {
-        if (isPreviewing) {
-            // Shouldn't happen since textarea is hidden, but keep safe.
-            return;
-        }
-
         // Tabs for indent/outdent
         if (e.key === 'Tab') {
             e.preventDefault();
@@ -1456,10 +1532,13 @@ function setupFormattingToolbar(toolbarEl, textareaEl) {
     });
 
     textareaEl.addEventListener('input', () => {
-        if (isPreviewing) {
-            updatePreview();
-        }
+        schedulePreviewUpdate();
     });
+
+    // Default: show live preview (but user can hide with the eye button)
+    if (previewEl) {
+        setPreviewMode(true);
+    }
 }
 
 // =============================================
@@ -1537,21 +1616,32 @@ const App = {
     async loadInitialData() {
         try {
             // Load all data in parallel
-            const [messagesData, categoriesData, statsData] = await Promise.all([
+            const [messagesData, categoriesData, sectionsData, statsData] = await Promise.all([
                 API.messages.getAll(),
                 API.categories.getAll(),
+                API.categories.getSections(),
                 API.stats.dashboard()
             ]);
 
             AppState.messages = messagesData.messages;
             AppState.categories = categoriesData.categories;
+            AppState.categorySections = sectionsData.sections || [];
             AppState.stats = statsData.stats;
+
+            // UI preferences
+            const savedSort = localStorage.getItem('sectionSortMode');
+            if (savedSort === 'alpha' || savedSort === 'manual') {
+                AppState.sectionSortMode = savedSort;
+            }
 
             // Render all
             this.renderDashboard();
             this.renderMessages();
             this.renderCategories();
             this.renderCategoryDropdowns();
+            this.renderCategorySectionSelect();
+            this.renderSectionsManager();
+            this.updateSectionSortButtons();
             this.renderProfile();
         } catch (error) {
             console.error('Failed to load data:', error);
@@ -1629,12 +1719,322 @@ const App = {
     // Refresh categories
     async refreshCategories() {
         try {
-            const { categories } = await API.categories.getAll();
+            const [{ categories }, { sections }] = await Promise.all([
+                API.categories.getAll(),
+                API.categories.getSections()
+            ]);
             AppState.categories = categories;
+            AppState.categorySections = sections || [];
             this.renderCategories();
             this.renderCategoryDropdowns();
+            this.renderCategorySectionSelect();
+            this.renderSectionsManager();
+            this.updateSectionSortButtons();
         } catch (error) {
             console.error('Failed to refresh categories:', error);
+        }
+    },
+
+    updateSectionSortButtons() {
+        const label = AppState.sectionSortMode === 'alpha' ? 'A-Z' : 'Manual';
+        if (DOM.sectionsSortModeBtn) {
+            DOM.sectionsSortModeBtn.textContent = label;
+        }
+        if (DOM.toggleSectionSortBtn) {
+            DOM.toggleSectionSortBtn.title = `Ordenação das seções: ${label}`;
+            const icon = DOM.toggleSectionSortBtn.querySelector('i');
+            if (icon) {
+                icon.classList.toggle('fa-sort-alpha-down', AppState.sectionSortMode === 'alpha');
+                icon.classList.toggle('fa-sort', AppState.sectionSortMode !== 'alpha');
+            }
+        }
+    },
+
+    setSectionSortMode(mode) {
+        const next = mode === 'alpha' ? 'alpha' : 'manual';
+        AppState.sectionSortMode = next;
+        localStorage.setItem('sectionSortMode', next);
+        this.updateSectionSortButtons();
+        this.renderCategories();
+        this.renderSectionsManager();
+    },
+
+    toggleSectionSortMode() {
+        this.setSectionSortMode(AppState.sectionSortMode === 'alpha' ? 'manual' : 'alpha');
+    },
+
+    openSectionsModal() {
+        if (!DOM.sectionsModal) return;
+        this.renderSectionsManager();
+        this.updateSectionSortButtons();
+        openModal(DOM.sectionsModal);
+        DOM.newSectionName?.focus();
+    },
+
+    closeSectionsModal() {
+        if (!DOM.sectionsModal) return;
+        closeModal(DOM.sectionsModal);
+    },
+
+    renderSectionsManager() {
+        if (!DOM.sectionsList) return;
+
+        const sections = Array.isArray(AppState.categorySections) ? [...AppState.categorySections] : [];
+        const canReorder = AppState.sectionSortMode === 'manual';
+        sections.sort((a, b) => {
+            if (AppState.sectionSortMode === 'alpha') {
+                return String(a.name || '').localeCompare(String(b.name || ''), 'pt-BR');
+            }
+            const pa = Number(a.position ?? 0);
+            const pb = Number(b.position ?? 0);
+            if (pa !== pb) return pa - pb;
+            return String(a.name || '').localeCompare(String(b.name || ''), 'pt-BR');
+        });
+
+        if (sections.length === 0) {
+            DOM.sectionsList.innerHTML = `
+                <div class="empty-state small">
+                    <i class="fas fa-layer-group"></i>
+                    <h3>Nenhuma seção</h3>
+                    <p>Crie sua primeira seção</p>
+                </div>
+            `;
+            return;
+        }
+
+        DOM.sectionsList.innerHTML = sections
+            .map((s) => {
+                const count = Number(s.categoryCount ?? 0);
+                return `
+                    <div class="section-item" data-id="${s.id}" draggable="${canReorder ? 'true' : 'false'}">
+                        <div class="section-left">
+                            <div class="section-grip" title="Arrastar para reordenar" style="${canReorder ? '' : 'opacity:0.45'}">
+                                <i class="fas fa-grip-vertical"></i>
+                            </div>
+                            <div class="section-name">${Utils.escapeHtml(s.name)}</div>
+                            <div class="section-meta">${count}</div>
+                        </div>
+                        <div class="section-actions">
+                            <button class="section-edit" title="Renomear"><i class="fas fa-edit"></i></button>
+                            <button class="section-delete" title="Excluir"><i class="fas fa-trash"></i></button>
+                        </div>
+                    </div>
+                `;
+            })
+            .join('');
+
+        // rename/delete
+        DOM.sectionsList.querySelectorAll('.section-item').forEach((row) => {
+            const id = row.dataset.id;
+            row.querySelector('.section-edit')?.addEventListener('click', (e) => {
+                e.preventDefault();
+                this.renameSection(id);
+            });
+            row.querySelector('.section-delete')?.addEventListener('click', (e) => {
+                e.preventDefault();
+                this.deleteSection(id);
+            });
+        });
+
+        // drag reorder (manual only)
+        if (!canReorder) return;
+
+        let draggingId = null;
+
+        const getOrderedIdsFromDom = () =>
+            Array.from(DOM.sectionsList.querySelectorAll('.section-item'))
+                .map((el) => el.dataset.id)
+                .filter(Boolean);
+
+        DOM.sectionsList.querySelectorAll('.section-item').forEach((row) => {
+            row.addEventListener('dragstart', (e) => {
+                draggingId = row.dataset.id;
+                row.classList.add('dragging');
+                e.dataTransfer.effectAllowed = 'move';
+                try { e.dataTransfer.setData('text/plain', draggingId); } catch { /* ignore */ }
+            });
+            row.addEventListener('dragend', () => {
+                row.classList.remove('dragging');
+                draggingId = null;
+            });
+
+            row.addEventListener('dragover', (e) => {
+                e.preventDefault();
+                if (!draggingId) return;
+                const target = row;
+                if (!target || target.dataset.id === draggingId) return;
+                const draggingEl = DOM.sectionsList.querySelector(`.section-item[data-id="${draggingId}"]`);
+                if (!draggingEl) return;
+                const rect = target.getBoundingClientRect();
+                const before = e.clientY < rect.top + rect.height / 2;
+                if (before) {
+                    DOM.sectionsList.insertBefore(draggingEl, target);
+                } else {
+                    DOM.sectionsList.insertBefore(draggingEl, target.nextSibling);
+                }
+            });
+
+            row.addEventListener('drop', async (e) => {
+                e.preventDefault();
+                const orderedIds = getOrderedIdsFromDom();
+                try {
+                    await API.categories.reorderSections(orderedIds);
+                    AppState.categorySections = orderedIds
+                        .map((id, idx) => {
+                            const found = AppState.categorySections.find((s) => s.id === id);
+                            return found ? { ...found, position: idx } : null;
+                        })
+                        .filter(Boolean);
+                    this.renderCategories();
+                } catch (error) {
+                    showToast(error.message);
+                    await this.refreshCategories();
+                }
+            });
+        });
+    },
+
+    openRenameSectionModal(sectionId) {
+        const section = AppState.categorySections.find((s) => s.id === sectionId);
+        if (!section || !DOM.renameSectionModal) return;
+
+        AppState.renamingSectionId = sectionId;
+        if (DOM.renameSectionInput) {
+            DOM.renameSectionInput.value = section.name || '';
+            // Put cursor at end
+            try {
+                DOM.renameSectionInput.setSelectionRange(DOM.renameSectionInput.value.length, DOM.renameSectionInput.value.length);
+            } catch { /* ignore */ }
+        }
+        openModal(DOM.renameSectionModal);
+        DOM.renameSectionInput?.focus();
+    },
+
+    closeRenameSectionModal() {
+        if (!DOM.renameSectionModal) return;
+        closeModal(DOM.renameSectionModal);
+        AppState.renamingSectionId = null;
+    },
+
+    async confirmRenameSection() {
+        const sectionId = AppState.renamingSectionId;
+        if (!sectionId) return;
+        const name = String(DOM.renameSectionInput?.value || '').trim();
+        if (!name) {
+            showToast('Digite um nome para a seção');
+            return;
+        }
+        try {
+            await API.categories.updateSection(sectionId, { name });
+            await this.refreshCategories();
+            this.closeRenameSectionModal();
+            showToast('Seção atualizada!');
+        } catch (error) {
+            showToast(error.message);
+        }
+    },
+
+    openDeleteSectionModal(sectionId) {
+        const section = AppState.categorySections.find((s) => s.id === sectionId);
+        if (!section || !DOM.deleteSectionModal) return;
+
+        AppState.deletingSectionId = sectionId;
+        if (DOM.deleteSectionName) {
+            DOM.deleteSectionName.textContent = section.name || '';
+        }
+        openModal(DOM.deleteSectionModal);
+    },
+
+    closeDeleteSectionModal() {
+        if (!DOM.deleteSectionModal) return;
+        closeModal(DOM.deleteSectionModal);
+        AppState.deletingSectionId = null;
+    },
+
+    async confirmDeleteSection() {
+        const sectionId = AppState.deletingSectionId;
+        if (!sectionId) return;
+        try {
+            await API.categories.deleteSection(sectionId);
+            await this.refreshCategories();
+            this.closeDeleteSectionModal();
+            showToast('Seção excluída!');
+        } catch (error) {
+            showToast(error.message);
+        }
+    },
+
+    async createSectionFromModal() {
+        const name = String(DOM.newSectionName?.value || '').trim();
+        if (!name) {
+            showToast('Digite um nome para a seção');
+            return;
+        }
+        try {
+            await API.categories.createSection({ name });
+            DOM.newSectionName.value = '';
+            await this.refreshCategories();
+            showToast('Seção criada!');
+        } catch (error) {
+            showToast(error.message);
+        }
+    },
+
+    openMoveCategoryModal(categoryId) {
+        const category = AppState.categories.find((c) => c.id === categoryId);
+        if (!category || !DOM.moveCategoryModal) return;
+        AppState.movingCategoryId = categoryId;
+
+        if (DOM.moveCategoryName) {
+            DOM.moveCategoryName.textContent = category.name || '';
+        }
+
+        // Populate select
+        if (DOM.moveCategorySectionSelect) {
+            DOM.moveCategorySectionSelect.innerHTML = '';
+            const none = document.createElement('option');
+            none.value = '';
+            none.textContent = 'Sem seção';
+            DOM.moveCategorySectionSelect.appendChild(none);
+
+            const sections = Array.isArray(AppState.categorySections) ? [...AppState.categorySections] : [];
+            sections.sort((a, b) => {
+                const pa = Number(a.position ?? 0);
+                const pb = Number(b.position ?? 0);
+                if (pa !== pb) return pa - pb;
+                return String(a.name || '').localeCompare(String(b.name || ''), 'pt-BR');
+            });
+            sections.forEach((s) => {
+                const opt = document.createElement('option');
+                opt.value = String(s.id || '');
+                opt.textContent = String(s.name || '');
+                DOM.moveCategorySectionSelect.appendChild(opt);
+            });
+
+            DOM.moveCategorySectionSelect.value = category.sectionId || '';
+        }
+
+        openModal(DOM.moveCategoryModal);
+    },
+
+    closeMoveCategoryModal() {
+        if (!DOM.moveCategoryModal) return;
+        closeModal(DOM.moveCategoryModal);
+        AppState.movingCategoryId = null;
+    },
+
+    async confirmMoveCategory() {
+        const id = AppState.movingCategoryId;
+        if (!id) return;
+        const sectionIdRaw = DOM.moveCategorySectionSelect ? DOM.moveCategorySectionSelect.value : '';
+        const sectionId = sectionIdRaw ? sectionIdRaw : null;
+        try {
+            await API.categories.update(id, { sectionId });
+            await this.refreshCategories();
+            this.closeMoveCategoryModal();
+            showToast('Categoria movida!');
+        } catch (error) {
+            showToast(error.message);
         }
     },
 
@@ -2507,9 +2907,21 @@ const App = {
 
     // Render categories
     renderCategories() {
-        const categories = AppState.categories;
+        const categories = Array.isArray(AppState.categories) ? [...AppState.categories] : [];
+        const sections = Array.isArray(AppState.categorySections) ? [...AppState.categorySections] : [];
 
-        if (categories.length === 0) {
+        const sortedCategories = categories.sort((a, b) => String(a.name || '').localeCompare(String(b.name || ''), 'pt-BR'));
+        const sortedSections = sections.sort((a, b) => {
+            if (AppState.sectionSortMode === 'alpha') {
+                return String(a.name || '').localeCompare(String(b.name || ''), 'pt-BR');
+            }
+            const pa = Number(a.position ?? 0);
+            const pb = Number(b.position ?? 0);
+            if (pa !== pb) return pa - pb;
+            return String(a.name || '').localeCompare(String(b.name || ''), 'pt-BR');
+        });
+
+        if (sortedCategories.length === 0 && sortedSections.length === 0) {
             DOM.categoriesList.innerHTML = `
                 <div class="empty-state small">
                     <i class="fas fa-folder-open"></i>
@@ -2520,10 +2932,15 @@ const App = {
             return;
         }
 
-        let html = '';
+        const bySection = new Map();
+        for (const cat of sortedCategories) {
+            const key = cat.sectionId || '';
+            if (!bySection.has(key)) bySection.set(key, []);
+            bySection.get(key).push(cat);
+        }
 
-        categories.forEach(cat => {
-            html += `
+        const renderCategoryItem = (cat) => {
+            return `
                 <div class="category-item" data-id="${cat.id}">
                     <div class="category-color" style="background: ${Utils.sanitizeCssColor(cat.color)}">
                         <i class="fas fa-folder"></i>
@@ -2533,6 +2950,9 @@ const App = {
                         <div class="category-count">${cat.messageCount} ${cat.messageCount === 1 ? 'mensagem' : 'mensagens'}</div>
                     </div>
                     <div class="category-actions">
+                        <button class="move-category" title="Mover para seção">
+                            <i class="fas fa-layer-group"></i>
+                        </button>
                         <button class="edit-category" title="Editar">
                             <i class="fas fa-edit"></i>
                         </button>
@@ -2542,11 +2962,50 @@ const App = {
                     </div>
                 </div>
             `;
-        });
+        };
+
+        let html = '';
+
+        const unsectioned = bySection.get('') || [];
+        if (unsectioned.length > 0) {
+            html += `
+                <div class="category-section" data-section-id="">
+                    <div class="category-section-header">
+                        <div class="category-section-title">Sem seção</div>
+                        <div class="category-section-meta">${unsectioned.length}</div>
+                    </div>
+                    <div class="category-section-body">
+                        ${unsectioned.map(renderCategoryItem).join('')}
+                    </div>
+                </div>
+            `;
+        }
+
+        for (const section of sortedSections) {
+            const list = bySection.get(section.id) || [];
+            const canReorder = AppState.sectionSortMode === 'manual';
+            html += `
+                <div class="category-section" data-section-id="${section.id}">
+                    <div class="category-section-header">
+                        <div class="category-section-title">${Utils.escapeHtml(section.name)}</div>
+                        <div class="category-section-actions">
+                            ${canReorder ? `<button class="section-btn section-up" data-id="${section.id}" title="Subir"><i class="fas fa-chevron-up"></i></button>` : ''}
+                            ${canReorder ? `<button class="section-btn section-down" data-id="${section.id}" title="Descer"><i class="fas fa-chevron-down"></i></button>` : ''}
+                            <button class="section-btn section-edit" data-id="${section.id}" title="Renomear"><i class="fas fa-edit"></i></button>
+                            <button class="section-btn section-delete" data-id="${section.id}" title="Excluir"><i class="fas fa-trash"></i></button>
+                            <span class="category-section-meta">${list.length}</span>
+                        </div>
+                    </div>
+                    <div class="category-section-body">
+                        ${list.length ? list.map(renderCategoryItem).join('') : `<div class="category-section-empty">Sem categorias nesta seção</div>`}
+                    </div>
+                </div>
+            `;
+        }
 
         DOM.categoriesList.innerHTML = html;
 
-        // Add event listeners
+        // Category item handlers
         DOM.categoriesList.querySelectorAll('.category-item').forEach(item => {
             item.addEventListener('click', (e) => {
                 if (!e.target.closest('.category-actions')) {
@@ -2554,14 +3013,46 @@ const App = {
                 }
             });
 
-            item.querySelector('.edit-category').addEventListener('click', (e) => {
+            const moveBtn = item.querySelector('.move-category');
+            moveBtn?.addEventListener('click', (e) => {
+                e.stopPropagation();
+                this.openMoveCategoryModal(item.dataset.id);
+            });
+
+            item.querySelector('.edit-category')?.addEventListener('click', (e) => {
                 e.stopPropagation();
                 this.openEditCategoryModal(item.dataset.id);
             });
 
-            item.querySelector('.delete-category').addEventListener('click', (e) => {
+            item.querySelector('.delete-category')?.addEventListener('click', (e) => {
                 e.stopPropagation();
                 this.deleteCategory(item.dataset.id);
+            });
+        });
+
+        // Section handlers
+        DOM.categoriesList.querySelectorAll('.section-up').forEach(btn => {
+            btn.addEventListener('click', async (e) => {
+                e.preventDefault();
+                await this.moveSection(btn.dataset.id, -1);
+            });
+        });
+        DOM.categoriesList.querySelectorAll('.section-down').forEach(btn => {
+            btn.addEventListener('click', async (e) => {
+                e.preventDefault();
+                await this.moveSection(btn.dataset.id, +1);
+            });
+        });
+        DOM.categoriesList.querySelectorAll('.section-edit').forEach(btn => {
+            btn.addEventListener('click', async (e) => {
+                e.preventDefault();
+                await this.renameSection(btn.dataset.id);
+            });
+        });
+        DOM.categoriesList.querySelectorAll('.section-delete').forEach(btn => {
+            btn.addEventListener('click', async (e) => {
+                e.preventDefault();
+                await this.deleteSection(btn.dataset.id);
             });
         });
     },
@@ -2591,6 +3082,33 @@ const App = {
 
         // Category selector modal
         this.renderCategorySelector();
+    },
+
+    renderCategorySectionSelect(selectedSectionId = '') {
+        if (!DOM.categorySectionSelect) return;
+        DOM.categorySectionSelect.innerHTML = '';
+
+        const noneOpt = document.createElement('option');
+        noneOpt.value = '';
+        noneOpt.textContent = 'Sem seção';
+        DOM.categorySectionSelect.appendChild(noneOpt);
+
+        const sections = Array.isArray(AppState.categorySections) ? [...AppState.categorySections] : [];
+        sections
+            .sort((a, b) => {
+                const pa = Number(a.position ?? 0);
+                const pb = Number(b.position ?? 0);
+                if (pa !== pb) return pa - pb;
+                return String(a.name || '').localeCompare(String(b.name || ''), 'pt-BR');
+            })
+            .forEach((s) => {
+                const opt = document.createElement('option');
+                opt.value = String(s.id || '');
+                opt.textContent = String(s.name || '');
+                DOM.categorySectionSelect.appendChild(opt);
+            });
+
+        DOM.categorySectionSelect.value = selectedSectionId || '';
     },
 
     renderCategorySelector() {
@@ -2902,6 +3420,80 @@ const App = {
     },
 
     // Category operations
+    // Legacy (kept for backward compatibility; UI uses openMoveCategoryModal now)
+    async promptMoveCategory(categoryId) {
+        const category = AppState.categories.find(c => c.id === categoryId);
+        if (!category) return;
+
+        const sections = Array.isArray(AppState.categorySections) ? [...AppState.categorySections] : [];
+        sections.sort((a, b) => {
+            const pa = Number(a.position ?? 0);
+            const pb = Number(b.position ?? 0);
+            if (pa !== pb) return pa - pb;
+            return String(a.name || '').localeCompare(String(b.name || ''), 'pt-BR');
+        });
+
+        const lines = ['Escolha a seção:', '0) Sem seção'];
+        sections.forEach((s, idx) => {
+            lines.push(`${idx + 1}) ${s.name}`);
+        });
+
+        const chosen = window.prompt(lines.join('\n'));
+        if (chosen === null) return;
+        const n = Number(String(chosen).trim());
+        if (!Number.isFinite(n) || n < 0 || n > sections.length) return;
+
+        const sectionId = n === 0 ? null : sections[n - 1].id;
+
+        try {
+            await API.categories.update(categoryId, { sectionId });
+            await this.refreshCategories();
+            showToast('Categoria movida!');
+        } catch (error) {
+            showToast(error.message);
+        }
+    },
+
+    async moveSection(sectionId, delta) {
+        const sections = Array.isArray(AppState.categorySections) ? [...AppState.categorySections] : [];
+        sections.sort((a, b) => {
+            const pa = Number(a.position ?? 0);
+            const pb = Number(b.position ?? 0);
+            if (pa !== pb) return pa - pb;
+            return String(a.name || '').localeCompare(String(b.name || ''), 'pt-BR');
+        });
+
+        const index = sections.findIndex(s => s.id === sectionId);
+        if (index === -1) return;
+        const nextIndex = index + delta;
+        if (nextIndex < 0 || nextIndex >= sections.length) return;
+
+        const reordered = [...sections];
+        const tmp = reordered[index];
+        reordered[index] = reordered[nextIndex];
+        reordered[nextIndex] = tmp;
+
+        const orderedIds = reordered.map(s => s.id);
+
+        try {
+            await API.categories.reorderSections(orderedIds);
+            // optimistic update to avoid flicker
+            AppState.categorySections = reordered.map((s, idx) => ({ ...s, position: idx }));
+            this.renderCategories();
+            this.renderCategorySectionSelect(DOM.categorySectionSelect?.value || '');
+        } catch (error) {
+            showToast(error.message);
+        }
+    },
+
+    async renameSection(sectionId) {
+        this.openRenameSectionModal(sectionId);
+    },
+
+    async deleteSection(sectionId) {
+        this.openDeleteSectionModal(sectionId);
+    },
+
     async createCategory() {
         const name = DOM.categoryName.value.trim();
 
@@ -2911,14 +3503,16 @@ const App = {
         }
 
         try {
-            const { category } = await API.categories.create({
+            const sectionIdRaw = DOM.categorySectionSelect ? DOM.categorySectionSelect.value : '';
+            const sectionId = sectionIdRaw ? sectionIdRaw : null;
+
+            await API.categories.create({
                 name,
-                color: Utils.sanitizeCssColor(AppState.selectedColorForCategory)
+                color: Utils.sanitizeCssColor(AppState.selectedColorForCategory),
+                sectionId
             });
 
-            AppState.categories.push(category);
-            this.renderCategories();
-            this.renderCategoryDropdowns();
+            await this.refreshCategories();
             closeModal(DOM.categoryModal);
             resetCategoryModal();
 
@@ -2937,19 +3531,16 @@ const App = {
         }
 
         try {
-            const { category } = await API.categories.update(id, {
+            const sectionIdRaw = DOM.categorySectionSelect ? DOM.categorySectionSelect.value : '';
+            const sectionId = sectionIdRaw ? sectionIdRaw : null;
+
+            await API.categories.update(id, {
                 name,
-                color: Utils.sanitizeCssColor(AppState.selectedColorForCategory)
+                color: Utils.sanitizeCssColor(AppState.selectedColorForCategory),
+                sectionId
             });
 
-            // Update in state
-            const index = AppState.categories.findIndex(c => c.id === id);
-            if (index !== -1) {
-                AppState.categories[index] = category;
-            }
-
-            this.renderCategories();
-            this.renderCategoryDropdowns();
+            await this.refreshCategories();
             this.renderMessages();
             closeModal(DOM.categoryModal);
             resetCategoryModal();
@@ -3062,6 +3653,7 @@ const App = {
         DOM.categoryModalTitle.textContent = 'Editar Categoria';
         DOM.categoryName.value = category.name;
         selectColorOption(Utils.sanitizeCssColor(category.color));
+        this.renderCategorySectionSelect(category.sectionId || '');
 
         openModal(DOM.categoryModal);
     },
@@ -3542,8 +4134,80 @@ const App = {
             AppState.editingCategoryId = null;
             DOM.categoryModalTitle.textContent = 'Nova Categoria';
             resetCategoryModal();
+            this.renderCategorySectionSelect('');
             openModal(DOM.categoryModal);
         });
+
+        if (DOM.newSectionBtn) {
+            DOM.newSectionBtn.addEventListener('click', () => this.openSectionsModal());
+        }
+
+        if (DOM.toggleSectionSortBtn) {
+            DOM.toggleSectionSortBtn.addEventListener('click', () => this.toggleSectionSortMode());
+        }
+
+        // Sections modal
+        if (DOM.closeSectionsModal) {
+            DOM.closeSectionsModal.addEventListener('click', () => this.closeSectionsModal());
+        }
+        if (DOM.closeSectionsBtn) {
+            DOM.closeSectionsBtn.addEventListener('click', () => this.closeSectionsModal());
+        }
+        if (DOM.sectionsSortModeBtn) {
+            DOM.sectionsSortModeBtn.addEventListener('click', () => this.toggleSectionSortMode());
+        }
+        if (DOM.createSectionBtn) {
+            DOM.createSectionBtn.addEventListener('click', () => this.createSectionFromModal());
+        }
+        if (DOM.newSectionName) {
+            DOM.newSectionName.addEventListener('keydown', (e) => {
+                if (e.key === 'Enter') {
+                    e.preventDefault();
+                    this.createSectionFromModal();
+                }
+            });
+        }
+
+        // Move category modal
+        if (DOM.closeMoveCategoryModal) {
+            DOM.closeMoveCategoryModal.addEventListener('click', () => this.closeMoveCategoryModal());
+        }
+        if (DOM.cancelMoveCategoryBtn) {
+            DOM.cancelMoveCategoryBtn.addEventListener('click', () => this.closeMoveCategoryModal());
+        }
+        if (DOM.confirmMoveCategoryBtn) {
+            DOM.confirmMoveCategoryBtn.addEventListener('click', () => this.confirmMoveCategory());
+        }
+
+        // Rename section modal
+        if (DOM.closeRenameSectionModal) {
+            DOM.closeRenameSectionModal.addEventListener('click', () => this.closeRenameSectionModal());
+        }
+        if (DOM.cancelRenameSectionBtn) {
+            DOM.cancelRenameSectionBtn.addEventListener('click', () => this.closeRenameSectionModal());
+        }
+        if (DOM.saveRenameSectionBtn) {
+            DOM.saveRenameSectionBtn.addEventListener('click', () => this.confirmRenameSection());
+        }
+        if (DOM.renameSectionInput) {
+            DOM.renameSectionInput.addEventListener('keydown', (e) => {
+                if (e.key === 'Enter') {
+                    e.preventDefault();
+                    this.confirmRenameSection();
+                }
+            });
+        }
+
+        // Delete section modal
+        if (DOM.closeDeleteSectionModal) {
+            DOM.closeDeleteSectionModal.addEventListener('click', () => this.closeDeleteSectionModal());
+        }
+        if (DOM.cancelDeleteSectionBtn) {
+            DOM.cancelDeleteSectionBtn.addEventListener('click', () => this.closeDeleteSectionModal());
+        }
+        if (DOM.confirmDeleteSectionBtn) {
+            DOM.confirmDeleteSectionBtn.addEventListener('click', () => this.confirmDeleteSection());
+        }
 
         // Category modal
         DOM.closeCategoryModal.addEventListener('click', () => closeModal(DOM.categoryModal));
@@ -3872,6 +4536,9 @@ function resetCategoryModal() {
     DOM.categoryName.value = '';
     AppState.selectedColorForCategory = '#25D366';
     selectColorOption('#25D366');
+    if (DOM.categorySectionSelect) {
+        DOM.categorySectionSelect.value = '';
+    }
 }
 
 function selectColorOption(color) {

@@ -1525,6 +1525,11 @@ body {
     border: 1px solid rgba(0, 0, 0, 0.08);
 }
 
+[data-theme="light"] .format-toolbar--inline {
+    background: transparent;
+    border: 0;
+}
+
 [data-theme="light"] .format-toolbar .format-btn {
     background: rgba(0, 0, 0, 0.04);
     border: 1px solid rgba(0, 0, 0, 0.12);
@@ -1725,6 +1730,8 @@ body {
     display: flex;
     gap: var(--spacing-xs);
     margin-bottom: var(--spacing-sm);
+    flex-wrap: wrap;
+    align-items: center;
 }
 
 .option-btn {
@@ -1934,6 +1941,82 @@ body {
     color: var(--danger);
 }
 
+.category-section {
+    background: rgba(255, 255, 255, 0.03);
+    border: 1px solid rgba(255, 255, 255, 0.06);
+    border-radius: var(--radius-md);
+    overflow: hidden;
+}
+
+[data-theme="light"] .category-section {
+    background: rgba(0, 0, 0, 0.02);
+    border: 1px solid rgba(0, 0, 0, 0.06);
+}
+
+.category-section-header {
+    display: flex;
+    align-items: center;
+    justify-content: space-between;
+    padding: 10px 12px;
+    gap: var(--spacing-sm);
+    background: rgba(0, 0, 0, 0.12);
+}
+
+[data-theme="light"] .category-section-header {
+    background: rgba(0, 0, 0, 0.04);
+}
+
+.category-section-title {
+    font-weight: 600;
+}
+
+.category-section-actions {
+    display: flex;
+    align-items: center;
+    gap: 6px;
+}
+
+.category-section-meta {
+    font-size: var(--font-size-sm);
+    color: var(--text-secondary);
+    margin-left: 4px;
+}
+
+.section-btn {
+    width: 28px;
+    height: 28px;
+    border: none;
+    background: transparent;
+    color: var(--icon-color);
+    cursor: pointer;
+    border-radius: var(--radius-full);
+    display: flex;
+    align-items: center;
+    justify-content: center;
+}
+
+.section-btn:hover {
+    background: rgba(255, 255, 255, 0.08);
+}
+
+[data-theme="light"] .section-btn:hover {
+    background: rgba(0, 0, 0, 0.06);
+}
+
+.category-section-body {
+    display: flex;
+    flex-direction: column;
+    gap: var(--spacing-sm);
+    padding: var(--spacing-sm);
+}
+
+.category-section-empty {
+    padding: 8px 10px;
+    font-size: var(--font-size-sm);
+    color: var(--text-secondary);
+    opacity: 0.85;
+}
+
 /* =============================================
    Modals
    ============================================= */
@@ -1965,6 +2048,152 @@ body {
     animation: modalIn 0.2s ease;
     display: flex;
     flex-direction: column;
+}
+
+/* =============================================
+   Sections Manager
+   ============================================= */
+.section-create-row {
+    display: flex;
+    gap: var(--spacing-sm);
+    align-items: center;
+    margin-bottom: var(--spacing-md);
+}
+
+.section-create-row input {
+    flex: 1;
+    padding: 10px 12px;
+    border-radius: var(--radius-md);
+    border: 1px solid rgba(255, 255, 255, 0.10);
+    background: var(--input-bg);
+    color: var(--text-primary);
+}
+
+[data-theme="light"] .section-create-row input {
+    border: 1px solid rgba(0, 0, 0, 0.10);
+}
+
+.section-sort-row {
+    display: flex;
+    align-items: center;
+    gap: var(--spacing-sm);
+    margin-bottom: var(--spacing-md);
+}
+
+.section-sort-label {
+    font-size: var(--font-size-sm);
+    color: var(--text-secondary);
+}
+
+.sections-list {
+    display: flex;
+    flex-direction: column;
+    gap: var(--spacing-sm);
+}
+
+.section-item {
+    display: flex;
+    align-items: center;
+    justify-content: space-between;
+    gap: var(--spacing-sm);
+    padding: 10px 12px;
+    background: rgba(255, 255, 255, 0.04);
+    border: 1px solid rgba(255, 255, 255, 0.06);
+    border-radius: var(--radius-md);
+}
+
+[data-theme="light"] .section-item {
+    background: rgba(0, 0, 0, 0.02);
+    border: 1px solid rgba(0, 0, 0, 0.06);
+}
+
+.section-item[draggable="true"] {
+    cursor: grab;
+}
+
+.section-item.dragging {
+    opacity: 0.6;
+}
+
+.section-left {
+    display: flex;
+    align-items: center;
+    gap: 10px;
+    flex: 1;
+    min-width: 0;
+}
+
+.section-grip {
+    width: 28px;
+    height: 28px;
+    border-radius: var(--radius-full);
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    color: var(--text-secondary);
+    background: rgba(255, 255, 255, 0.06);
+}
+
+[data-theme="light"] .section-grip {
+    background: rgba(0, 0, 0, 0.05);
+}
+
+.section-name {
+    font-weight: 600;
+    overflow: hidden;
+    text-overflow: ellipsis;
+    white-space: nowrap;
+}
+
+.section-meta {
+    font-size: var(--font-size-sm);
+    color: var(--text-secondary);
+    margin-left: 8px;
+}
+
+.section-actions {
+    display: flex;
+    align-items: center;
+    gap: 6px;
+}
+
+.section-actions button {
+    width: 32px;
+    height: 32px;
+    border: none;
+    background: transparent;
+    color: var(--icon-color);
+    cursor: pointer;
+    border-radius: var(--radius-full);
+    display: flex;
+    align-items: center;
+    justify-content: center;
+}
+
+.section-actions button:hover {
+    background: rgba(255, 255, 255, 0.08);
+}
+
+[data-theme="light"] .section-actions button:hover {
+    background: rgba(0, 0, 0, 0.06);
+}
+
+.section-help {
+    margin-top: var(--spacing-sm);
+    font-size: var(--font-size-sm);
+    color: var(--text-secondary);
+}
+
+.move-category-name {
+    padding: 10px 12px;
+    border-radius: var(--radius-md);
+    background: rgba(255, 255, 255, 0.04);
+    border: 1px solid rgba(255, 255, 255, 0.06);
+}
+
+[data-theme="light"] .move-category-name {
+    background: rgba(0, 0, 0, 0.02);
+    border: 1px solid rgba(0, 0, 0, 0.06);
 }
 
 @keyframes modalIn {
@@ -3411,14 +3640,35 @@ body {
     display: flex;
     align-items: center;
     gap: var(--spacing-sm);
-    padding: var(--spacing-sm);
-    background: var(--header-bg);
-    border-radius: var(--radius-md);
-    margin-bottom: var(--spacing-sm);
+    width: 100%;
     flex-wrap: wrap;
+    padding: 10px;
+    margin-bottom: 10px;
+    background: rgba(255, 255, 255, 0.9);
+    border: 1px solid rgba(0, 0, 0, 0.08);
+    border-radius: 12px;
+.draw-tool {
+
+.format-toolbar--inline {
+    width: auto;
+    flex-wrap: nowrap;
+    padding: 0;
+    margin: 0;
+    background: transparent;
+    border: 0;
+    border-radius: 0;
 }
 
-.draw-tool {
+.format-toolbar--compact .format-btn {
+    width: 32px;
+    height: 32px;
+    border-radius: 10px;
+}
+
+.format-toolbar--compact .format-sep {
+    height: 18px;
+    margin: 0 2px;
+}
     width: 36px;
     height: 36px;
     border: none;

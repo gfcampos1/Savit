@@ -3,7 +3,14 @@ const { PrismaClient } = require('@prisma/client');
 const auth = require('../middleware/auth');
 const { validateBody, validateParams } = require('../middleware/validate');
 const { writeLimiter } = require('../middleware/rateLimiters');
-const { CategoryCreateBody, CategoryUpdateBody, IdParam } = require('../utils/schemas');
+const {
+    CategoryCreateBody,
+    CategoryUpdateBody,
+    CategorySectionCreateBody,
+    CategorySectionUpdateBody,
+    CategorySectionReorderBody,
+    IdParam
+} = require('../utils/schemas');
 const { encryptString, decryptString, hmacNormalized } = require('../utils/crypto');
 const { normalizeHexColor } = require('../utils/validation');
 
@@ -12,6 +19,195 @@ const prisma = new PrismaClient();
 
 // Apply auth middleware to all routes
 router.use(auth);
+
+async function requireSectionOwnedByUser(sectionId, userId) {
+    if (!sectionId) return null;
+    const section = await prisma.categorySection.findFirst({
+        where: { id: sectionId, userId }
+    });
+    return section || null;
+}
+
+// Get all category sections
+router.get('/sections', async (req, res) => {
+    try {
+        const sections = await prisma.categorySection.findMany({
+            where: { userId: req.user.id },
+            orderBy: [{ position: 'asc' }, { createdAt: 'asc' }],
+            include: {
+                _count: { select: { categories: true } }
+            }
+        });
+
+        res.json({
+            sections: sections.map((s) => ({
+                id: s.id,
+                name: decryptString(s.name),
+                position: s.position,
+                categoryCount: s._count.categories,
+                createdAt: s.createdAt,
+                updatedAt: s.updatedAt
+            }))
+        });
+    } catch (error) {
+        console.error('Get category sections error:', error);
+        res.status(500).json({ error: 'Erro ao buscar seções.' });
+    }
+});
+
+// Create category section
+router.post('/sections', writeLimiter, validateBody(CategorySectionCreateBody), async (req, res) => {
+    try {
+        const { name } = req.body;
+        const nameHash = hmacNormalized(name);
+
+        const dup = await prisma.categorySection.findFirst({
+            where: { userId: req.user.id, nameHash }
+        });
+        if (dup) {
+            return res.status(400).json({ error: 'Já existe uma seção com este nome.' });
+        }
+
+        const maxPos = await prisma.categorySection.findFirst({
+            where: { userId: req.user.id },
+            orderBy: { position: 'desc' },
+            select: { position: true }
+        });
+        const nextPosition = (maxPos?.position ?? -1) + 1;
+
+        const section = await prisma.categorySection.create({
+            data: {
+                name: encryptString(name),
+                nameHash,
+                position: nextPosition,
+                userId: req.user.id
+            },
+            include: { _count: { select: { categories: true } } }
+        });
+
+        res.status(201).json({
+            section: {
+                id: section.id,
+                name: decryptString(section.name),
+                position: section.position,
+                categoryCount: section._count.categories,
+                createdAt: section.createdAt,
+                updatedAt: section.updatedAt
+            }
+        });
+    } catch (error) {
+        console.error('Create category section error:', error);
+        res.status(500).json({ error: 'Erro ao criar seção.' });
+    }
+});
+
+// Update category section
+router.put('/sections/:id', validateParams(IdParam), writeLimiter, validateBody(CategorySectionUpdateBody), async (req, res) => {
+    try {
+        const { name } = req.body;
+
+        const existing = await prisma.categorySection.findFirst({
+            where: { id: req.params.id, userId: req.user.id }
+        });
+        if (!existing) {
+            return res.status(404).json({ error: 'Seção não encontrada.' });
+        }
+
+        let nextHash;
+        if (name !== undefined) {
+            nextHash = hmacNormalized(name);
+            const duplicate = await prisma.categorySection.findFirst({
+                where: {
+                    userId: req.user.id,
+                    nameHash: nextHash,
+                    NOT: { id: req.params.id }
+                }
+            });
+            if (duplicate) {
+                return res.status(400).json({ error: 'Já existe uma seção com este nome.' });
+            }
+        }
+
+        const section = await prisma.categorySection.update({
+            where: { id: req.params.id },
+            data: {
+                ...(name !== undefined ? { name: encryptString(name), nameHash: nextHash } : {})
+            },
+            include: { _count: { select: { categories: true } } }
+        });
+
+        res.json({
+            section: {
+                id: section.id,
+                name: decryptString(section.name),
+                position: section.position,
+                categoryCount: section._count.categories,
+                createdAt: section.createdAt,
+                updatedAt: section.updatedAt
+            }
+        });
+    } catch (error) {
+        console.error('Update category section error:', error);
+        res.status(500).json({ error: 'Erro ao atualizar seção.' });
+    }
+});
+
+// Delete category section
+router.delete('/sections/:id', validateParams(IdParam), writeLimiter, async (req, res) => {
+    try {
+        const existing = await prisma.categorySection.findFirst({
+            where: { id: req.params.id, userId: req.user.id }
+        });
+        if (!existing) {
+            return res.status(404).json({ error: 'Seção não encontrada.' });
+        }
+
+        await prisma.$transaction([
+            prisma.category.updateMany({
+                where: { userId: req.user.id, sectionId: req.params.id },
+                data: { sectionId: null }
+            }),
+            prisma.categorySection.delete({ where: { id: req.params.id } })
+        ]);
+
+        res.json({ message: 'Seção excluída com sucesso.' });
+    } catch (error) {
+        console.error('Delete category section error:', error);
+        res.status(500).json({ error: 'Erro ao excluir seção.' });
+    }
+});
+
+// Reorder category sections
+router.post('/sections/reorder', writeLimiter, validateBody(CategorySectionReorderBody), async (req, res) => {
+    try {
+        const orderedIds = Array.isArray(req.body.orderedIds) ? req.body.orderedIds : [];
+        if (orderedIds.length === 0) {
+            return res.json({ message: 'Ok' });
+        }
+
+        const owned = await prisma.categorySection.findMany({
+            where: { userId: req.user.id, id: { in: orderedIds } },
+            select: { id: true }
+        });
+        if (owned.length !== orderedIds.length) {
+            return res.status(400).json({ error: 'Lista de seções inválida.' });
+        }
+
+        await prisma.$transaction(
+            orderedIds.map((id, idx) =>
+                prisma.categorySection.update({
+                    where: { id },
+                    data: { position: idx }
+                })
+            )
+        );
+
+        res.json({ message: 'Ok' });
+    } catch (error) {
+        console.error('Reorder category sections error:', error);
+        res.status(500).json({ error: 'Erro ao reordenar seções.' });
+    }
+});
 
 // Get all categories with message count
 router.get('/', async (req, res) => {
@@ -29,6 +225,7 @@ router.get('/', async (req, res) => {
             id: cat.id,
             name: decryptString(cat.name),
             color: cat.color,
+            sectionId: cat.sectionId || null,
             messageCount: cat._count.messages,
             createdAt: cat.createdAt,
             updatedAt: cat.updatedAt
@@ -66,6 +263,7 @@ router.get('/:id', validateParams(IdParam), async (req, res) => {
                 id: category.id,
                 name: decryptString(category.name),
                 color: category.color,
+                sectionId: category.sectionId || null,
                 messageCount: category._count.messages,
                 createdAt: category.createdAt,
                 updatedAt: category.updatedAt
@@ -80,7 +278,7 @@ router.get('/:id', validateParams(IdParam), async (req, res) => {
 // Create category
 router.post('/', writeLimiter, validateBody(CategoryCreateBody), async (req, res) => {
     try {
-        const { name, color } = req.body;
+        const { name, color, sectionId } = req.body;
 
         const nameHash = hmacNormalized(name);
 
@@ -96,12 +294,22 @@ router.post('/', writeLimiter, validateBody(CategoryCreateBody), async (req, res
             return res.status(400).json({ error: 'Já existe uma categoria com este nome.' });
         }
 
+        let finalSectionId = null;
+        if (sectionId) {
+            const section = await requireSectionOwnedByUser(sectionId, req.user.id);
+            if (!section) {
+                return res.status(400).json({ error: 'Seção inválida.' });
+            }
+            finalSectionId = section.id;
+        }
+
         const category = await prisma.category.create({
             data: {
                 name: encryptString(name),
                 nameHash,
                 color: normalizeHexColor(color),
-                userId: req.user.id
+                userId: req.user.id,
+                sectionId: finalSectionId
             }
         });
 
@@ -109,7 +317,8 @@ router.post('/', writeLimiter, validateBody(CategoryCreateBody), async (req, res
             category: {
                 ...category,
                 name: decryptString(category.name),
-                messageCount: 0
+                messageCount: 0,
+                sectionId: category.sectionId || null
             }
         });
     } catch (error) {
@@ -121,7 +330,7 @@ router.post('/', writeLimiter, validateBody(CategoryCreateBody), async (req, res
 // Update category
 router.put('/:id', validateParams(IdParam), writeLimiter, validateBody(CategoryUpdateBody), async (req, res) => {
     try {
-        const { name, color } = req.body;
+        const { name, color, sectionId } = req.body;
 
         // Verify category belongs to user
         const existing = await prisma.category.findFirst({
@@ -149,11 +358,25 @@ router.put('/:id', validateParams(IdParam), writeLimiter, validateBody(CategoryU
             }
         }
 
+        let finalSectionId = undefined;
+        if (sectionId !== undefined) {
+            if (sectionId === null) {
+                finalSectionId = null;
+            } else {
+                const section = await requireSectionOwnedByUser(sectionId, req.user.id);
+                if (!section) {
+                    return res.status(400).json({ error: 'Seção inválida.' });
+                }
+                finalSectionId = section.id;
+            }
+        }
+
         const category = await prisma.category.update({
             where: { id: req.params.id },
             data: {
                 ...(name !== undefined ? { name: encryptString(name), nameHash: nextHash } : {}),
-                ...(color !== undefined ? { color: normalizeHexColor(color, existing.color || '#25D366') } : {})
+                ...(color !== undefined ? { color: normalizeHexColor(color, existing.color || '#25D366') } : {}),
+                ...(finalSectionId !== undefined ? { sectionId: finalSectionId } : {})
             },
             include: {
                 _count: {
@@ -167,6 +390,7 @@ router.put('/:id', validateParams(IdParam), writeLimiter, validateBody(CategoryU
                 id: category.id,
                 name: decryptString(category.name),
                 color: category.color,
+                sectionId: category.sectionId || null,
                 messageCount: category._count.messages,
                 createdAt: category.createdAt,
                 updatedAt: category.updatedAt

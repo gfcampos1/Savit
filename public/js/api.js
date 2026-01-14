@@ -201,6 +201,37 @@ const API = {
             return API.request('/categories');
         },
 
+        async getSections() {
+            return API.request('/categories/sections');
+        },
+
+        async createSection(data) {
+            return API.request('/categories/sections', {
+                method: 'POST',
+                body: data
+            });
+        },
+
+        async updateSection(id, data) {
+            return API.request(`/categories/sections/${id}`, {
+                method: 'PUT',
+                body: data
+            });
+        },
+
+        async deleteSection(id) {
+            return API.request(`/categories/sections/${id}`, {
+                method: 'DELETE'
+            });
+        },
+
+        async reorderSections(orderedIds) {
+            return API.request('/categories/sections/reorder', {
+                method: 'POST',
+                body: { orderedIds: Array.isArray(orderedIds) ? orderedIds : [] }
+            });
+        },
+
         async get(id) {
             return API.request(`/categories/${id}`);
         },

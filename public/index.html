@@ -399,6 +399,21 @@
                             <button class="option-btn" id="voiceInputBtn" title="Gravar por voz">
                                 <i class="fas fa-microphone"></i>
                             </button>
+                            <div class="format-toolbar format-toolbar--inline format-toolbar--compact" id="formatToolbar" aria-label="Formatação">
+                                <button class="format-btn" type="button" data-format="bold" title="Negrito (Ctrl+B)"><i class="fas fa-bold"></i></button>
+                                <button class="format-btn" type="button" data-format="italic" title="Itálico (Ctrl+I)"><i class="fas fa-italic"></i></button>
+                                <span class="format-sep" aria-hidden="true"></span>
+                                <button class="format-btn" type="button" data-format="h2" title="Título"><i class="fas fa-heading"></i></button>
+                                <button class="format-btn" type="button" data-format="ul" title="Lista"><i class="fas fa-list-ul"></i></button>
+                                <button class="format-btn" type="button" data-format="ol" title="Lista numerada"><i class="fas fa-list-ol"></i></button>
+                                <span class="format-sep" aria-hidden="true"></span>
+                                <button class="format-btn" type="button" data-format="quote" title="Citação"><i class="fas fa-quote-right"></i></button>
+                                <button class="format-btn" type="button" data-format="code" title="Bloco de código"><i class="fas fa-code"></i></button>
+                                <button class="format-btn" type="button" data-format="link" title="Link (Ctrl+K)"><i class="fas fa-link"></i></button>
+                                <span class="format-sep" aria-hidden="true"></span>
+                                <button class="format-btn" type="button" data-format="mindmap" title="Mapa mental"><i class="fas fa-diagram-project"></i></button>
+                                <button class="format-btn" type="button" data-format="preview" title="Ocultar/mostrar pré-visualização"><i class="fas fa-eye"></i></button>
+                            </div>
                             <input type="file" id="imageInput" class="attachment-input" accept="image/*" multiple>
                         </div>
                         <div class="input-wrapper">
@@ -432,25 +447,6 @@
                                     <i class="fas fa-stop"></i>
                                 </button>
                             </div>
-
-                            <!-- Formatting toolbar (Markdown) -->
-                            <div class="format-toolbar" id="formatToolbar" aria-label="Formatação">
-                                <button class="format-btn" type="button" data-format="bold" title="Negrito (Ctrl+B)"><i class="fas fa-bold"></i></button>
-                                <button class="format-btn" type="button" data-format="italic" title="Itálico (Ctrl+I)"><i class="fas fa-italic"></i></button>
-                                <span class="format-sep" aria-hidden="true"></span>
-                                <button class="format-btn" type="button" data-format="h2" title="Título"><i class="fas fa-heading"></i></button>
-                                <button class="format-btn" type="button" data-format="ul" title="Lista"><i class="fas fa-list-ul"></i></button>
-                                <button class="format-btn" type="button" data-format="ol" title="Lista numerada"><i class="fas fa-list-ol"></i></button>
-                                <button class="format-btn" type="button" data-format="indent" title="Subtópico (Tab)"><i class="fas fa-indent"></i></button>
-                                <button class="format-btn" type="button" data-format="outdent" title="Remover subtópico (Shift+Tab)"><i class="fas fa-outdent"></i></button>
-                                <span class="format-sep" aria-hidden="true"></span>
-                                <button class="format-btn" type="button" data-format="quote" title="Citação"><i class="fas fa-quote-right"></i></button>
-                                <button class="format-btn" type="button" data-format="code" title="Bloco de código"><i class="fas fa-code"></i></button>
-                                <button class="format-btn" type="button" data-format="link" title="Link (Ctrl+K)"><i class="fas fa-link"></i></button>
-                                <span class="format-sep" aria-hidden="true"></span>
-                                <button class="format-btn" type="button" data-format="mindmap" title="Mapa mental"><i class="fas fa-diagram-project"></i></button>
-                                <button class="format-btn" type="button" data-format="preview" title="Pré-visualizar"><i class="fas fa-eye"></i></button>
-                            </div>
                             <div class="format-preview" aria-label="Pré-visualização" style="display: none;"></div>
                             <textarea id="messageInput" placeholder="Digite sua ideia..." rows="1"></textarea>
                             <button class="send-btn" id="sendBtn">
@@ -464,6 +460,12 @@
                 <div class="page" id="categoriesPage">
                     <header class="page-header">
                         <h1>Categorias</h1>
+                        <button class="header-btn" id="toggleSectionSortBtn" title="Ordenação das seções">
+                            <i class="fas fa-sort"></i>
+                        </button>
+                        <button class="header-btn" id="newSectionBtn" title="Nova seção">
+                            <i class="fas fa-layer-group"></i>
+                        </button>
                         <button class="header-btn" id="newCategoryBtn">
                             <i class="fas fa-plus"></i>
                         </button>
@@ -682,6 +684,21 @@
                             <button class="option-btn" id="categoryVoiceInputBtn" title="Gravar por voz">
                                 <i class="fas fa-microphone"></i>
                             </button>
+                            <div class="format-toolbar format-toolbar--inline format-toolbar--compact" id="categoryFormatToolbar" aria-label="Formatação">
+                                <button class="format-btn" type="button" data-format="bold" title="Negrito (Ctrl+B)"><i class="fas fa-bold"></i></button>
+                                <button class="format-btn" type="button" data-format="italic" title="Itálico (Ctrl+I)"><i class="fas fa-italic"></i></button>
+                                <span class="format-sep" aria-hidden="true"></span>
+                                <button class="format-btn" type="button" data-format="h2" title="Título"><i class="fas fa-heading"></i></button>
+                                <button class="format-btn" type="button" data-format="ul" title="Lista"><i class="fas fa-list-ul"></i></button>
+                                <button class="format-btn" type="button" data-format="ol" title="Lista numerada"><i class="fas fa-list-ol"></i></button>
+                                <span class="format-sep" aria-hidden="true"></span>
+                                <button class="format-btn" type="button" data-format="quote" title="Citação"><i class="fas fa-quote-right"></i></button>
+                                <button class="format-btn" type="button" data-format="code" title="Bloco de código"><i class="fas fa-code"></i></button>
+                                <button class="format-btn" type="button" data-format="link" title="Link (Ctrl+K)"><i class="fas fa-link"></i></button>
+                                <span class="format-sep" aria-hidden="true"></span>
+                                <button class="format-btn" type="button" data-format="mindmap" title="Mapa mental"><i class="fas fa-diagram-project"></i></button>
+                                <button class="format-btn" type="button" data-format="preview" title="Ocultar/mostrar pré-visualização"><i class="fas fa-eye"></i></button>
+                            </div>
                             <input type="file" id="categoryImageInput" class="attachment-input" accept="image/*" multiple>
                         </div>
                         <div class="input-wrapper">
@@ -710,25 +727,6 @@
                                 <button class="voice-stop-btn" id="categoryVoiceStopBtn">
                                     <i class="fas fa-stop"></i>
                                 </button>
-                            </div>
-
-                            <!-- Formatting toolbar (Markdown) -->
-                            <div class="format-toolbar" id="categoryFormatToolbar" aria-label="Formatação">
-                                <button class="format-btn" type="button" data-format="bold" title="Negrito (Ctrl+B)"><i class="fas fa-bold"></i></button>
-                                <button class="format-btn" type="button" data-format="italic" title="Itálico (Ctrl+I)"><i class="fas fa-italic"></i></button>
-                                <span class="format-sep" aria-hidden="true"></span>
-                                <button class="format-btn" type="button" data-format="h2" title="Título"><i class="fas fa-heading"></i></button>
-                                <button class="format-btn" type="button" data-format="ul" title="Lista"><i class="fas fa-list-ul"></i></button>
-                                <button class="format-btn" type="button" data-format="ol" title="Lista numerada"><i class="fas fa-list-ol"></i></button>
-                                <button class="format-btn" type="button" data-format="indent" title="Subtópico (Tab)"><i class="fas fa-indent"></i></button>
-                                <button class="format-btn" type="button" data-format="outdent" title="Remover subtópico (Shift+Tab)"><i class="fas fa-outdent"></i></button>
-                                <span class="format-sep" aria-hidden="true"></span>
-                                <button class="format-btn" type="button" data-format="quote" title="Citação"><i class="fas fa-quote-right"></i></button>
-                                <button class="format-btn" type="button" data-format="code" title="Bloco de código"><i class="fas fa-code"></i></button>
-                                <button class="format-btn" type="button" data-format="link" title="Link (Ctrl+K)"><i class="fas fa-link"></i></button>
-                                <span class="format-sep" aria-hidden="true"></span>
-                                <button class="format-btn" type="button" data-format="mindmap" title="Mapa mental"><i class="fas fa-diagram-project"></i></button>
-                                <button class="format-btn" type="button" data-format="preview" title="Pré-visualizar"><i class="fas fa-eye"></i></button>
                             </div>
                             <div class="format-preview" aria-label="Pré-visualização" style="display: none;"></div>
                             <textarea id="categoryMessageInput" placeholder="Nova ideia nesta categoria..." rows="1"></textarea>
@@ -778,6 +776,12 @@
                         <input type="text" id="categoryName" placeholder="Ex: Trabalho, Pessoal...">
                     </div>
                     <div class="form-group">
+                        <label for="categorySectionSelect">Seção</label>
+                        <select id="categorySectionSelect">
+                            <option value="">Sem seção</option>
+                        </select>
+                    </div>
+                    <div class="form-group">
                         <label>Cor</label>
                         <div class="color-picker" id="colorPicker">
                             <div class="color-option" data-color="#25D366" style="background: #25D366;"></div>
@@ -799,6 +803,111 @@
                 <div class="modal-footer">
                     <button class="btn btn-secondary" id="cancelCategoryBtn">Cancelar</button>
                     <button class="btn btn-primary" id="saveCategoryBtn">Salvar</button>
+                </div>
+            </div>
+        </div>
+
+        <!-- Manage Sections Modal -->
+        <div class="modal" id="sectionsModal">
+            <div class="modal-content">
+                <div class="modal-header">
+                    <h3>Seções</h3>
+                    <button class="close-modal" id="closeSectionsModal">
+                        <i class="fas fa-times"></i>
+                    </button>
+                </div>
+                <div class="modal-body">
+                    <div class="section-create-row">
+                        <input type="text" id="newSectionName" placeholder="Nova seção (ex: Estudos)">
+                        <button class="btn btn-primary" id="createSectionBtn">
+                            <i class="fas fa-plus"></i> Criar
+                        </button>
+                    </div>
+                    <div class="section-sort-row">
+                        <span class="section-sort-label">Ordenação:</span>
+                        <button class="btn btn-secondary" id="sectionsSortModeBtn" type="button">Manual</button>
+                    </div>
+                    <div class="sections-list" id="sectionsList"></div>
+                    <div class="section-help">
+                        Dica: no modo Manual, arraste para reordenar.
+                    </div>
+                </div>
+                <div class="modal-footer">
+                    <button class="btn btn-secondary" id="closeSectionsBtn">Fechar</button>
+                </div>
+            </div>
+        </div>
+
+        <!-- Move Category Modal -->
+        <div class="modal" id="moveCategoryModal">
+            <div class="modal-content">
+                <div class="modal-header">
+                    <h3>Mover categoria</h3>
+                    <button class="close-modal" id="closeMoveCategoryModal">
+                        <i class="fas fa-times"></i>
+                    </button>
+                </div>
+                <div class="modal-body">
+                    <div class="form-group">
+                        <label>Categoria</label>
+                        <div class="move-category-name" id="moveCategoryName">-</div>
+                    </div>
+                    <div class="form-group">
+                        <label for="moveCategorySectionSelect">Seção</label>
+                        <select id="moveCategorySectionSelect">
+                            <option value="">Sem seção</option>
+                        </select>
+                    </div>
+                </div>
+                <div class="modal-footer">
+                    <button class="btn btn-secondary" id="cancelMoveCategoryBtn">Cancelar</button>
+                    <button class="btn btn-primary" id="confirmMoveCategoryBtn">Mover</button>
+                </div>
+            </div>
+        </div>
+
+        <!-- Rename Section Modal -->
+        <div class="modal" id="renameSectionModal">
+            <div class="modal-content">
+                <div class="modal-header">
+                    <h3>Renomear seção</h3>
+                    <button class="close-modal" id="closeRenameSectionModal">
+                        <i class="fas fa-times"></i>
+                    </button>
+                </div>
+                <div class="modal-body">
+                    <div class="form-group">
+                        <label for="renameSectionInput">Nome</label>
+                        <input type="text" id="renameSectionInput" placeholder="Nome da seção">
+                    </div>
+                </div>
+                <div class="modal-footer">
+                    <button class="btn btn-secondary" id="cancelRenameSectionBtn">Cancelar</button>
+                    <button class="btn btn-primary" id="saveRenameSectionBtn">Salvar</button>
+                </div>
+            </div>
+        </div>
+
+        <!-- Delete Section Modal -->
+        <div class="modal" id="deleteSectionModal">
+            <div class="modal-content">
+                <div class="modal-header">
+                    <h3>Excluir seção</h3>
+                    <button class="close-modal" id="closeDeleteSectionModal">
+                        <i class="fas fa-times"></i>
+                    </button>
+                </div>
+                <div class="modal-body">
+                    <p>
+                        Tem certeza que deseja excluir a seção <strong id="deleteSectionName">-</strong>?
+                    </p>
+                    <p class="alert alert-danger" style="margin-top: 10px;">
+                        As categorias desta seção ficarão sem seção.
+                    </p>
+                </div>
+                <div class="modal-footer">
+                    <button class="btn btn-secondary" id="cancelDeleteSectionBtn">Cancelar</button>
+                    <button class="btn btn-danger" id="confirmDeleteSectionBtn">Excluir</button>
                 </div>
             </div>
         </div>

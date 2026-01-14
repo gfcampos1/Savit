@@ -14,6 +14,8 @@ const Password = z
 
 const Name = z.string().trim().min(1, 'Nome é obrigatório.').max(100, 'Nome muito longo.');
 
+const Cuid = z.string().cuid('ID inválido.');
+
 const HexColor = z
   .string()
   .trim()
@@ -69,13 +71,27 @@ const AuthProfileUpdateBody = z.object({
 
 const CategoryCreateBody = z.object({
   name: z.string().trim().min(1, 'O nome da categoria é obrigatório.').max(100, 'Nome muito longo.'),
-  color: HexColor.optional()
+  color: HexColor.optional(),
+  sectionId: Cuid.optional().nullable()
 });
 
 const CategoryUpdateBody = z.object({
   name: z.string().trim().min(1).max(100).optional(),
-  color: HexColor.optional().or(z.literal(''))
+  color: HexColor.optional().or(z.literal('')),
+  sectionId: Cuid.optional().nullable()
 }).partial();
+
+const CategorySectionCreateBody = z.object({
+  name: z.string().trim().min(1, 'O nome da seção é obrigatório.').max(80, 'Nome muito longo.')
+});
+
+const CategorySectionUpdateBody = z.object({
+  name: z.string().trim().min(1).max(80).optional()
+}).partial();
+
+const CategorySectionReorderBody = z.object({
+  orderedIds: z.array(Cuid).default([])
+});
 
 const MessageCreateBody = z.object({
   text: z.string().trim().max(MAX_TEXT_LENGTH).optional().default(''),
@@ -109,8 +125,6 @@ const MessagesQuery = z.object({
   offset: z.coerce.number().int().min(0).optional()
 });
 
-const Cuid = z.string().cuid('ID inválido.');
-
 const IdParam = z.object({
   id: Cuid
 });
@@ -129,6 +143,9 @@ module.exports = {
   MfaCodeBody,
   CategoryCreateBody,
   CategoryUpdateBody,
+  CategorySectionCreateBody,
+  CategorySectionUpdateBody,
+  CategorySectionReorderBody,
   MessageCreateBody,
   MessageUpdateBody,
   MessagesQuery,
