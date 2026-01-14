@@ -96,6 +96,33 @@ function parseAllowedOrigins() {
     const single = String(process.env.FRONTEND_URL || '').trim();
     const allowed = new Set(urls);
     if (single) allowed.add(single);
+
+    // Railway provides public URL/domain env vars in many setups.
+    // Add them as allowed origins to prevent accidental 403s when the UI is served from Railway.
+    const railwayUrlCandidates = [
+        process.env.RAILWAY_PUBLIC_URL,
+        process.env.RAILWAY_STATIC_URL,
+        process.env.RAILWAY_URL,
+        process.env.PUBLIC_URL
+    ].map(v => String(v || '').trim()).filter(Boolean);
+
+    for (const candidate of railwayUrlCandidates) {
+        // Accept full URLs (http/https) as-is
+        if (/^https?:\/\//i.test(candidate)) {
+            allowed.add(candidate);
+            continue;
+        }
+        // Accept bare domains by assuming https
+        if (/^[A-Za-z0-9.-]+$/.test(candidate)) {
+            allowed.add(`https://${candidate}`);
+        }
+    }
+
+    const railwayPublicDomain = String(process.env.RAILWAY_PUBLIC_DOMAIN || '').trim();
+    if (railwayPublicDomain) {
+        allowed.add(`https://${railwayPublicDomain}`);
+    }
+
     if (allowed.size === 0) {
         allowed.add('http://localhost:3000');
     }
