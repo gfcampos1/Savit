@@ -1508,6 +1508,37 @@ body {
     margin: 0 4px;
 }
 
+.format-toolbar .format-btn.is-active {
+    background: rgba(37, 211, 102, 0.22);
+    border-color: rgba(37, 211, 102, 0.55);
+}
+
+[data-theme="light"] .format-toolbar .format-btn.is-active {
+    background: rgba(37, 211, 102, 0.14);
+    border-color: rgba(0, 0, 0, 0.18);
+}
+
+.format-toolbar--inline {
+    width: auto;
+    flex-wrap: nowrap;
+    padding: 0;
+    margin: 0;
+    background: transparent;
+    border: 0;
+    border-radius: 0;
+}
+
+.format-toolbar--compact .format-btn {
+    width: 32px;
+    height: 32px;
+    border-radius: 10px;
+}
+
+.format-toolbar--compact .format-sep {
+    height: 18px;
+    margin: 0 2px;
+}
+
 .format-preview {
     width: 100%;
     margin-bottom: 8px;
@@ -3647,28 +3678,10 @@ body {
     background: rgba(255, 255, 255, 0.9);
     border: 1px solid rgba(0, 0, 0, 0.08);
     border-radius: 12px;
+
+}
+
 .draw-tool {
-
-.format-toolbar--inline {
-    width: auto;
-    flex-wrap: nowrap;
-    padding: 0;
-    margin: 0;
-    background: transparent;
-    border: 0;
-    border-radius: 0;
-}
-
-.format-toolbar--compact .format-btn {
-    width: 32px;
-    height: 32px;
-    border-radius: 10px;
-}
-
-.format-toolbar--compact .format-sep {
-    height: 18px;
-    margin: 0 2px;
-}
     width: 36px;
     height: 36px;
     border: none;

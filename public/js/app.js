@@ -1137,6 +1137,43 @@ const MindMapUI = {
         return { start: blockStart, end: blockEnd, json };
     },
 
+    findMindMapBlockByJson(text, jsonString) {
+        const src = String(text || '');
+        const wanted = Markdown.normalizeNewlines(String(jsonString || '')).trim();
+        if (!wanted) return null;
+
+        const fence = '```savit-mindmap';
+        let from = 0;
+        while (from < src.length) {
+            const idx = src.indexOf(fence, from);
+            if (idx === -1) return null;
+
+            // Fence must be on its own line
+            const lineStart = src.lastIndexOf('\n', idx);
+            const fenceLineStart = lineStart === -1 ? 0 : lineStart + 1;
+            const fenceLineEnd = src.indexOf('\n', idx);
+            if (fenceLineEnd === -1) return null;
+            const fenceLine = src.slice(idx, fenceLineEnd).trim();
+            if (fenceLine !== fence) {
+                from = idx + fence.length;
+                continue;
+            }
+
+            const close = src.indexOf('\n```', fenceLineEnd);
+            if (close === -1) return null;
+            const jsonRaw = src.slice(fenceLineEnd + 1, close);
+            const json = Markdown.normalizeNewlines(jsonRaw).trim();
+            if (json === wanted) {
+                const blockEnd = close + '\n```'.length;
+                return { start: fenceLineStart, end: blockEnd, json };
+            }
+
+            from = idx + fence.length;
+        }
+
+        return null;
+    },
+
     openForTextarea(textarea) {
         if (!this.isAvailable()) {
             showToast('Mapa mental indisponível (biblioteca não carregou)');
@@ -1161,6 +1198,34 @@ const MindMapUI = {
         } else {
             const selectedText = (textarea.value || '').slice(selStart, textarea.selectionEnd ?? selStart).trim();
             data = this.defaultData(selectedText || 'Ideia');
+        }
+
+        DOM.insertMindMapBtn.textContent = this.replaceRange ? 'Atualizar na mensagem' : 'Inserir na mensagem';
+        DOM.insertMindMapBtn.style.display = '';
+
+        openModal(DOM.mindMapModal);
+        this._scheduleInitMind(data, { editable: true });
+    },
+
+    openForTextareaFromJson(textarea, jsonString) {
+        if (!this.isAvailable()) {
+            showToast('Mapa mental indisponível (biblioteca não carregou)');
+            return;
+        }
+        if (!DOM.mindMapModal || !DOM.mindMapEditor) return;
+
+        this.activeTextarea = textarea;
+        this.viewOnly = false;
+
+        const block = this.findMindMapBlockByJson(textarea.value, jsonString) ||
+            this.extractMindMapBlock(textarea.value, textarea.selectionStart ?? 0);
+        this.replaceRange = block ? { start: block.start, end: block.end } : null;
+
+        let data;
+        try {
+            data = JSON.parse(jsonString);
+        } catch {
+            data = this.defaultData('Ideia');
         }
 
         DOM.insertMindMapBtn.textContent = this.replaceRange ? 'Atualizar na mensagem' : 'Inserir na mensagem';
@@ -1210,6 +1275,13 @@ const MindMapUI = {
         DOM.mindMapEditor.innerHTML = '';
         this.mind?.destroy?.();
 
+        // Ensure the editor can receive focus (important for key bindings like Tab/Enter)
+        try {
+            DOM.mindMapEditor.setAttribute('tabindex', '0');
+        } catch {
+            // ignore
+        }
+
         this.mind = new window.MindElixirLite({
             el: DOM.mindMapEditor,
             direction: data.direction ?? window.MindElixirLite.RIGHT,
@@ -1223,6 +1295,15 @@ const MindMapUI = {
         // Ensure theme matches current UI
         if (!data.theme) data.theme = this.getTheme();
         this.mind.init(data);
+
+        // Focus the mindmap so keypress handlers work immediately
+        setTimeout(() => {
+            try {
+                DOM.mindMapEditor.focus({ preventScroll: true });
+            } catch {
+                // ignore
+            }
+        }, 0);
 
         // Center after first layout
         setTimeout(() => {
@@ -1445,9 +1526,92 @@ function setupFormattingToolbar(toolbarEl, textareaEl) {
         // Toggle icon (eye / eye-slash)
         const previewBtnIcon = toolbarEl.querySelector('button[data-format="preview"] i');
         if (previewBtnIcon) {
-            previewBtnIcon.classList.toggle('fa-eye', !enabled);
-            previewBtnIcon.classList.toggle('fa-eye-slash', enabled);
+            previewBtnIcon.classList.toggle('fa-eye', enabled);
+            previewBtnIcon.classList.toggle('fa-eye-slash', !enabled);
         }
+    };
+
+    const isInCodeFence = (text, cursor) => {
+        const before = String(text || '').slice(0, Math.max(0, cursor));
+        const fences = before.match(/```/g);
+        return (fences?.length || 0) % 2 === 1;
+    };
+
+    const isInsideInlineMark = (text, cursor, mark) => {
+        if (!mark) return false;
+        if (isInCodeFence(text, cursor)) return false;
+
+        const before = String(text || '').slice(0, Math.max(0, cursor));
+
+        // Very small heuristic: odd count of marks before cursor => "inside"
+        // This keeps UX lightweight and avoids heavy parsing.
+        const re = new RegExp(mark.replace(/[.*+?^${}()|[\]\\]/g, '\\$&'), 'g');
+        const matches = before.match(re);
+        return (matches?.length || 0) % 2 === 1;
+    };
+
+    const getCurrentLineText = () => {
+        const value = String(textareaEl.value || '');
+        const pos = textareaEl.selectionStart ?? 0;
+        const lineStart = value.lastIndexOf('\n', Math.max(0, pos) - 1) + 1;
+        const lineEndIdx = value.indexOf('\n', pos);
+        const lineEnd = lineEndIdx === -1 ? value.length : lineEndIdx;
+        return value.slice(lineStart, lineEnd);
+    };
+
+    const setBtnActive = (action, active) => {
+        const btn = toolbarEl.querySelector(`button[data-format="${action}"]`);
+        if (!btn) return;
+        btn.classList.toggle('is-active', !!active);
+    };
+
+    const updateActiveButtons = () => {
+        const value = String(textareaEl.value || '');
+        const cursor = textareaEl.selectionStart ?? 0;
+        const line = getCurrentLineText();
+
+        // Inline states
+        setBtnActive('bold', isInsideInlineMark(value, cursor, '**'));
+
+        // Italic: ignore bold markers when counting single '*'
+        const italicActive = (() => {
+            if (isInCodeFence(value, cursor)) return false;
+            const before = value.slice(0, Math.max(0, cursor)).replace(/\*\*/g, '');
+            const matches = before.match(/\*/g);
+            return (matches?.length || 0) % 2 === 1;
+        })();
+        setBtnActive('italic', italicActive);
+
+        setBtnActive('code', isInsideInlineMark(value, cursor, '`'));
+
+        // Block-ish states (current line)
+        setBtnActive('quote', /^\s*>\s+/.test(line));
+        setBtnActive('h2', /^\s*##\s+/.test(line));
+        setBtnActive('ul', /^\s*[-*+]\s+/.test(line));
+        setBtnActive('ol', /^\s*\d+\.\s+/.test(line));
+    };
+
+    const toggleInlineMark = (mark) => {
+        const { value, start, end, selected } = TextareaFormat.getSelection(textareaEl);
+
+        if (selected) {
+            TextareaFormat.wrap(textareaEl, mark, mark);
+            return;
+        }
+
+        // If we're right before a closing mark, "turn off" by skipping it.
+        if (value.slice(start, start + mark.length) === mark) {
+            const next = start + mark.length;
+            TextareaFormat.setSelection(textareaEl, next, next);
+            textareaEl.dispatchEvent(new Event('input'));
+            return;
+        }
+
+        // Otherwise, insert an empty pair and keep cursor inside.
+        const replacement = mark + mark;
+        TextareaFormat.replaceRange(textareaEl, start, end, replacement);
+        TextareaFormat.setSelection(textareaEl, start + mark.length, start + mark.length);
+        textareaEl.dispatchEvent(new Event('input'));
     };
 
     toolbarEl.addEventListener('click', (e) => {
@@ -1458,10 +1622,10 @@ function setupFormattingToolbar(toolbarEl, textareaEl) {
 
         switch (action) {
             case 'bold':
-                TextareaFormat.wrap(textareaEl, '**', '**', 'negrito');
+                toggleInlineMark('**');
                 break;
             case 'italic':
-                TextareaFormat.wrap(textareaEl, '*', '*', 'itálico');
+                toggleInlineMark('*');
                 break;
             case 'h2':
                 TextareaFormat.prefixLines(textareaEl, '## ');
@@ -1486,7 +1650,7 @@ function setupFormattingToolbar(toolbarEl, textareaEl) {
                 if (sel.selected && sel.selected.includes('\n')) {
                     TextareaFormat.wrap(textareaEl, '```\n', '\n```');
                 } else {
-                    TextareaFormat.wrap(textareaEl, '`', '`', 'código');
+                    toggleInlineMark('`');
                 }
                 break;
             }
@@ -1501,6 +1665,8 @@ function setupFormattingToolbar(toolbarEl, textareaEl) {
                 setPreviewMode(!isPreviewing);
                 break;
         }
+
+        updateActiveButtons();
     });
 
     textareaEl.addEventListener('keydown', (e) => {
@@ -1521,10 +1687,10 @@ function setupFormattingToolbar(toolbarEl, textareaEl) {
         const key = e.key.toLowerCase();
         if (key === 'b') {
             e.preventDefault();
-            TextareaFormat.wrap(textareaEl, '**', '**', 'negrito');
+            toggleInlineMark('**');
         } else if (key === 'i') {
             e.preventDefault();
-            TextareaFormat.wrap(textareaEl, '*', '*', 'itálico');
+            toggleInlineMark('*');
         } else if (key === 'k') {
             e.preventDefault();
             TextareaFormat.insertLink(textareaEl);
@@ -1533,12 +1699,39 @@ function setupFormattingToolbar(toolbarEl, textareaEl) {
 
     textareaEl.addEventListener('input', () => {
         schedulePreviewUpdate();
+        updateActiveButtons();
     });
+
+    textareaEl.addEventListener('keyup', updateActiveButtons);
+    textareaEl.addEventListener('mouseup', updateActiveButtons);
+    textareaEl.addEventListener('focus', updateActiveButtons);
+
+    if (previewEl) {
+        // Allow editing embedded mindmaps directly from the live preview
+        previewEl.addEventListener('click', (e) => {
+            const btn = e.target.closest('.mindmap-embed-open');
+            if (!btn) return;
+            e.preventDefault();
+            e.stopPropagation();
+            const embed = btn.closest('.mindmap-embed');
+            if (!embed) return;
+            const encoded = embed.getAttribute('data-mindmap') || '';
+            let jsonRaw = encoded;
+            try {
+                jsonRaw = decodeURIComponent(encoded);
+            } catch {
+                jsonRaw = encoded;
+            }
+            MindMapUI.openForTextareaFromJson(textareaEl, jsonRaw);
+        });
+    }
 
     // Default: show live preview (but user can hide with the eye button)
     if (previewEl) {
         setPreviewMode(true);
     }
+
+    updateActiveButtons();
 }
 
 // =============================================
