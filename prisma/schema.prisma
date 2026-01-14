@@ -23,6 +23,7 @@ model User {
 
   messages   Message[]
   categories Category[]
+  categorySections CategorySection[]
   sessions   Session[]
 
   @@map("users")
