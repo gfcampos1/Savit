@@ -36,6 +36,7 @@
     "mind-elixir": "^5.5.0",
     "pino": "^10.1.1",
     "pino-http": "^11.0.0",
+    "prisma": "^5.7.0",
     "rate-limit-redis": "^4.3.1",
     "redis": "^5.10.0",
     "speakeasy": "^2.0.0",
@@ -43,7 +44,6 @@
   },
   "devDependencies": {
     "nodemon": "^3.0.2",
-    "prisma": "^5.7.0",
     "sharp": "^0.33.5"
   },
   "engines": {
