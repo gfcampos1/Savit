@@ -39,6 +39,7 @@ const router = express.Router();
 const prisma = new PrismaClient();
 
 let migrationsRunning = false;
+let backfillRunning = false;
 
 // Generate JWT token
 const generateToken = (userId) => {
@@ -544,6 +545,34 @@ function runPrismaCommand(args, options = {}) {
     });
 }
 
+function runNodeScript(scriptPath, options = {}) {
+    const cwd = options.cwd || process.cwd();
+    const timeoutMs = options.timeoutMs || 600_000;
+
+    return new Promise((resolve, reject) => {
+        execFile(
+            process.execPath,
+            [scriptPath],
+            {
+                cwd,
+                env: process.env,
+                windowsHide: true,
+                timeout: timeoutMs,
+                maxBuffer: 1024 * 1024
+            },
+            (error, stdout, stderr) => {
+                const combined = String(stdout || '') + (stdout && stderr ? '\n' : '') + String(stderr || '');
+                if (error) {
+                    const err = new Error(combined || error.message || 'Falha ao executar script');
+                    err.code = error.code;
+                    return reject(err);
+                }
+                return resolve(combined);
+            }
+        );
+    });
+}
+
 function truncateOutput(text, maxChars = 12_000) {
     const s = String(text || '').trim();
     if (s.length <= maxChars) return s;
@@ -793,6 +822,39 @@ router.post('/admin/migrations/deploy', auth, isAdmin, adminLimiter, async (req,
         return res.status(500).json({ error: 'Falha ao aplicar migrations.', details: truncateOutput(error?.message || String(error)) });
     } finally {
         migrationsRunning = false;
+    }
+});
+
+// Admin: backfill encryption + deterministic hashes for existing rows
+router.post('/admin/backfill/encryption', auth, isAdmin, adminLimiter, async (req, res) => {
+    if (backfillRunning) {
+        return res.status(409).json({ error: 'Um backfill já está em execução. Tente novamente em instantes.' });
+    }
+
+    backfillRunning = true;
+    const startedAt = Date.now();
+    try {
+        const scriptPath = path.join('prisma', 'encrypt-existing.js');
+        const output = await runNodeScript(scriptPath, { timeoutMs: 600_000 });
+
+        audit('admin.backfill.encryption', {
+            adminId: req.user.id,
+            durationMs: Date.now() - startedAt
+        });
+
+        return res.json({
+            message: 'Backfill concluído.',
+            output: truncateOutput(output)
+        });
+    } catch (error) {
+        audit('admin.backfill.encryption.fail', {
+            adminId: req.user.id,
+            durationMs: Date.now() - startedAt,
+            code: error?.code || null
+        });
+        return res.status(500).json({ error: 'Falha ao rodar backfill.', details: truncateOutput(error?.message || String(error)) });
+    } finally {
+        backfillRunning = false;
     }
 });
 

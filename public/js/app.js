@@ -590,6 +590,8 @@ const DOM = {
     refreshUsersBtn: document.getElementById('refreshUsersBtn'),
     runMigrationsBtn: document.getElementById('runMigrationsBtn'),
     migrationsOutput: document.getElementById('migrationsOutput'),
+    runBackfillBtn: document.getElementById('runBackfillBtn'),
+    backfillOutput: document.getElementById('backfillOutput'),
 
     // Chat Page
     messagesContainer: document.getElementById('messagesContainer'),
@@ -2212,6 +2214,40 @@ const App = {
         }
     },
 
+    async runBackfillEncryption() {
+        if (!AppState.user || AppState.user.role !== 'admin') {
+            showToast('Apenas administradores.');
+            return;
+        }
+
+        if (!confirm('Rodar backfill de criptografia/hashes agora? (pode levar alguns minutos)')) {
+            return;
+        }
+
+        try {
+            if (DOM.backfillOutput) {
+                DOM.backfillOutput.textContent = 'Executando...';
+            }
+
+            const data = await API.request('/auth/admin/backfill/encryption', {
+                method: 'POST',
+                body: {}
+            });
+
+            const output = data.output || '(sem saída)';
+            if (DOM.backfillOutput) {
+                DOM.backfillOutput.textContent = output;
+            }
+            showToast('Backfill concluído.');
+        } catch (error) {
+            const msg = error?.message || 'Erro ao rodar backfill';
+            showToast(msg);
+            if (DOM.backfillOutput) {
+                DOM.backfillOutput.textContent = `Erro: ${msg}`;
+            }
+        }
+    },
+
     async resetUserPassword(userId) {
         if (!confirm('Resetar a senha deste usuário? Uma senha temporária será gerada e exibida uma única vez.')) {
             return;
@@ -3801,6 +3837,10 @@ const App = {
 
         if (DOM.runMigrationsBtn) {
             DOM.runMigrationsBtn.addEventListener('click', () => this.runMigrations());
+        }
+
+        if (DOM.runBackfillBtn) {
+            DOM.runBackfillBtn.addEventListener('click', () => this.runBackfillEncryption());
         }
     }
 };
