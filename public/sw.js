@@ -1,4 +1,6 @@
-const CACHE_NAME = 'savit-v3';
+const CACHE_NAME = 'savit-v4';
+
+// Keep this list same-origin only; cross-origin precache can fail (CORS) and break install.
 const STATIC_ASSETS = [
     '/',
     '/index.html',
@@ -10,105 +12,87 @@ const STATIC_ASSETS = [
     '/manifest.json'
 ];
 
-// Install event - cache static assets
+async function precacheAssets() {
+    const cache = await caches.open(CACHE_NAME);
+    await Promise.all(
+        STATIC_ASSETS.map(async (url) => {
+            try {
+                const request = new Request(url, { cache: 'reload' });
+                const response = await fetch(request);
+                if (response && response.ok) {
+                    await cache.put(request, response);
+                }
+            } catch {
+                // Ignore missing assets; SW should still install.
+            }
+        })
+    );
+}
+
 self.addEventListener('install', (event) => {
     event.waitUntil(
-        caches.open(CACHE_NAME)
-            .then((cache) => {
-                return cache.addAll(STATIC_ASSETS);
-            })
-            .then(() => {
-                return self.skipWaiting();
-            })
+        precacheAssets().then(() => self.skipWaiting())
     );
 });
 
-// Activate event - clean up old caches
 self.addEventListener('activate', (event) => {
     event.waitUntil(
         caches.keys()
-            .then((cacheNames) => {
-                return Promise.all(
-                    cacheNames
-                        .filter((name) => name !== CACHE_NAME)
-                        .map((name) => caches.delete(name))
-                );
-            })
-            .then(() => {
-                return self.clients.claim();
-            })
+            .then((names) => Promise.all(names.filter((n) => n !== CACHE_NAME).map((n) => caches.delete(n))))
+            .then(() => self.clients.claim())
     );
 });
 
-// Fetch event - network first, then cache
 self.addEventListener('fetch', (event) => {
-    // Skip non-GET requests
-    if (event.request.method !== 'GET') {
-        return;
-    }
+    if (event.request.method !== 'GET') return;
 
-    // Skip API requests (don't cache them)
-    if (event.request.url.includes('/api/')) {
+    const url = new URL(event.request.url);
+
+    // Never cache API requests.
+    if (url.pathname.startsWith('/api/')) {
         event.respondWith(
-            fetch(event.request)
-                .catch(() => {
-                    return new Response(
-                        JSON.stringify({ error: 'Offline', message: 'Você está offline' }),
-                        { 
-                            status: 503,
-                            headers: { 'Content-Type': 'application/json' }
-                        }
-                    );
+            fetch(event.request).catch(() =>
+                new Response(JSON.stringify({ error: 'Offline', message: 'Você está offline' }), {
+                    status: 503,
+                    headers: { 'Content-Type': 'application/json' }
                 })
+            )
         );
         return;
     }
 
-    // For static assets, use cache-first strategy
-    event.respondWith(
-        caches.match(event.request)
-            .then((cachedResponse) => {
-                if (cachedResponse) {
-                    // Return cached response, but also fetch and update cache
-                    fetch(event.request)
-                        .then((response) => {
-                            if (response && response.status === 200) {
-                                caches.open(CACHE_NAME)
-                                    .then((cache) => {
-                                        cache.put(event.request, response);
-                                    });
-                            }
-                        })
-                        .catch(() => {});
-                    
-                    return cachedResponse;
-                }
+    // Navigation: network-first with offline fallback.
+    if (event.request.mode === 'navigate') {
+        event.respondWith(
+            fetch(event.request)
+                .then((response) => {
+                    const copy = response.clone();
+                    caches.open(CACHE_NAME).then((cache) => cache.put('/index.html', copy));
+                    return response;
+                })
+                .catch(() => caches.match('/index.html'))
+        );
+        return;
+    }
 
-                // Not in cache, fetch from network
-                return fetch(event.request)
-                    .then((response) => {
-                        // Cache the response
-                        if (response && response.status === 200) {
-                            const responseClone = response.clone();
-                            caches.open(CACHE_NAME)
-                                .then((cache) => {
-                                    cache.put(event.request, responseClone);
-                                });
-                        }
-                        return response;
-                    })
-                    .catch(() => {
-                        // Return offline page for navigation requests
-                        if (event.request.mode === 'navigate') {
-                            return caches.match('/index.html');
-                        }
-                        return new Response('Offline', { status: 503 });
-                    });
-            })
+    // Static assets: stale-while-revalidate.
+    event.respondWith(
+        caches.match(event.request).then((cached) => {
+            const fetchPromise = fetch(event.request)
+                .then((response) => {
+                    if (response && response.ok && url.origin === self.location.origin) {
+                        const copy = response.clone();
+                        caches.open(CACHE_NAME).then((cache) => cache.put(event.request, copy));
+                    }
+                    return response;
+                })
+                .catch(() => cached);
+
+            return cached || fetchPromise;
+        })
     );
 });
 
-// Handle messages from the client
 self.addEventListener('message', (event) => {
     if (event.data && event.data.type === 'SKIP_WAITING') {
         self.skipWaiting();

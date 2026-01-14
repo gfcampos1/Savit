@@ -14,7 +14,7 @@
     <title>Savit - Suas Ideias</title>
     <link rel="stylesheet" href="css/styles.css">
     <link rel="stylesheet" href="vendor/MindElixirLite.css">
-    <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.4.0/css/all.min.css">
+    <link rel="stylesheet" href="vendor/fontawesome/css/all.min.css">
 </head>
 <body>
     <div id="app">
@@ -47,6 +47,10 @@
                         <label for="loginPassword">Senha</label>
                         <input type="password" id="loginPassword" placeholder="••••••" required>
                     </div>
+                    <div class="form-group" id="loginMfaGroup" style="display:none;">
+                        <label for="loginMfaCode">Código MFA</label>
+                        <input type="text" id="loginMfaCode" inputmode="numeric" autocomplete="one-time-code" placeholder="000000" minlength="6" maxlength="6">
+                    </div>
                     <button type="submit" class="btn btn-primary btn-block">
                         <i class="fas fa-sign-in-alt"></i> Entrar
                     </button>
@@ -68,7 +72,7 @@
                     </div>
                     <div class="form-group">
                         <label for="registerPassword">Senha</label>
-                        <input type="password" id="registerPassword" placeholder="Mínimo 6 caracteres" required minlength="6">
+                        <input type="password" id="registerPassword" placeholder="Mínimo 10 caracteres" required minlength="10">
                     </div>
                     <button type="submit" class="btn btn-primary btn-block">
                         <i class="fas fa-user-plus"></i> Criar conta
@@ -614,6 +618,22 @@
                                 </div>
                                 <div class="admin-list" id="allUsersList">
                                     <!-- All users will be rendered here -->
+                                </div>
+                            </div>
+
+                            <!-- Migrations -->
+                            <div class="admin-card">
+                                <div class="admin-card-header">
+                                    <span><i class="fas fa-database"></i> Banco de Dados</span>
+                                    <button class="btn-sm" id="runMigrationsBtn" title="Aplicar migrations (prisma migrate deploy)">
+                                        <i class="fas fa-play"></i>
+                                    </button>
+                                </div>
+                                <div class="admin-list">
+                                    <div class="admin-empty" style="text-align:left; gap:8px;">
+                                        <p style="margin:0;">Executa <strong>prisma migrate deploy</strong> no servidor.</p>
+                                        <pre id="migrationsOutput" style="white-space:pre-wrap; font-size:12px; opacity:.9; margin:0;">Saída: (vazia)</pre>
+                                    </div>
                                 </div>
                             </div>
                         </div>

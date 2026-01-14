@@ -5,6 +5,10 @@
 
 const { PrismaClient } = require('@prisma/client');
 const bcrypt = require('bcryptjs');
+require('dotenv').config();
+
+const { encryptString, decryptString, hmacNormalized } = require('../server/utils/crypto');
+const { normalizeHexColor } = require('../server/utils/validation');
 
 const prisma = new PrismaClient();
 
@@ -21,26 +25,30 @@ async function main() {
     }
 
     const hashedPassword = await bcrypt.hash(passwordPlain, 12);
+    const emailHash = hmacNormalized(email);
 
     const user = await prisma.user.upsert({
-        where: { email },
+        where: { emailHash },
         create: {
-            name,
-            email,
+            name: encryptString(name),
+            email: encryptString(email),
+            emailHash,
             password: hashedPassword,
             role: 'admin',
             approved: true,
             categories: {
                 create: [
-                    { name: 'Trabalho', color: '#34B7F1' },
-                    { name: 'Pessoal', color: '#25D366' },
-                    { name: 'Ideias', color: '#FFC107' },
-                    { name: 'Projetos', color: '#9C27B0' },
+                    { name: encryptString('Trabalho'), nameHash: hmacNormalized('Trabalho'), color: normalizeHexColor('#34B7F1') },
+                    { name: encryptString('Pessoal'), nameHash: hmacNormalized('Pessoal'), color: normalizeHexColor('#25D366') },
+                    { name: encryptString('Ideias'), nameHash: hmacNormalized('Ideias'), color: normalizeHexColor('#FFC107') },
+                    { name: encryptString('Projetos'), nameHash: hmacNormalized('Projetos'), color: normalizeHexColor('#9C27B0') },
                 ]
             }
         },
         update: {
-            name,
+            name: encryptString(name),
+            email: encryptString(email),
+            emailHash,
             password: hashedPassword,
             role: 'admin',
             approved: true,
@@ -54,7 +62,11 @@ async function main() {
         }
     });
 
-    console.log('✅ Admin seed OK:', user);
+    console.log('✅ Admin seed OK:', {
+        ...user,
+        email: decryptString(user.email),
+        name: decryptString(user.name)
+    });
 }
 
 main()

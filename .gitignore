@@ -6,6 +6,9 @@ node_modules/
 .env.local
 .env.production
 
+# Local dev Postgres cluster (browserless)
+.pgdata/
+
 # Logs
 logs
 *.log
@@ -33,6 +36,9 @@ Thumbs.db
 # Build
 dist/
 build/
+
+# Vendored assets generated on install
+public/vendor/fontawesome/
 
 # Prisma
 prisma/*.db

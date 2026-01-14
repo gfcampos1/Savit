@@ -1,6 +1,11 @@
 const express = require('express');
 const { PrismaClient } = require('@prisma/client');
 const auth = require('../middleware/auth');
+const { validateBody, validateParams } = require('../middleware/validate');
+const { writeLimiter } = require('../middleware/rateLimiters');
+const { CategoryCreateBody, CategoryUpdateBody, IdParam } = require('../utils/schemas');
+const { encryptString, decryptString, hmacNormalized } = require('../utils/crypto');
+const { normalizeHexColor } = require('../utils/validation');
 
 const router = express.Router();
 const prisma = new PrismaClient();
@@ -17,18 +22,18 @@ router.get('/', async (req, res) => {
                 _count: {
                     select: { messages: true }
                 }
-            },
-            orderBy: { name: 'asc' }
+            }
         });
 
         const formattedCategories = categories.map(cat => ({
             id: cat.id,
-            name: cat.name,
+            name: decryptString(cat.name),
             color: cat.color,
             messageCount: cat._count.messages,
             createdAt: cat.createdAt,
             updatedAt: cat.updatedAt
-        }));
+        }))
+            .sort((a, b) => a.name.localeCompare(b.name, 'pt-BR'));
 
         res.json({ categories: formattedCategories });
     } catch (error) {
@@ -38,7 +43,7 @@ router.get('/', async (req, res) => {
 });
 
 // Get single category
-router.get('/:id', async (req, res) => {
+router.get('/:id', validateParams(IdParam), async (req, res) => {
     try {
         const category = await prisma.category.findFirst({
             where: {
@@ -59,7 +64,7 @@ router.get('/:id', async (req, res) => {
         res.json({
             category: {
                 id: category.id,
-                name: category.name,
+                name: decryptString(category.name),
                 color: category.color,
                 messageCount: category._count.messages,
                 createdAt: category.createdAt,
@@ -73,18 +78,16 @@ router.get('/:id', async (req, res) => {
 });
 
 // Create category
-router.post('/', async (req, res) => {
+router.post('/', writeLimiter, validateBody(CategoryCreateBody), async (req, res) => {
     try {
         const { name, color } = req.body;
 
-        if (!name || name.trim() === '') {
-            return res.status(400).json({ error: 'O nome da categoria é obrigatório.' });
-        }
+        const nameHash = hmacNormalized(name);
 
-        // Check if category with same name exists
+        // Check if category with same name exists (by hash)
         const existing = await prisma.category.findFirst({
             where: {
-                name: name.trim(),
+                nameHash,
                 userId: req.user.id
             }
         });
@@ -95,8 +98,9 @@ router.post('/', async (req, res) => {
 
         const category = await prisma.category.create({
             data: {
-                name: name.trim(),
-                color: color || '#25D366',
+                name: encryptString(name),
+                nameHash,
+                color: normalizeHexColor(color),
                 userId: req.user.id
             }
         });
@@ -104,6 +108,7 @@ router.post('/', async (req, res) => {
         res.status(201).json({
             category: {
                 ...category,
+                name: decryptString(category.name),
                 messageCount: 0
             }
         });
@@ -114,7 +119,7 @@ router.post('/', async (req, res) => {
 });
 
 // Update category
-router.put('/:id', async (req, res) => {
+router.put('/:id', validateParams(IdParam), writeLimiter, validateBody(CategoryUpdateBody), async (req, res) => {
     try {
         const { name, color } = req.body;
 
@@ -127,11 +132,13 @@ router.put('/:id', async (req, res) => {
             return res.status(404).json({ error: 'Categoria não encontrada.' });
         }
 
-        // Check for duplicate name
-        if (name && name.trim() !== existing.name) {
+        // Check for duplicate name (by hash)
+        let nextHash;
+        if (name !== undefined) {
+            nextHash = hmacNormalized(name);
             const duplicate = await prisma.category.findFirst({
                 where: {
-                    name: name.trim(),
+                    nameHash: nextHash,
                     userId: req.user.id,
                     NOT: { id: req.params.id }
                 }
@@ -145,8 +152,8 @@ router.put('/:id', async (req, res) => {
         const category = await prisma.category.update({
             where: { id: req.params.id },
             data: {
-                ...(name && { name: name.trim() }),
-                ...(color && { color })
+                ...(name !== undefined ? { name: encryptString(name), nameHash: nextHash } : {}),
+                ...(color !== undefined ? { color: normalizeHexColor(color, existing.color || '#25D366') } : {})
             },
             include: {
                 _count: {
@@ -158,7 +165,7 @@ router.put('/:id', async (req, res) => {
         res.json({
             category: {
                 id: category.id,
-                name: category.name,
+                name: decryptString(category.name),
                 color: category.color,
                 messageCount: category._count.messages,
                 createdAt: category.createdAt,
@@ -172,7 +179,7 @@ router.put('/:id', async (req, res) => {
 });
 
 // Delete category
-router.delete('/:id', async (req, res) => {
+router.delete('/:id', validateParams(IdParam), writeLimiter, async (req, res) => {
     try {
         // Verify category belongs to user
         const existing = await prisma.category.findFirst({

@@ -6,34 +6,53 @@
 const API = {
     baseUrl: '/api',
     token: null,
+    _refreshPromise: null,
 
     // Set auth token
     setToken(token) {
-        this.token = token;
-        if (token) {
-            localStorage.setItem('savit_token', token);
-        } else {
-            localStorage.removeItem('savit_token');
-        }
+        // Deprecated: auth is cookie-based (httpOnly).
+        this.token = null;
     },
 
     // Get stored token
     getToken() {
-        if (!this.token) {
-            this.token = localStorage.getItem('savit_token');
+        return null;
+    },
+
+    getCookie(name) {
+        const cookies = document.cookie ? document.cookie.split(';') : [];
+        for (const cookie of cookies) {
+            const [k, ...rest] = cookie.trim().split('=');
+            if (k === name) return decodeURIComponent(rest.join('='));
         }
-        return this.token;
+        return null;
+    },
+
+    async ensureCsrf() {
+        // If CSRF cookie isn't present yet, request one.
+        const existing = this.getCookie('csrf_token');
+        if (existing) return;
+        try {
+            await fetch(`${this.baseUrl}/auth/csrf`, {
+                method: 'GET',
+                credentials: 'include'
+            });
+        } catch {
+            // Ignore; server may be offline
+        }
     },
 
     // Make API request
     async request(endpoint, options = {}) {
         const url = `${this.baseUrl}${endpoint}`;
-        const token = this.getToken();
+
+        await this.ensureCsrf();
+        const csrf = this.getCookie('csrf_token');
 
         const config = {
             headers: {
                 'Content-Type': 'application/json',
-                ...(token && { 'Authorization': `Bearer ${token}` }),
+                ...(csrf && { 'X-CSRF-Token': csrf }),
                 ...options.headers
             },
             credentials: 'include',
@@ -46,11 +65,28 @@ const API = {
 
         try {
             const response = await fetch(url, config);
-            const data = await response.json();
+            const data = await response.json().catch(() => ({}));
 
             if (!response.ok) {
-                // Handle 401 - redirect to login
-                if (response.status === 401) {
+                // Handle 401: try refresh once (except for auth endpoints)
+                if (response.status === 401 && !options._retry) {
+                    const isAuthEndpoint = endpoint.startsWith('/auth/login')
+                        || endpoint.startsWith('/auth/register')
+                        || endpoint.startsWith('/auth/refresh');
+
+                    if (!isAuthEndpoint) {
+                        try {
+                            if (!this._refreshPromise) {
+                                this._refreshPromise = this.request('/auth/refresh', { method: 'POST', body: {}, _retry: true })
+                                    .finally(() => { this._refreshPromise = null; });
+                            }
+                            await this._refreshPromise;
+                            return this.request(endpoint, { ...options, _retry: true });
+                        } catch {
+                            // fallthrough to redirect
+                        }
+                    }
+
                     this.setToken(null);
                     if (window.App && window.App.showAuthScreen) {
                         window.App.showAuthScreen();
@@ -73,13 +109,16 @@ const API = {
 
     // Auth endpoints
     auth: {
-        async login(email, password) {
+        async login(email, password, mfaCode) {
             const data = await API.request('/auth/login', {
                 method: 'POST',
-                body: { email, password }
+                body: { email, password, ...(mfaCode ? { mfaCode } : {}) }
             });
-            API.setToken(data.token);
             return data;
+        },
+
+        async refresh() {
+            return API.request('/auth/refresh', { method: 'POST', body: {} });
         },
 
         async register(name, email, password) {
@@ -87,10 +126,6 @@ const API = {
                 method: 'POST',
                 body: { name, email, password }
             });
-            // Only set token if not pending approval
-            if (data.token) {
-                API.setToken(data.token);
-            }
             return data;
         },
 
@@ -115,6 +150,10 @@ const API = {
                 method: 'PUT',
                 body: { currentPassword, newPassword }
             });
+        },
+
+        async logoutAll() {
+            return API.request('/auth/logout-all', { method: 'POST', body: {} });
         }
     },
 

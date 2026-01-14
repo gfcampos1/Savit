@@ -114,6 +114,12 @@ const Utils = {
         div.textContent = text;
         return div.innerHTML;
     },
+
+    sanitizeCssColor(value, fallback = '#25D366') {
+        const v = String(value || '').trim();
+        if (/^#[0-9a-f]{3}$/i.test(v) || /^#[0-9a-f]{6}$/i.test(v)) return v;
+        return fallback;
+    },
     
     isTaskOverdue(taskDate, taskTime, isCompleted) {
         if (isCompleted || !taskDate) return false;
@@ -812,17 +818,18 @@ function resetCategoryModal() {
 }
 
 function selectColorOption(color) {
-    AppState.selectedColorForCategory = color;
+    const safe = Utils.sanitizeCssColor(color);
+    AppState.selectedColorForCategory = safe;
     
     // Update UI
     document.querySelectorAll('.color-option').forEach(opt => {
         opt.classList.remove('selected');
-        if (opt.dataset.color === color) {
+        if (opt.dataset.color === safe) {
             opt.classList.add('selected');
         }
     });
-    
-    DOM.customColor.value = color;
+
+    DOM.customColor.value = safe;
 }
 
 function openEditMessageModal(id) {

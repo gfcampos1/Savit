@@ -1,15 +1,45 @@
 const express = require('express');
 const { PrismaClient } = require('@prisma/client');
 const auth = require('../middleware/auth');
+const { validateBody, validateQuery, validateParams } = require('../middleware/validate');
+const { writeLimiter, readHeavyLimiter } = require('../middleware/rateLimiters');
+const { MessageCreateBody, MessageUpdateBody, MessagesQuery, IdParam } = require('../utils/schemas');
+const { encryptString, decryptString } = require('../utils/crypto');
 
 const router = express.Router();
 const prisma = new PrismaClient();
+
+function decryptCategory(cat) {
+    if (!cat) return cat;
+    return {
+        ...cat,
+        name: decryptString(cat.name)
+    };
+}
+
+function decryptMessage(msg) {
+    const decryptedText = decryptString(msg.text);
+    const decryptedImagesRaw = decryptString(msg.images);
+    let imagesArray = [];
+    try {
+        imagesArray = decryptedImagesRaw ? JSON.parse(decryptedImagesRaw) : [];
+    } catch {
+        imagesArray = [];
+    }
+
+    return {
+        ...msg,
+        text: decryptedText,
+        images: imagesArray,
+        category: decryptCategory(msg.category)
+    };
+}
 
 // Apply auth middleware to all routes
 router.use(auth);
 
 // Get all messages
-router.get('/', async (req, res) => {
+router.get('/', readHeavyLimiter, validateQuery(MessagesQuery), async (req, res) => {
     try {
         const { categoryId, search, date, isTask, limit = 100, offset = 0 } = req.query;
 
@@ -30,6 +60,9 @@ router.get('/', async (req, res) => {
         // Filter by date
         if (date) {
             const startDate = new Date(date);
+            if (Number.isNaN(startDate.getTime())) {
+                return res.status(400).json({ error: 'Data inválida.' });
+            }
             const endDate = new Date(date);
             endDate.setDate(endDate.getDate() + 1);
             
@@ -39,13 +72,12 @@ router.get('/', async (req, res) => {
             };
         }
 
-        // Search in text
-        if (search) {
-            where.text = {
-                contains: search,
-                mode: 'insensitive'
-            };
-        }
+        const parsedLimit = Math.max(1, Math.min(Number(limit) || 100, 200));
+        const parsedOffset = Math.max(0, Number(offset) || 0);
+
+        // If searching, we need to filter after decrypting (DB can't search ciphertext).
+        const take = search ? Math.min(parsedLimit + parsedOffset, 500) : parsedLimit;
+        const skip = search ? 0 : parsedOffset;
 
         const messages = await prisma.message.findMany({
             where,
@@ -59,17 +91,19 @@ router.get('/', async (req, res) => {
                 }
             },
             orderBy: { createdAt: 'asc' },
-            take: parseInt(limit),
-            skip: parseInt(offset)
+            take,
+            skip
         });
 
-        // Parse images for all messages
-        const parsedMessages = messages.map(msg => ({
-            ...msg,
-            images: msg.images ? JSON.parse(msg.images) : []
-        }));
+        let decrypted = messages.map(decryptMessage);
 
-        res.json({ messages: parsedMessages });
+        if (search) {
+            const q = String(search).toLowerCase();
+            decrypted = decrypted.filter(m => (m.text || '').toLowerCase().includes(q));
+        }
+
+        const paged = search ? decrypted.slice(parsedOffset, parsedOffset + parsedLimit) : decrypted;
+        res.json({ messages: paged });
     } catch (error) {
         console.error('Get messages error:', error);
         res.status(500).json({ error: 'Erro ao buscar mensagens.' });
@@ -77,7 +111,7 @@ router.get('/', async (req, res) => {
 });
 
 // Get single message
-router.get('/:id', async (req, res) => {
+router.get('/:id', validateParams(IdParam), async (req, res) => {
     try {
         const message = await prisma.message.findFirst({
             where: {
@@ -99,13 +133,7 @@ router.get('/:id', async (req, res) => {
             return res.status(404).json({ error: 'Mensagem não encontrada.' });
         }
 
-        // Parse images
-        const parsedMessage = {
-            ...message,
-            images: message.images ? JSON.parse(message.images) : []
-        };
-
-        res.json({ message: parsedMessage });
+        res.json({ message: decryptMessage(message) });
     } catch (error) {
         console.error('Get message error:', error);
         res.status(500).json({ error: 'Erro ao buscar mensagem.' });
@@ -113,14 +141,9 @@ router.get('/:id', async (req, res) => {
 });
 
 // Create message
-router.post('/', async (req, res) => {
+router.post('/', writeLimiter, validateBody(MessageCreateBody), async (req, res) => {
     try {
         const { text, categoryId, isTask, taskDate, taskTime, images } = req.body;
-
-        // Allow empty text if there are images
-        if ((!text || text.trim() === '') && (!images || images.length === 0)) {
-            return res.status(400).json({ error: 'O texto da mensagem ou uma imagem é obrigatório.' });
-        }
 
         // Verify category belongs to user if provided
         if (categoryId) {
@@ -132,13 +155,24 @@ router.post('/', async (req, res) => {
             }
         }
 
+        const safeImages = Array.isArray(images) ? images : [];
+
+        let taskDateValue = null;
+        if (taskDate) {
+            const d = new Date(taskDate);
+            if (Number.isNaN(d.getTime())) {
+                return res.status(400).json({ error: 'Data da tarefa inválida.' });
+            }
+            taskDateValue = d;
+        }
+
         const message = await prisma.message.create({
             data: {
-                text: text ? text.trim() : '',
-                images: images && images.length > 0 ? JSON.stringify(images) : null,
+                text: encryptString(text ? text.trim() : ''),
+                images: safeImages.length > 0 ? encryptString(JSON.stringify(safeImages)) : null,
                 categoryId: categoryId || null,
                 isTask: isTask || false,
-                taskDate: taskDate ? new Date(taskDate) : null,
+                taskDate: taskDateValue,
                 taskTime: taskTime || null,
                 userId: req.user.id
             },
@@ -153,13 +187,7 @@ router.post('/', async (req, res) => {
             }
         });
 
-        // Parse images back to array for response
-        const responseMessage = {
-            ...message,
-            images: message.images ? JSON.parse(message.images) : []
-        };
-
-        res.status(201).json({ message: responseMessage });
+        res.status(201).json({ message: decryptMessage(message) });
     } catch (error) {
         console.error('Create message error:', error);
         res.status(500).json({ error: 'Erro ao criar mensagem.' });
@@ -167,9 +195,9 @@ router.post('/', async (req, res) => {
 });
 
 // Update message
-router.put('/:id', async (req, res) => {
+router.put('/:id', validateParams(IdParam), writeLimiter, validateBody(MessageUpdateBody), async (req, res) => {
     try {
-        const { text, categoryId, isTask, taskDate, taskTime, taskCompleted } = req.body;
+        const { text, categoryId, isTask, taskDate, taskTime, taskCompleted, images } = req.body;
 
         // Verify message belongs to user
         const existingMessage = await prisma.message.findFirst({
@@ -192,11 +220,26 @@ router.put('/:id', async (req, res) => {
 
         const updateData = {};
         
-        if (text !== undefined) updateData.text = text.trim();
+        if (text !== undefined) updateData.text = encryptString(String(text).trim());
         if (categoryId !== undefined) updateData.categoryId = categoryId || null;
         if (isTask !== undefined) updateData.isTask = isTask;
-        if (taskDate !== undefined) updateData.taskDate = taskDate ? new Date(taskDate) : null;
+        if (taskDate !== undefined) {
+            if (taskDate) {
+                const d = new Date(taskDate);
+                if (Number.isNaN(d.getTime())) {
+                    return res.status(400).json({ error: 'Data da tarefa inválida.' });
+                }
+                updateData.taskDate = d;
+            } else {
+                updateData.taskDate = null;
+            }
+        }
         if (taskTime !== undefined) updateData.taskTime = taskTime || null;
+        if (images !== undefined) {
+            updateData.images = (Array.isArray(images) && images.length > 0)
+                ? encryptString(JSON.stringify(images))
+                : null;
+        }
         if (taskCompleted !== undefined) {
             updateData.taskCompleted = taskCompleted;
             updateData.completedAt = taskCompleted ? new Date() : null;
@@ -216,7 +259,7 @@ router.put('/:id', async (req, res) => {
             }
         });
 
-        res.json({ message });
+        res.json({ message: decryptMessage(message) });
     } catch (error) {
         console.error('Update message error:', error);
         res.status(500).json({ error: 'Erro ao atualizar mensagem.' });
@@ -224,7 +267,7 @@ router.put('/:id', async (req, res) => {
 });
 
 // Toggle task completion
-router.patch('/:id/toggle', async (req, res) => {
+router.patch('/:id/toggle', validateParams(IdParam), writeLimiter, async (req, res) => {
     try {
         // Verify message belongs to user
         const existingMessage = await prisma.message.findFirst({
@@ -256,7 +299,7 @@ router.patch('/:id/toggle', async (req, res) => {
             }
         });
 
-        res.json({ message });
+        res.json({ message: decryptMessage(message) });
     } catch (error) {
         console.error('Toggle task error:', error);
         res.status(500).json({ error: 'Erro ao atualizar tarefa.' });
@@ -264,7 +307,7 @@ router.patch('/:id/toggle', async (req, res) => {
 });
 
 // Delete message
-router.delete('/:id', async (req, res) => {
+router.delete('/:id', validateParams(IdParam), writeLimiter, async (req, res) => {
     try {
         // Verify message belongs to user
         const existingMessage = await prisma.message.findFirst({

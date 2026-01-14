@@ -1,15 +1,36 @@
 const express = require('express');
 const { PrismaClient } = require('@prisma/client');
 const auth = require('../middleware/auth');
+const { readHeavyLimiter } = require('../middleware/rateLimiters');
+const { decryptString } = require('../utils/crypto');
 
 const router = express.Router();
 const prisma = new PrismaClient();
+
+function decryptCategory(cat) {
+    if (!cat) return cat;
+    return { ...cat, name: decryptString(cat.name) };
+}
+
+function decryptMessage(msg) {
+    if (!msg) return msg;
+    return {
+        ...msg,
+        text: decryptString(msg.text),
+        images: (() => {
+            const raw = decryptString(msg.images);
+            if (!raw) return [];
+            try { return JSON.parse(raw); } catch { return []; }
+        })(),
+        category: decryptCategory(msg.category)
+    };
+}
 
 // Apply auth middleware to all routes
 router.use(auth);
 
 // Get dashboard stats
-router.get('/dashboard', async (req, res) => {
+router.get('/dashboard', readHeavyLimiter, async (req, res) => {
     try {
         const userId = req.user.id;
         const now = new Date();
@@ -222,7 +243,7 @@ router.get('/dashboard', async (req, res) => {
                     total: categoriesCount,
                     topCategories: messagesPerCategory.map(c => ({
                         id: c.id,
-                        name: c.name,
+                        name: decryptString(c.name),
                         color: c.color,
                         count: c._count.messages
                     }))
@@ -232,8 +253,8 @@ router.get('/dashboard', async (req, res) => {
                     streak
                 },
                 recent: {
-                    messages: recentMessages,
-                    upcomingTasks
+                    messages: recentMessages.map(decryptMessage),
+                    upcomingTasks: upcomingTasks.map(decryptMessage)
                 }
             }
         });

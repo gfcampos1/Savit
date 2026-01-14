@@ -1,22 +1,20 @@
 const jwt = require('jsonwebtoken');
 const { PrismaClient } = require('@prisma/client');
+const { decryptString } = require('../utils/crypto');
 
 const prisma = new PrismaClient();
 
 const auth = async (req, res, next) => {
     try {
-        // Get token from cookie or Authorization header
-        let token = req.cookies.token;
-        
-        if (!token && req.headers.authorization) {
-            const authHeader = req.headers.authorization;
-            if (authHeader.startsWith('Bearer ')) {
-                token = authHeader.substring(7);
-            }
-        }
+        // Cookie-only auth (httpOnly JWT). Avoid Authorization header tokens.
+        const token = req.cookies.token;
 
         if (!token) {
             return res.status(401).json({ error: 'Acesso não autorizado. Faça login.' });
+        }
+
+        if (!process.env.JWT_SECRET) {
+            return res.status(500).json({ error: 'JWT_SECRET não configurado no servidor.' });
         }
 
         // Verify token
@@ -30,6 +28,7 @@ const auth = async (req, res, next) => {
                 email: true,
                 name: true,
                 avatar: true,
+                mfaEnabled: true,
                 role: true,
                 createdAt: true
             }
@@ -39,7 +38,13 @@ const auth = async (req, res, next) => {
             return res.status(401).json({ error: 'Usuário não encontrado.' });
         }
 
-        req.user = user;
+        // Decrypt sensitive fields (best-effort)
+        req.user = {
+            ...user,
+            name: decryptString(user.name),
+            avatar: decryptString(user.avatar),
+            email: decryptString(user.email)
+        };
         next();
     } catch (error) {
         if (error.name === 'JsonWebTokenError') {

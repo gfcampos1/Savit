@@ -93,6 +93,31 @@ const Utils = {
         return div.innerHTML;
     },
 
+    sanitizeCssColor(value, fallback = '#25D366') {
+        const v = String(value || '').trim();
+        if (/^#[0-9a-f]{3}$/i.test(v) || /^#[0-9a-f]{6}$/i.test(v)) return v;
+        return fallback;
+    },
+
+    sanitizeImageSrc(value) {
+        if (typeof value !== 'string') return null;
+        const v = value.trim();
+        if (!v) return null;
+
+        // Disallow quotes/whitespace to avoid attribute breaking
+        if (/[\s"'<>]/.test(v)) return null;
+
+        // Allow common safe data URLs (no SVG)
+        if (v.startsWith('data:image/png;base64,')) return v;
+        if (v.startsWith('data:image/jpeg;base64,')) return v;
+        if (v.startsWith('data:image/webp;base64,')) return v;
+
+        // Allow https URLs
+        if (v.startsWith('https://')) return v;
+
+        return null;
+    },
+
     isTaskOverdue(taskDate, taskTime, isCompleted) {
         if (isCompleted || !taskDate) return false;
 
@@ -503,6 +528,8 @@ const DOM = {
     showLogin: document.getElementById('showLogin'),
     loginEmail: document.getElementById('loginEmail'),
     loginPassword: document.getElementById('loginPassword'),
+    loginMfaGroup: document.getElementById('loginMfaGroup'),
+    loginMfaCode: document.getElementById('loginMfaCode'),
     registerName: document.getElementById('registerName'),
     registerEmail: document.getElementById('registerEmail'),
     registerPassword: document.getElementById('registerPassword'),
@@ -561,6 +588,8 @@ const DOM = {
     pendingCount: document.getElementById('pendingCount'),
     allUsersList: document.getElementById('allUsersList'),
     refreshUsersBtn: document.getElementById('refreshUsersBtn'),
+    runMigrationsBtn: document.getElementById('runMigrationsBtn'),
+    migrationsOutput: document.getElementById('migrationsOutput'),
 
     // Chat Page
     messagesContainer: document.getElementById('messagesContainer'),
@@ -1440,19 +1469,14 @@ const App = {
     async init() {
         this.setupEventListeners();
 
-        // Check if user is logged in
-        const token = API.getToken();
-        if (token) {
-            try {
-                const { user } = await API.auth.me();
-                AppState.user = user;
-                this.showMainApp();
-                await this.loadInitialData();
-            } catch (error) {
-                console.error('Auth check failed:', error);
-                this.showAuthScreen();
-            }
-        } else {
+        // Cookie-based session check
+        try {
+            const { user } = await API.auth.me();
+            AppState.user = user;
+            this.showMainApp();
+            await this.loadInitialData();
+        } catch (error) {
+            console.error('Auth check failed:', error);
             this.showAuthScreen();
         }
     },
@@ -1667,9 +1691,9 @@ const App = {
             html += `
                 <div class="chart-bar-container">
                     <div class="chart-bar" style="height: ${Math.max(height, 5)}%">
-                        <span class="chart-value">${day.count}</span>
+                        <span class="chart-value">${Number.isFinite(day.count) ? day.count : 0}</span>
                     </div>
-                    <span class="chart-label">${day.day}</span>
+                    <span class="chart-label">${Utils.escapeHtml(String(day.day ?? ''))}</span>
                 </div>
             `;
         });
@@ -1825,7 +1849,7 @@ const App = {
                     </div>
                     <span class="calendar-task-text">${Utils.escapeHtml(task.text)}</span>
                     ${task.taskTime ? `<span class="calendar-task-time">${task.taskTime}</span>` : ''}
-                    ${category ? `<span class="calendar-task-category" style="background: ${category.color}">${Utils.escapeHtml(category.name)}</span>` : ''}
+                    ${category ? `<span class="calendar-task-category" style="background: ${Utils.sanitizeCssColor(category.color)}">${Utils.escapeHtml(category.name)}</span>` : ''}
                 </div>
             `;
         });
@@ -1889,9 +1913,9 @@ const App = {
         let html = '';
         categories.forEach(cat => {
             html += `
-                <div class="category-bar" onclick="App.openCategoryMessages('${cat.id}')">
+                <div class="category-bar" data-category-id="${cat.id}">
                     <div class="category-bar-info">
-                        <span class="category-dot" style="background: ${cat.color}"></span>
+                        <span class="category-dot" style="background: ${Utils.sanitizeCssColor(cat.color)}"></span>
                         <span class="category-bar-name">${Utils.escapeHtml(cat.name)}</span>
                     </div>
                     <span class="category-bar-count">${cat.count}</span>
@@ -1900,6 +1924,12 @@ const App = {
         });
 
         DOM.topCategories.innerHTML = html;
+
+        DOM.topCategories.querySelectorAll('.category-bar').forEach((el) => {
+            el.addEventListener('click', () => {
+                this.openCategoryMessages(el.dataset.categoryId);
+            });
+        });
     },
 
     renderRecentMessages(messages) {
@@ -1911,8 +1941,8 @@ const App = {
         let html = '';
         messages.forEach(msg => {
             html += `
-                <div class="recent-message-item" onclick="App.navigateTo('chat')">
-                    ${msg.category ? `<span class="category-dot" style="background: ${msg.category.color}"></span>` : ''}
+                <div class="recent-message-item">
+                    ${msg.category ? `<span class="category-dot" style="background: ${Utils.sanitizeCssColor(msg.category.color)}"></span>` : ''}
                     <div class="recent-message-content">
                         <p class="recent-message-text">${Utils.escapeHtml(Utils.truncateText(msg.text, 60))}</p>
                         <span class="recent-message-time">${Utils.formatDate(msg.createdAt)} às ${Utils.formatTime(msg.createdAt)}</span>
@@ -1923,6 +1953,12 @@ const App = {
         });
 
         DOM.recentMessages.innerHTML = html;
+
+        DOM.recentMessages.querySelectorAll('.recent-message-item').forEach((el) => {
+            el.addEventListener('click', () => {
+                this.navigateTo('chat');
+            });
+        });
     },
 
     renderUpcomingTasks(tasks) {
@@ -1935,8 +1971,8 @@ const App = {
         tasks.forEach(task => {
             const isOverdue = Utils.isTaskOverdue(task.taskDate, task.taskTime, task.taskCompleted);
             html += `
-                <div class="upcoming-task-item ${isOverdue ? 'overdue' : ''}" onclick="App.openEditMessageModal('${task.id}')">
-                    <div class="task-checkbox ${task.taskCompleted ? 'completed' : ''}" onclick="event.stopPropagation(); App.toggleTask('${task.id}')">
+                <div class="upcoming-task-item ${isOverdue ? 'overdue' : ''}" data-task-id="${task.id}">
+                    <div class="task-checkbox ${task.taskCompleted ? 'completed' : ''}" data-task-id="${task.id}">
                         ${task.taskCompleted ? '<i class="fas fa-check"></i>' : ''}
                     </div>
                     <div class="upcoming-task-content">
@@ -1951,6 +1987,19 @@ const App = {
         });
 
         DOM.upcomingTasks.innerHTML = html;
+
+        DOM.upcomingTasks.querySelectorAll('.task-checkbox').forEach((checkbox) => {
+            checkbox.addEventListener('click', (e) => {
+                e.stopPropagation();
+                this.toggleTask(checkbox.dataset.taskId);
+            });
+        });
+
+        DOM.upcomingTasks.querySelectorAll('.upcoming-task-item').forEach((item) => {
+            item.addEventListener('click', () => {
+                this.openEditMessageModal(item.dataset.taskId);
+            });
+        });
     },
 
     // Admin functions
@@ -1993,10 +2042,10 @@ const App = {
                             <div class="admin-user-date">${Utils.formatDate(user.createdAt)}</div>
                         </div>
                         <div class="admin-user-actions">
-                            <button class="admin-btn approve" onclick="App.approveUser('${user.id}')" title="Aprovar">
+                            <button class="admin-btn approve" data-action="approve" data-user-id="${user.id}" title="Aprovar">
                                 <i class="fas fa-check"></i>
                             </button>
-                            <button class="admin-btn reject" onclick="App.deleteUser('${user.id}')" title="Rejeitar">
+                            <button class="admin-btn reject" data-action="delete" data-user-id="${user.id}" title="Rejeitar">
                                 <i class="fas fa-times"></i>
                             </button>
                         </div>
@@ -2004,6 +2053,21 @@ const App = {
                 `;
             });
             DOM.pendingUsersList.innerHTML = html;
+
+            DOM.pendingUsersList.querySelectorAll('button[data-action][data-user-id]').forEach((btn) => {
+                btn.addEventListener('click', async (e) => {
+                    e.preventDefault();
+                    e.stopPropagation();
+                    const userId = btn.dataset.userId;
+                    if (!userId) return;
+
+                    if (btn.dataset.action === 'approve') {
+                        await this.approveUser(userId);
+                    } else if (btn.dataset.action === 'delete') {
+                        await this.deleteUser(userId);
+                    }
+                });
+            });
         } catch (error) {
             console.error('Load pending users error:', error);
         }
@@ -2034,10 +2098,13 @@ const App = {
                         </div>
                         ${!isCurrentUser ? `
                             <div class="admin-user-actions">
-                                <button class="admin-btn toggle-admin" onclick="App.toggleUserRole('${user.id}')" title="${isAdmin ? 'Remover admin' : 'Tornar admin'}">
+                                <button class="admin-btn toggle-admin" data-action="toggle-role" data-user-id="${user.id}" title="${isAdmin ? 'Remover admin' : 'Tornar admin'}">
                                     <i class="fas fa-crown"></i>
                                 </button>
-                                <button class="admin-btn reject" onclick="App.deleteUser('${user.id}')" title="Excluir">
+                                <button class="admin-btn" data-action="reset-password" data-user-id="${user.id}" title="Resetar senha">
+                                    <i class="fas fa-key"></i>
+                                </button>
+                                <button class="admin-btn reject" data-action="delete" data-user-id="${user.id}" title="Excluir">
                                     <i class="fas fa-trash"></i>
                                 </button>
                             </div>
@@ -2046,6 +2113,23 @@ const App = {
                 `;
             });
             DOM.allUsersList.innerHTML = html;
+
+            DOM.allUsersList.querySelectorAll('button[data-action][data-user-id]').forEach((btn) => {
+                btn.addEventListener('click', async (e) => {
+                    e.preventDefault();
+                    e.stopPropagation();
+                    const userId = btn.dataset.userId;
+                    if (!userId) return;
+
+                    if (btn.dataset.action === 'toggle-role') {
+                        await this.toggleUserRole(userId);
+                    } else if (btn.dataset.action === 'reset-password') {
+                        await this.resetUserPassword(userId);
+                    } else if (btn.dataset.action === 'delete') {
+                        await this.deleteUser(userId);
+                    }
+                });
+            });
         } catch (error) {
             console.error('Load users error:', error);
         }
@@ -2053,12 +2137,9 @@ const App = {
 
     async approveUser(userId) {
         try {
-            const response = await fetch(`/api/auth/admin/approve/${userId}`, {
+            await API.request(`/auth/admin/approve/${userId}`, {
                 method: 'POST'
             });
-            const data = await response.json();
-
-            if (!response.ok) throw new Error(data.error);
 
             showToast('Usuário aprovado!');
             await this.loadAdminData();
@@ -2073,12 +2154,9 @@ const App = {
         }
 
         try {
-            const response = await fetch(`/api/auth/admin/users/${userId}`, {
+            await API.request(`/auth/admin/users/${userId}`, {
                 method: 'DELETE'
             });
-            const data = await response.json();
-
-            if (!response.ok) throw new Error(data.error);
 
             showToast('Usuário removido!');
             await this.loadAdminData();
@@ -2089,17 +2167,70 @@ const App = {
 
     async toggleUserRole(userId) {
         try {
-            const response = await fetch(`/api/auth/admin/toggle-role/${userId}`, {
+            const data = await API.request(`/auth/admin/toggle-role/${userId}`, {
                 method: 'POST'
             });
-            const data = await response.json();
-
-            if (!response.ok) throw new Error(data.error);
 
             showToast(`Cargo alterado para ${data.user.role === 'admin' ? 'administrador' : 'usuário'}!`);
             await this.loadAdminData();
         } catch (error) {
             showToast(error.message || 'Erro ao alterar cargo');
+        }
+    },
+
+    async runMigrations() {
+        if (!AppState.user || AppState.user.role !== 'admin') {
+            showToast('Apenas administradores.');
+            return;
+        }
+
+        if (!confirm('Aplicar migrations no servidor agora? (prisma migrate deploy)')) {
+            return;
+        }
+
+        try {
+            if (DOM.migrationsOutput) {
+                DOM.migrationsOutput.textContent = 'Executando...';
+            }
+
+            const data = await API.request('/auth/admin/migrations/deploy', {
+                method: 'POST',
+                body: {}
+            });
+
+            const output = data.output || '(sem saída)';
+            if (DOM.migrationsOutput) {
+                DOM.migrationsOutput.textContent = output;
+            }
+            showToast('Migrations concluídas.');
+        } catch (error) {
+            const msg = error?.message || 'Erro ao rodar migrations';
+            showToast(msg);
+            if (DOM.migrationsOutput) {
+                DOM.migrationsOutput.textContent = `Erro: ${msg}`;
+            }
+        }
+    },
+
+    async resetUserPassword(userId) {
+        if (!confirm('Resetar a senha deste usuário? Uma senha temporária será gerada e exibida uma única vez.')) {
+            return;
+        }
+
+        try {
+            const data = await API.request(`/auth/admin/reset-password/${userId}`, {
+                method: 'POST',
+                body: {}
+            });
+
+            if (data.temporaryPassword) {
+                // prompt facilita copiar sem criar UI nova
+                prompt('Senha temporária (copie e envie ao usuário):', data.temporaryPassword);
+            }
+            showToast('Senha redefinida!');
+            await this.loadAdminData();
+        } catch (error) {
+            showToast(error.message || 'Erro ao redefinir senha');
         }
     },
 
@@ -2166,14 +2297,16 @@ const App = {
 
         // Category badge
         if (msg.category) {
-            html += `<span class="message-category" style="background: ${msg.category.color}">${Utils.escapeHtml(msg.category.name)}</span>`;
+            html += `<span class="message-category" style="background: ${Utils.sanitizeCssColor(msg.category.color)}">${Utils.escapeHtml(msg.category.name)}</span>`;
         }
 
         // Images
         if (msg.images && msg.images.length > 0) {
             html += '<div class="message-images">';
             msg.images.forEach(img => {
-                html += `<img src="${img}" class="message-image" onclick="App.openImageViewer('${img}')" alt="Imagem anexada">`;
+                const safeImg = Utils.sanitizeImageSrc(img);
+                if (!safeImg) return;
+                html += `<img src="${safeImg}" class="message-image" data-img="${encodeURIComponent(safeImg)}" alt="Imagem anexada">`;
             });
             html += '</div>';
         }
@@ -2218,6 +2351,24 @@ const App = {
     },
 
     attachMessageEventListeners(container) {
+        // Image viewer (no inline onclick)
+        container.querySelectorAll('.message-image').forEach(imgEl => {
+            imgEl.addEventListener('click', (e) => {
+                e.preventDefault();
+                e.stopPropagation();
+                const encoded = imgEl.getAttribute('data-img') || '';
+                let src = encoded;
+                try {
+                    src = decodeURIComponent(encoded);
+                } catch {
+                    src = encoded;
+                }
+                const safe = Utils.sanitizeImageSrc(src);
+                if (!safe) return;
+                App.openImageViewer(safe);
+            });
+        });
+
         // Mind map open button
         container.querySelectorAll('.mindmap-embed-open').forEach(btn => {
             btn.addEventListener('click', (e) => {
@@ -2338,7 +2489,7 @@ const App = {
         categories.forEach(cat => {
             html += `
                 <div class="category-item" data-id="${cat.id}">
-                    <div class="category-color" style="background: ${cat.color}">
+                    <div class="category-color" style="background: ${Utils.sanitizeCssColor(cat.color)}">
                         <i class="fas fa-folder"></i>
                     </div>
                     <div class="category-info">
@@ -2382,20 +2533,25 @@ const App = {
     renderCategoryDropdowns() {
         const categories = AppState.categories;
 
-        // Search filter
-        let searchOptions = '<option value="">Todas categorias</option>';
-        categories.forEach(cat => {
-            searchOptions += `<option value="${cat.id}">${Utils.escapeHtml(cat.name)}</option>`;
-        });
-        DOM.searchCategoryFilter.innerHTML = searchOptions;
+        // Build <option> via DOM APIs (avoid HTML injection in attributes)
+        const setOptions = (selectEl, firstLabel) => {
+            if (!selectEl) return;
+            selectEl.innerHTML = '';
+            const first = document.createElement('option');
+            first.value = '';
+            first.textContent = firstLabel;
+            selectEl.appendChild(first);
+            categories.forEach((cat) => {
+                const opt = document.createElement('option');
+                opt.value = String(cat.id || '');
+                opt.textContent = String(cat.name || '');
+                selectEl.appendChild(opt);
+            });
+        };
 
-        // Edit message category
-        let editOptions = '<option value="">Sem categoria</option>';
-        categories.forEach(cat => {
-            editOptions += `<option value="${cat.id}">${Utils.escapeHtml(cat.name)}</option>`;
-        });
-        DOM.editMessageCategory.innerHTML = editOptions;
-        DOM.quickAddCategory.innerHTML = editOptions;
+        setOptions(DOM.searchCategoryFilter, 'Todas categorias');
+        setOptions(DOM.editMessageCategory, 'Sem categoria');
+        setOptions(DOM.quickAddCategory, 'Sem categoria');
 
         // Category selector modal
         this.renderCategorySelector();
@@ -2409,7 +2565,7 @@ const App = {
         categories.forEach(cat => {
             html += `
                 <div class="category-selector-item" data-id="${cat.id}">
-                    <div class="category-color" style="background: ${cat.color}">
+                    <div class="category-color" style="background: ${Utils.sanitizeCssColor(cat.color)}">
                         <i class="fas fa-folder"></i>
                     </div>
                     <div class="category-name">${Utils.escapeHtml(cat.name)}</div>
@@ -2557,7 +2713,7 @@ const App = {
                 </div>
                 ${category || dateText ? `
                     <div class="kanban-card-footer">
-                        ${category ? `<span class="kanban-card-category" style="background: ${category.color}">${Utils.escapeHtml(category.name)}</span>` : '<span></span>'}
+                        ${category ? `<span class="kanban-card-category" style="background: ${Utils.sanitizeCssColor(category.color)}">${Utils.escapeHtml(category.name)}</span>` : '<span></span>'}
                         ${dateText ? `<span class="kanban-card-date ${dateClass}"><i class="fas fa-calendar"></i> ${dateText}</span>` : ''}
                     </div>
                 ` : ''}
@@ -2721,7 +2877,7 @@ const App = {
         try {
             const { category } = await API.categories.create({
                 name,
-                color: AppState.selectedColorForCategory
+                color: Utils.sanitizeCssColor(AppState.selectedColorForCategory)
             });
 
             AppState.categories.push(category);
@@ -2747,7 +2903,7 @@ const App = {
         try {
             const { category } = await API.categories.update(id, {
                 name,
-                color: AppState.selectedColorForCategory
+                color: Utils.sanitizeCssColor(AppState.selectedColorForCategory)
             });
 
             // Update in state
@@ -2800,7 +2956,7 @@ const App = {
 
         AppState.selectedCategoryId = id;
         DOM.categoryBadge.textContent = category.name;
-        DOM.categoryBadge.style.background = category.color;
+        DOM.categoryBadge.style.background = Utils.sanitizeCssColor(category.color);
         DOM.selectedCategory.style.display = 'flex';
         DOM.addCategoryBtn.classList.add('active');
     },
@@ -2818,7 +2974,7 @@ const App = {
 
         AppState.viewingCategoryId = categoryId;
         DOM.categoryMessagesTitle.textContent = category.name;
-        DOM.categoryMessagesTitle.style.color = category.color;
+        DOM.categoryMessagesTitle.style.color = Utils.sanitizeCssColor(category.color);
 
         this.renderCategoryMessagesView(categoryId);
 
@@ -2869,7 +3025,7 @@ const App = {
         AppState.editingCategoryId = id;
         DOM.categoryModalTitle.textContent = 'Editar Categoria';
         DOM.categoryName.value = category.name;
-        selectColorOption(category.color);
+        selectColorOption(Utils.sanitizeCssColor(category.color));
 
         openModal(DOM.categoryModal);
     },
@@ -2905,17 +3061,24 @@ const App = {
     },
 
     // Auth handlers
-    async login(email, password) {
+    async login(email, password, mfaCode) {
         try {
-            const { user } = await API.auth.login(email, password);
+            const { user } = await API.auth.login(email, password, mfaCode);
             AppState.user = user;
             this.showMainApp();
             await this.loadInitialData();
             showToast('Bem-vindo de volta!');
+
+            if (DOM.loginMfaGroup) DOM.loginMfaGroup.style.display = 'none';
+            if (DOM.loginMfaCode) DOM.loginMfaCode.value = '';
         } catch (error) {
             if (error.pendingApproval) {
                 showToast('Sua conta ainda não foi aprovada pelo admin.', 4000);
             } else {
+                if (String(error.message || '').toLowerCase().includes('mfa')) {
+                    if (DOM.loginMfaGroup) DOM.loginMfaGroup.style.display = 'block';
+                    DOM.loginMfaCode?.focus();
+                }
                 showToast(error.message);
             }
         }
@@ -3042,8 +3205,11 @@ const App = {
         const pendingImages = isCategory ? AppState.categoryPendingImages : AppState.pendingImages;
         const container = isCategory ? DOM.categoryImagePreviewContainer : DOM.imagePreviewContainer;
 
+        const allowedTypes = new Set(['image/png', 'image/jpeg', 'image/webp']);
+
         files.forEach(file => {
-            if (!file.type.startsWith('image/')) return;
+            // Mirror backend: block SVG and other image types.
+            if (!allowedTypes.has(file.type)) return;
             
             const reader = new FileReader();
             reader.onload = (event) => {
@@ -3073,11 +3239,21 @@ const App = {
         container.innerHTML = pendingImages.map((img, index) => `
             <div class="image-preview">
                 <img src="${img}" alt="Preview">
-                <button class="remove-image" onclick="App.removeImage(${index}, ${isCategory})">
+                <button class="remove-image" type="button" data-index="${index}">
                     <i class="fas fa-times"></i>
                 </button>
             </div>
         `).join('');
+
+        container.querySelectorAll('.remove-image[data-index]').forEach((btn) => {
+            btn.addEventListener('click', (e) => {
+                e.preventDefault();
+                e.stopPropagation();
+                const idx = Number(btn.dataset.index);
+                if (!Number.isFinite(idx)) return;
+                this.removeImage(idx, isCategory);
+            });
+        });
     },
 
     removeImage(index, isCategory = false) {
@@ -3149,7 +3325,7 @@ const App = {
         // Auth forms
         DOM.loginForm.addEventListener('submit', (e) => {
             e.preventDefault();
-            this.login(DOM.loginEmail.value, DOM.loginPassword.value);
+            this.login(DOM.loginEmail.value, DOM.loginPassword.value, DOM.loginMfaCode?.value);
         });
 
         DOM.registerForm.addEventListener('submit', (e) => {
@@ -3622,6 +3798,10 @@ const App = {
         if (DOM.refreshUsersBtn) {
             DOM.refreshUsersBtn.addEventListener('click', () => this.loadAdminData());
         }
+
+        if (DOM.runMigrationsBtn) {
+            DOM.runMigrationsBtn.addEventListener('click', () => this.runMigrations());
+        }
     }
 };
 
@@ -3655,16 +3835,17 @@ function resetCategoryModal() {
 }
 
 function selectColorOption(color) {
-    AppState.selectedColorForCategory = color;
+    const safe = Utils.sanitizeCssColor(color);
+    AppState.selectedColorForCategory = safe;
 
     document.querySelectorAll('.color-option').forEach(opt => {
         opt.classList.remove('selected');
-        if (opt.dataset.color === color) {
+        if (opt.dataset.color === safe) {
             opt.classList.add('selected');
         }
     });
 
-    DOM.customColor.value = color;
+    DOM.customColor.value = safe;
 }
 
 function resetInputOptions() {
@@ -3719,4 +3900,11 @@ function showToast(message, duration = 2500) {
 window.App = App;
 
 // Initialize app
-document.addEventListener('DOMContentLoaded', () => App.init());
+document.addEventListener('DOMContentLoaded', () => {
+    // Register Service Worker (PWA) - keep this in external JS to satisfy CSP.
+    if ('serviceWorker' in navigator) {
+        navigator.serviceWorker.register('/sw.js').catch(() => {});
+    }
+
+    App.init();
+});

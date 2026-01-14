@@ -1,0 +1,30 @@
+name: CI
+
+on:
+  push:
+    branches: [ main, master ]
+  pull_request:
+
+jobs:
+  build:
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+
+      - name: Use Node.js
+        uses: actions/setup-node@v4
+        with:
+          node-version: '18'
+          cache: 'npm'
+
+      - name: Install
+        run: npm ci
+
+      - name: Prisma generate
+        run: npm run db:generate
+
+      - name: Smoke check routes
+        run: node -e "require('./server/routes/auth'); require('./server/routes/messages'); require('./server/routes/categories'); require('./server/routes/stats'); console.log('routes:ok')"
+
+      - name: npm audit (high)
+        run: npm audit --audit-level=high

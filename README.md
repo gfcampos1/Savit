@@ -41,9 +41,35 @@ Edite o arquivo `.env` na raiz do projeto:
 ```env
 DATABASE_URL="postgresql://postgres:postgres@localhost:5432/savit"
 JWT_SECRET="seu-jwt-secret-super-seguro"
+ENCRYPTION_KEY="uma-chave-forte-com-32-ou-mais-caracteres"
+# (P2) Rotação: primeira chave é a ativa. Exemplo:
+# ENCRYPTION_KEYS="chave-atual-32-chars-ou-mais,chave-antiga-32-chars-ou-mais"
+
+# (P2) HMAC estável para email_hash/name_hash (NÃO rotacione sem migrar hashes)
+# Recomendado: defina igual à chave usada originalmente para gerar os hashes.
+HMAC_KEY="uma-chave-estavel-para-hmac"
+
+# (P2) Segredo para hashing de refresh tokens (recomendado em produção)
+SESSION_SECRET="um-segredo-forte-para-sessoes"
+
+# (Opcional) TTL do access token
+# JWT_EXPIRES_IN="15m"
+FRONTEND_URL="http://localhost:3000"
+# (Opcional) allowlist de múltiplas origens (separadas por vírgula)
+# FRONTEND_URLS="https://seu-dominio.com,https://www.seu-dominio.com"
+
+# (Recomendado em produção) Redis para rate-limit consistente em múltiplas instâncias
+# REDIS_URL="redis://default:senha@host:porta"
 PORT=3000
 NODE_ENV=development
 ```
+
+### 🔐 Política de senha
+
+- Mínimo de 10 caracteres
+- Deve conter pelo menos uma letra e um número
+- Não pode conter espaços
+- Senhas muito comuns (ex.: `123456`, `senha123`) são bloqueadas
 
 ### 4. Crie o banco de dados
 
@@ -53,6 +79,9 @@ createdb savit
 
 # Execute as migrations do Prisma
 npx prisma db push
+
+# (Se você já tinha dados no banco) criptografe os dados existentes
+npm run db:encrypt-existing
 ```
 
 ### 5. Inicie o servidor
@@ -93,6 +122,10 @@ No painel do Railway, adicione:
 
 - `DATABASE_URL` - URL do PostgreSQL do Railway
 - `JWT_SECRET` - Sua chave secreta JWT
+- `ENCRYPTION_KEY` - Chave para criptografar dados no banco (forte, 32+ chars)
+- (P2) `ENCRYPTION_KEYS` - Opcional para rotação (primeira chave é a ativa)
+- (P2) `HMAC_KEY` - Recomendado para manter `email_hash`/`name_hash` estáveis
+- (P2) `SESSION_SECRET` - Recomendado para hashing de refresh tokens
 - `NODE_ENV` - `production`
 
 ### 5. Deploy automático
@@ -136,10 +169,23 @@ savit/
 |--------|----------|-----------|
 | POST | `/api/auth/register` | Criar conta |
 | POST | `/api/auth/login` | Login |
+| POST | `/api/auth/refresh` | Renovar sessão (refresh token) |
 | POST | `/api/auth/logout` | Logout |
+| POST | `/api/auth/logout-all` | Logout em todos os dispositivos |
+| GET | `/api/auth/sessions` | Listar sessões |
+| POST | `/api/auth/sessions/:id/revoke` | Revogar sessão |
 | GET | `/api/auth/me` | Perfil do usuário |
 | PUT | `/api/auth/profile` | Atualizar perfil |
 | PUT | `/api/auth/password` | Alterar senha |
+| POST | `/api/auth/mfa/setup` | Iniciar setup de MFA (TOTP) |
+| POST | `/api/auth/mfa/enable` | Ativar MFA |
+| POST | `/api/auth/mfa/disable` | Desativar MFA |
+
+### Admin
+
+| Método | Endpoint | Descrição |
+|--------|----------|-----------|
+| POST | `/api/auth/admin/reset-password/:userId` | Resetar senha de um usuário (gera senha temporária) |
 
 ### Mensagens
 
@@ -174,6 +220,19 @@ savit/
 - **ORM**: Prisma
 - **Auth**: JWT + bcrypt
 - **Deploy**: Railway
+
+## 🔒 Notas de Segurança (P1)
+
+- O rate-limit suporta Redis via `REDIS_URL` (recomendado em produção para múltiplas instâncias).
+- O CORS aceita uma allowlist via `FRONTEND_URL`/`FRONTEND_URLS`.
+- O FontAwesome é servido localmente (sem CDN) via `scripts/copy-fontawesome.js` no `postinstall`.
+
+## 🔐 Notas de Segurança (P2)
+
+- Sessões usam refresh token em cookie `httpOnly` e rotação em `/api/auth/refresh`.
+- MFA (TOTP) está disponível via endpoints `/api/auth/mfa/*`. O login aceita `mfaCode` quando o usuário tem MFA ativado.
+- Rotação de criptografia: `ENCRYPTION_KEYS` permite descriptografar com chaves antigas e criptografar com a chave atual.
+- `HMAC_KEY` deve ser estável para não quebrar `email_hash`/`name_hash`.
 
 ## 📝 Licença
 
