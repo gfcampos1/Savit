@@ -36,7 +36,12 @@ const AppState = {
     sectionSortMode: 'manual',
     movingCategoryId: null,
     renamingSectionId: null,
-    deletingSectionId: null
+    deletingSectionId: null,
+
+    // Chat scroll behavior (WhatsApp-like)
+    chatStickToBottom: true,
+    chatUnreadBelow: 0,
+    chatLastScrollTop: 0
 };
 
 // =============================================
@@ -610,6 +615,8 @@ const DOM = {
     // Chat Page
     messagesContainer: document.getElementById('messagesContainer'),
     emptyState: document.getElementById('emptyState'),
+    jumpToBottomBtn: document.getElementById('jumpToBottomBtn'),
+    jumpToBottomBadge: document.getElementById('jumpToBottomBadge'),
     searchBtn: document.getElementById('searchBtn'),
     searchBar: document.getElementById('searchBar'),
     searchInput: document.getElementById('searchInput'),
@@ -3115,6 +3122,45 @@ function setupWysiwygToolbar(toolbarEl, editorEl) {
 // =============================================
 
 const App = {
+    // --- Chat scroll helpers (WhatsApp-like) ---
+    getChatBottomThresholdPx() {
+        return 120;
+    },
+
+    getScrollGapFromBottom(container) {
+        if (!container) return 0;
+        const gap = container.scrollHeight - (container.scrollTop + container.clientHeight);
+        return Math.max(0, gap);
+    },
+
+    isNearBottom(container) {
+        return this.getScrollGapFromBottom(container) <= this.getChatBottomThresholdPx();
+    },
+
+    updateJumpToBottomUI() {
+        const btn = DOM.jumpToBottomBtn;
+        if (!btn) return;
+
+        const isChatPage = AppState.currentPage === 'chat';
+        const shouldShow = isChatPage && !AppState.chatStickToBottom;
+
+        btn.classList.toggle('show', shouldShow);
+        btn.style.display = shouldShow ? '' : 'none';
+
+        const badge = DOM.jumpToBottomBadge;
+        if (badge) {
+            const count = Number(AppState.chatUnreadBelow || 0);
+            const showBadge = shouldShow && count > 0;
+            badge.style.display = showBadge ? '' : 'none';
+            badge.textContent = count > 99 ? '99+' : String(count);
+        }
+    },
+
+    scrollToBottomImmediate(container = DOM.messagesContainer) {
+        if (!container) return;
+        container.scrollTop = container.scrollHeight;
+    },
+
     // Initialize app
     async init() {
         this.setupEventListeners();
@@ -3254,6 +3300,7 @@ const App = {
             this.refreshDashboard();
         } else if (page === 'chat') {
             this.refreshMessages();
+            this.updateJumpToBottomUI();
         } else if (page === 'categories') {
             this.refreshCategories();
         } else if (page === 'kanban') {
@@ -3277,8 +3324,25 @@ const App = {
     // Refresh messages
     async refreshMessages() {
         try {
+            const prevLast = Array.isArray(AppState.messages) && AppState.messages.length
+                ? AppState.messages[AppState.messages.length - 1]
+                : null;
+            const prevLastTime = prevLast?.createdAt ? new Date(prevLast.createdAt).getTime() : 0;
+
             const { messages } = await API.messages.getAll();
             AppState.messages = messages;
+
+            // If user is not at bottom, count incoming messages so the button can show a badge.
+            if (!AppState.chatStickToBottom && Array.isArray(messages) && messages.length) {
+                const newCount = messages.reduce((acc, m) => {
+                    const t = m?.createdAt ? new Date(m.createdAt).getTime() : 0;
+                    return t > prevLastTime ? acc + 1 : acc;
+                }, 0);
+                if (newCount > 0) {
+                    AppState.chatUnreadBelow = Number(AppState.chatUnreadBelow || 0) + newCount;
+                }
+            }
+
             this.renderMessages();
         } catch (error) {
             console.error('Failed to refresh messages:', error);
@@ -4246,6 +4310,10 @@ const App = {
     renderMessages(messages = null, container = DOM.messagesContainer) {
         const messagesToRender = messages || this.getFilteredMessages();
 
+        const isMainChat = container === DOM.messagesContainer;
+        const prevGapFromBottom = isMainChat ? this.getScrollGapFromBottom(container) : 0;
+        const shouldStick = isMainChat ? AppState.chatStickToBottom : false;
+
         if (messagesToRender.length === 0) {
             if (container === DOM.messagesContainer) {
                 DOM.emptyState.style.display = 'flex';
@@ -4285,9 +4353,24 @@ const App = {
         // Hydrate mind maps
         MindMapUI.hydrateEmbeds(container);
 
-        // Scroll to bottom if main container
-        if (container === DOM.messagesContainer) {
-            this.scrollToBottom();
+        // WhatsApp-like scroll behavior:
+        // - If user is anchored at the bottom, keep following the bottom.
+        // - Otherwise, preserve the current viewport by keeping the same gap from bottom.
+        if (isMainChat) {
+            requestAnimationFrame(() => {
+                if (shouldStick) {
+                    this.scrollToBottomImmediate(container);
+                    AppState.chatUnreadBelow = 0;
+                } else {
+                    const nextTop = container.scrollHeight - container.clientHeight - prevGapFromBottom;
+                    container.scrollTop = Math.max(0, nextTop);
+                }
+
+                // Recompute stickiness after layout settles.
+                AppState.chatStickToBottom = this.isNearBottom(container);
+                if (AppState.chatStickToBottom) AppState.chatUnreadBelow = 0;
+                this.updateJumpToBottomUI();
+            });
         }
 
         // Add event listeners
@@ -4482,9 +4565,10 @@ const App = {
     },
 
     scrollToBottom() {
+        // Backwards-compatible wrapper (some parts may still call this).
         setTimeout(() => {
-            DOM.messagesContainer.scrollTop = DOM.messagesContainer.scrollHeight;
-        }, 100);
+            this.scrollToBottomImmediate(DOM.messagesContainer);
+        }, 0);
     },
 
     // Render categories
@@ -5621,6 +5705,34 @@ const App = {
 
         // Chat page
         setupFormattingToolbar(DOM.formatToolbar, DOM.messageInput);
+
+        // WhatsApp-like scroll behavior (main chat)
+        if (DOM.messagesContainer) {
+            AppState.chatLastScrollTop = DOM.messagesContainer.scrollTop || 0;
+            AppState.chatStickToBottom = this.isNearBottom(DOM.messagesContainer);
+            this.updateJumpToBottomUI();
+
+            DOM.messagesContainer.addEventListener('scroll', () => {
+                const st = DOM.messagesContainer.scrollTop;
+                AppState.chatLastScrollTop = st;
+
+                // User-driven scroll decides whether we should keep following the bottom.
+                AppState.chatStickToBottom = this.isNearBottom(DOM.messagesContainer);
+                if (AppState.chatStickToBottom) {
+                    AppState.chatUnreadBelow = 0;
+                }
+                this.updateJumpToBottomUI();
+            }, { passive: true });
+        }
+
+        if (DOM.jumpToBottomBtn) {
+            DOM.jumpToBottomBtn.addEventListener('click', () => {
+                AppState.chatStickToBottom = true;
+                AppState.chatUnreadBelow = 0;
+                this.scrollToBottomImmediate(DOM.messagesContainer);
+                this.updateJumpToBottomUI();
+            });
+        }
 
         DOM.sendBtn.addEventListener('click', async () => {
             const isWysiwyg = DOM.messageInput?.isContentEditable && DOM.messageInput.tagName !== 'TEXTAREA';
