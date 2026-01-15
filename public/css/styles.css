@@ -1008,7 +1008,7 @@ body {
 /* =============================================
    FAB (Floating Action Button)
    ============================================= */
-.fab {
+.quick-add-fab {
     position: fixed;
     bottom: 90px;
     right: var(--spacing-lg);
@@ -1033,12 +1033,12 @@ body {
     transition: all var(--transition-fast);
 }
 
-.fab:hover {
+.quick-add-fab:hover {
     background: var(--light-green);
     transform: scale(1.05);
 }
 
-.fab:active {
+.quick-add-fab:active {
     transform: scale(0.95);
 }
 
@@ -3300,7 +3300,7 @@ body {
         border-right: none;
     }
     
-    .fab {
+    .quick-add-fab {
         right: var(--spacing-lg);
     }
     
@@ -3356,7 +3356,7 @@ body {
         width: 100%;
     }
     
-    .fab {
+    .quick-add-fab {
         bottom: var(--spacing-xl);
         right: var(--spacing-xl);
     }
@@ -3587,7 +3587,7 @@ body {
         border-right: none;
     }
 
-    .fab {
+    .quick-add-fab {
         right: var(--spacing-md);
     }
 
@@ -3595,7 +3595,7 @@ body {
         padding-bottom: var(--spacing-lg);
     }
     
-    .fab {
+    .quick-add-fab {
         bottom: var(--spacing-md);
         width: 48px;
         height: 48px;
@@ -3619,7 +3619,7 @@ body {
         border-right: none !important;
     }
 
-    .fab {
+    .quick-add-fab {
         right: var(--spacing-md);
     }
 }
@@ -3628,7 +3628,7 @@ body {
 @media print {
     .sidebar,
     .bottom-nav,
-    .fab,
+    .quick-add-fab,
     .input-container,
     .header-btn {
         display: none !important;
