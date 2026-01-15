@@ -1097,6 +1097,7 @@ const Markdown = {
 const RichText = {
     allowedTags: new Set([
         'P', 'BR', 'STRONG', 'EM', 'B', 'I', 'U', 'S',
+        'H1', 'H2', 'H3',
         'UL', 'OL', 'LI',
         'BLOCKQUOTE',
         'CODE', 'PRE',
@@ -1109,7 +1110,33 @@ const RichText = {
     isLikelyHtml(text) {
         const s = String(text || '');
         // Only treat as HTML if it contains tags we actually allow.
-        return /<\s*\/?\s*(p|br|strong|em|b|i|u|s|ul|ol|li|blockquote|code|pre|a|div|span)\b/i.test(s);
+        return /<\s*\/?\s*(p|br|strong|em|b|i|u|s|h1|h2|h3|ul|ol|li|blockquote|code|pre|a|div|span|button)\b/i.test(s);
+    },
+
+    plainTextFromStored(text) {
+        const s = String(text || '');
+        if (!s.trim()) return '';
+        if (!RichText.isLikelyHtml(s)) return s;
+
+        try {
+            const parser = new DOMParser();
+            const doc = parser.parseFromString(`<div>${s}</div>`, 'text/html');
+            const out = (doc.body?.textContent || '').replace(/\u00A0/g, ' ');
+            return out.replace(/\s+/g, ' ').trim();
+        } catch {
+            return s;
+        }
+    },
+
+    enforceEmbedsAtomic(editorEl) {
+        if (!editorEl?.isContentEditable) return;
+        editorEl.querySelectorAll?.('.mindmap-embed')?.forEach(el => {
+            try {
+                el.setAttribute('contenteditable', 'false');
+            } catch {
+                // ignore
+            }
+        });
     },
 
     sanitizeHtml(html) {
@@ -1242,16 +1269,7 @@ const RichText = {
         const cleaned = RichText.normalizeEmptyHtml(RichText.sanitizeHtml(html || ''));
         editorEl.innerHTML = cleaned;
 
-        // Keep mindmap embeds atomic inside editors
-        if (editorEl.isContentEditable) {
-            editorEl.querySelectorAll?.('.mindmap-embed')?.forEach(el => {
-                try {
-                    el.setAttribute('contenteditable', 'false');
-                } catch {
-                    // ignore
-                }
-            });
-        }
+        RichText.enforceEmbedsAtomic(editorEl);
         RichText.updateEmptyClass(editorEl);
     },
 
@@ -1334,6 +1352,7 @@ const RichText = {
             sel.removeAllRanges();
             sel.addRange(range);
         }
+        RichText.enforceEmbedsAtomic(editorEl);
         RichText.updateEmptyClass(editorEl);
     },
 
@@ -1353,6 +1372,7 @@ const MindMapUI = {
     mind: null,
     activeTextarea: null,
     activeEditor: null,
+    activeEmbedEl: null,
     replaceRange: null,
     viewOnly: false,
     _pendingInit: null,
@@ -1605,6 +1625,7 @@ const MindMapUI = {
 
         this.activeTextarea = null;
         this.activeEditor = editorEl;
+        this.activeEmbedEl = null;
         this.replaceRange = null;
         this.viewOnly = false;
 
@@ -1612,6 +1633,41 @@ const MindMapUI = {
         const data = this.defaultData(selectedText || 'Ideia');
 
         DOM.insertMindMapBtn.textContent = 'Inserir na mensagem';
+        DOM.insertMindMapBtn.style.display = '';
+        openModal(DOM.mindMapModal);
+        this._scheduleInitMind(data, { editable: true });
+    },
+
+    openForEditorFromEmbed(editorEl, embedEl) {
+        if (!this.isAvailable()) {
+            showToast('Mapa mental indisponível (biblioteca não carregou)');
+            return;
+        }
+        if (!DOM.mindMapModal || !DOM.mindMapEditor) return;
+        if (!embedEl) return;
+
+        this.activeTextarea = null;
+        this.activeEditor = editorEl;
+        this.activeEmbedEl = embedEl;
+        this.replaceRange = null;
+        this.viewOnly = false;
+
+        const encoded = embedEl.getAttribute('data-mindmap') || '';
+        let jsonRaw = encoded;
+        try {
+            jsonRaw = decodeURIComponent(encoded);
+        } catch {
+            jsonRaw = encoded;
+        }
+
+        let data;
+        try {
+            data = JSON.parse(jsonRaw);
+        } catch {
+            data = this.defaultData('Ideia');
+        }
+
+        DOM.insertMindMapBtn.textContent = 'Atualizar na mensagem';
         DOM.insertMindMapBtn.style.display = '';
         openModal(DOM.mindMapModal);
         this._scheduleInitMind(data, { editable: true });
@@ -1626,6 +1682,7 @@ const MindMapUI = {
 
         this.activeTextarea = null;
         this.activeEditor = editorEl;
+        this.activeEmbedEl = null;
         this.replaceRange = null;
         this.viewOnly = false;
 
@@ -1656,6 +1713,7 @@ const MindMapUI = {
         this.mind = null;
         this.activeTextarea = null;
         this.activeEditor = null;
+        this.activeEmbedEl = null;
         this.replaceRange = null;
         this.viewOnly = false;
     },
@@ -1689,8 +1747,27 @@ const MindMapUI = {
         const data = this.mind.getData();
         data.theme = this.getTheme();
         const json = JSON.stringify(data);
-        const html = this.buildEmbedHtml(json);
-        RichText.insertHtmlAtCursor(this.activeEditor, html);
+
+        // Edit in-place when opening from an existing embed
+        if (this.activeEmbedEl) {
+            const encoded = encodeURIComponent(String(json || '').trim());
+            this.activeEmbedEl.setAttribute('data-mindmap', encoded);
+            this.activeEmbedEl.dataset.hydrated = '0';
+            try {
+                this.activeEmbedEl.setAttribute('contenteditable', 'false');
+            } catch {
+                // ignore
+            }
+            const canvas = this.activeEmbedEl.querySelector('.mindmap-embed-canvas');
+            if (canvas) canvas.innerHTML = '';
+
+            // Re-hydrate just this embed via its parent container
+            this.hydrateEmbeds(this.activeEmbedEl.parentElement || this.activeEditor);
+            RichText.enforceEmbedsAtomic(this.activeEditor);
+        } else {
+            const html = this.buildEmbedHtml(json);
+            RichText.insertHtmlAtCursor(this.activeEditor, html);
+        }
         this.close();
     },
 
@@ -2130,6 +2207,7 @@ function setupWysiwygToolbar(toolbarEl, editorEl) {
         } catch {
             // ignore
         }
+        RichText.enforceEmbedsAtomic(editorEl);
         RichText.updateEmptyClass(editorEl);
     };
 
@@ -2208,6 +2286,7 @@ function setupWysiwygToolbar(toolbarEl, editorEl) {
     });
 
     editorEl.addEventListener('input', () => {
+        RichText.enforceEmbedsAtomic(editorEl);
         RichText.updateEmptyClass(editorEl);
         updateActiveButtons();
     });
@@ -2235,14 +2314,7 @@ function setupWysiwygToolbar(toolbarEl, editorEl) {
         e.stopPropagation();
         const embed = btn.closest('.mindmap-embed');
         if (!embed) return;
-        const encoded = embed.getAttribute('data-mindmap') || '';
-        let jsonRaw = encoded;
-        try {
-            jsonRaw = decodeURIComponent(encoded);
-        } catch {
-            jsonRaw = encoded;
-        }
-        MindMapUI.openForEditorFromJson(editorEl, jsonRaw);
+        MindMapUI.openForEditorFromEmbed(editorEl, embed);
     });
 
     RichText.updateEmptyClass(editorEl);
@@ -2951,13 +3023,14 @@ const App = {
         tasks.forEach(task => {
             const category = AppState.categories.find(c => c.id === task.categoryId);
             const isCompleted = task.taskCompleted;
+            const plain = RichText.plainTextFromStored(task.text);
             
             html += `
                 <div class="calendar-task-item ${isCompleted ? 'completed' : ''}" data-id="${task.id}">
                     <div class="calendar-task-checkbox ${isCompleted ? 'checked' : ''}" data-id="${task.id}">
                         <i class="fas fa-check"></i>
                     </div>
-                    <span class="calendar-task-text">${Utils.escapeHtml(task.text)}</span>
+                    <span class="calendar-task-text">${Utils.escapeHtml(plain)}</span>
                     ${task.taskTime ? `<span class="calendar-task-time">${task.taskTime}</span>` : ''}
                     ${category ? `<span class="calendar-task-category" style="background: ${Utils.sanitizeCssColor(category.color)}">${Utils.escapeHtml(category.name)}</span>` : ''}
                 </div>
@@ -3050,11 +3123,12 @@ const App = {
 
         let html = '';
         messages.forEach(msg => {
+            const plain = RichText.plainTextFromStored(msg.text);
             html += `
                 <div class="recent-message-item">
                     ${msg.category ? `<span class="category-dot" style="background: ${Utils.sanitizeCssColor(msg.category.color)}"></span>` : ''}
                     <div class="recent-message-content">
-                        <p class="recent-message-text">${Utils.escapeHtml(Utils.truncateText(msg.text, 60))}</p>
+                        <p class="recent-message-text">${Utils.escapeHtml(Utils.truncateText(plain, 60))}</p>
                         <span class="recent-message-time">${Utils.formatDate(msg.createdAt)} às ${Utils.formatTime(msg.createdAt)}</span>
                     </div>
                     ${msg.isTask ? `<i class="fas fa-check-square task-icon ${msg.taskCompleted ? 'completed' : ''}"></i>` : ''}
@@ -3080,13 +3154,14 @@ const App = {
         let html = '';
         tasks.forEach(task => {
             const isOverdue = Utils.isTaskOverdue(task.taskDate, task.taskTime, task.taskCompleted);
+            const plain = RichText.plainTextFromStored(task.text);
             html += `
                 <div class="upcoming-task-item ${isOverdue ? 'overdue' : ''}" data-task-id="${task.id}">
                     <div class="task-checkbox ${task.taskCompleted ? 'completed' : ''}" data-task-id="${task.id}">
                         ${task.taskCompleted ? '<i class="fas fa-check"></i>' : ''}
                     </div>
                     <div class="upcoming-task-content">
-                        <p class="upcoming-task-text">${Utils.escapeHtml(Utils.truncateText(task.text, 50))}</p>
+                        <p class="upcoming-task-text">${Utils.escapeHtml(Utils.truncateText(plain, 50))}</p>
                         <span class="upcoming-task-date">
                             <i class="fas fa-calendar"></i> ${Utils.formatFullDate(task.taskDate)}
                             ${task.taskTime ? `<i class="fas fa-clock"></i> ${task.taskTime}` : ''}
@@ -3936,6 +4011,7 @@ const App = {
     renderKanbanCard(task) {
         const category = AppState.categories.find(c => c.id === task.categoryId);
         const isCompleted = task.taskCompleted;
+        const plain = RichText.plainTextFromStored(task.text);
         
         let dateClass = '';
         let dateText = '';
@@ -3971,7 +4047,7 @@ const App = {
                     <div class="kanban-card-checkbox ${isCompleted ? 'checked' : ''}">
                         <i class="fas fa-check"></i>
                     </div>
-                    <div class="kanban-card-text">${Utils.escapeHtml(task.text)}</div>
+                    <div class="kanban-card-text">${Utils.escapeHtml(plain)}</div>
                 </div>
                 ${category || dateText ? `
                     <div class="kanban-card-footer">
