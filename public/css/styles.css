@@ -3201,14 +3201,15 @@ body {
 /* Tablet (768px+) */
 @media (min-width: 768px) {
     .main-app {
-        max-width: 600px;
-        margin: 0 auto;
-        border-left: 1px solid var(--border-color);
-        border-right: 1px solid var(--border-color);
+        max-width: 100%;
+        width: 100%;
+        margin: 0;
+        border-left: none;
+        border-right: none;
     }
     
     .fab {
-        right: calc(50% - 300px + var(--spacing-lg));
+        right: var(--spacing-lg);
     }
     
     .stats-grid {
