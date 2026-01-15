@@ -855,6 +855,9 @@ const DOM = {
     mindMapCollapseAllBtn: document.getElementById('mindMapCollapseAllBtn'),
     mindMapNodeTitle: document.getElementById('mindMapNodeTitle'),
     mindMapRenameBtn: document.getElementById('mindMapRenameBtn'),
+    mindMapAddChildBtn: document.getElementById('mindMapAddChildBtn'),
+    mindMapAddSiblingBtn: document.getElementById('mindMapAddSiblingBtn'),
+    mindMapDeleteNodeBtn: document.getElementById('mindMapDeleteNodeBtn'),
 
     // Context Menu
     contextMenu: document.getElementById('contextMenu'),
@@ -1559,11 +1562,17 @@ const MindMapUI = {
         this.selectedNodeObj = nodeObj || null;
         const input = DOM.mindMapNodeTitle;
         const btn = DOM.mindMapRenameBtn;
+        const addChildBtn = DOM.mindMapAddChildBtn;
+        const addSiblingBtn = DOM.mindMapAddSiblingBtn;
+        const deleteBtn = DOM.mindMapDeleteNodeBtn;
         if (!input || !btn) return;
 
         if (!nodeObj) {
             input.value = '';
             btn.disabled = true;
+            if (addChildBtn) addChildBtn.disabled = true;
+            if (addSiblingBtn) addSiblingBtn.disabled = true;
+            if (deleteBtn) deleteBtn.disabled = true;
             this._updateCollapseUi();
             return;
         }
@@ -1571,6 +1580,10 @@ const MindMapUI = {
         input.value = String(nodeObj.topic || '');
         this._updateCollapseUi();
         btn.disabled = !String(input.value).trim();
+
+        if (addChildBtn) addChildBtn.disabled = false;
+        if (addSiblingBtn) addSiblingBtn.disabled = false;
+        if (deleteBtn) deleteBtn.disabled = String(nodeObj.id) === 'root';
     },
 
     _markSelectedTpc(tpcEl) {
@@ -1772,6 +1785,73 @@ const MindMapUI = {
             } catch {
                 // ignore
             }
+        }, 0);
+    },
+
+    addChildSelected() {
+        this._addChildNodeAndRename();
+    },
+
+    addSiblingSelected() {
+        this._addSiblingNodeAndRename();
+    },
+
+    async deleteSelectedNode() {
+        if (!this.mind) return;
+        const selected = this.selectedNodeObj;
+        if (!selected?.id) return;
+        if (String(selected.id) === 'root') {
+            showToast('Não é possível excluir o nó raiz.');
+            return;
+        }
+
+        const ok = await SystemDialog.confirm(
+            'Excluir nó',
+            'Tem certeza que deseja excluir este nó (e todos os subtópicos)?'
+        );
+        if (!ok) return;
+
+        const data = this.mind.getData();
+        const root = data?.nodeData;
+        if (!root) return;
+
+        const found = this._findNodeAndParentById(root, selected.id);
+        if (!found?.node) return;
+        if (!found.parent) return;
+
+        if (!Array.isArray(found.parent.children)) found.parent.children = [];
+        found.parent.children = found.parent.children.filter(c => String(c.id) !== String(selected.id));
+
+        // Best-effort cleanup for arrows that might reference removed nodes.
+        const safeArrows = Array.isArray(data.arrows)
+            ? data.arrows.filter(a => {
+                const from = a?.from ?? a?.fromId ?? a?.fromNode;
+                const to = a?.to ?? a?.toId ?? a?.toNode;
+                if (from == null && to == null) return true;
+                return String(from) !== String(selected.id) && String(to) !== String(selected.id);
+            })
+            : [];
+
+        try {
+            this.mind.refresh({
+                nodeData: root,
+                arrows: safeArrows,
+                summaries: data.summaries || [],
+                direction: data.direction,
+                theme: data.theme
+            });
+        } catch {
+            try {
+                this.mind.refresh({ nodeData: root });
+            } catch {
+                // ignore
+            }
+        }
+
+        setTimeout(() => {
+            this.selectedNodeObj = null;
+            this._markSelectedTpc(null);
+            this._selectNodeById(found.parent.id);
         }, 0);
     },
 
@@ -6376,6 +6456,16 @@ if (DOM.mindMapExpandAllBtn) {
 }
 if (DOM.mindMapCollapseAllBtn) {
     DOM.mindMapCollapseAllBtn.addEventListener('click', () => MindMapUI.expandAll(false));
+}
+
+if (DOM.mindMapAddChildBtn) {
+    DOM.mindMapAddChildBtn.addEventListener('click', () => MindMapUI.addChildSelected());
+}
+if (DOM.mindMapAddSiblingBtn) {
+    DOM.mindMapAddSiblingBtn.addEventListener('click', () => MindMapUI.addSiblingSelected());
+}
+if (DOM.mindMapDeleteNodeBtn) {
+    DOM.mindMapDeleteNodeBtn.addEventListener('click', () => { void MindMapUI.deleteSelectedNode(); });
 }
 
 // =============================================

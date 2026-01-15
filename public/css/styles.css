@@ -1724,6 +1724,19 @@ body {
     align-items: center;
 }
 
+.mindmap-node-actions {
+    display: flex;
+    gap: 8px;
+    flex-wrap: wrap;
+    margin-bottom: var(--spacing-md);
+}
+
+.mindmap-node-actions .btn {
+    display: inline-flex;
+    align-items: center;
+    gap: 8px;
+}
+
 #mindMapNodeTitle {
     flex: 1;
     min-width: 0;

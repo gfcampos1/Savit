@@ -999,7 +999,8 @@
                 </div>
                 <div class="modal-body">
                     <div class="mindmap-help" id="mindMapHelp">
-                        <strong>Dicas:</strong> clique no nó para selecionar. <strong>Tab</strong> cria um subtópico (filho), <strong>Enter</strong> cria um tópico no mesmo nível. Use o botão <strong>Colapsar/Expandir</strong> (ou o ícone +/-) para organizar a visualização.
+                        <strong>Dicas:</strong> toque no nó para selecionar. Em teclado: <strong>Tab</strong> cria um subtópico (filho) e <strong>Enter</strong> cria um tópico no mesmo nível. No touchscreen, use os botões de <strong>Adicionar</strong> abaixo.
+                        Use o botão <strong>Colapsar/Expandir</strong> (ou o ícone +/-) para organizar a visualização.
                     </div>
 
                     <div class="mindmap-title-row" aria-label="Nome do mapa mental">
@@ -1021,6 +1022,19 @@
                             <button class="btn btn-secondary" id="mindMapRenameBtn" type="button" disabled>Renomear</button>
                         </div>
                     </div>
+
+                    <div class="mindmap-node-actions" aria-label="Ações do nó selecionado">
+                        <button class="btn btn-secondary" id="mindMapAddChildBtn" type="button" disabled>
+                            <i class="fas fa-sitemap"></i> Subtópico
+                        </button>
+                        <button class="btn btn-secondary" id="mindMapAddSiblingBtn" type="button" disabled>
+                            <i class="fas fa-level-up-alt"></i> Mesmo nível
+                        </button>
+                        <button class="btn btn-danger" id="mindMapDeleteNodeBtn" type="button" disabled>
+                            <i class="fas fa-trash"></i> Excluir
+                        </button>
+                    </div>
+
                     <div class="mindmap-editor" id="mindMapEditor" aria-label="Editor de mapa mental"></div>
                 </div>
                 <div class="modal-footer">

@@ -1,4 +1,4 @@
-const CACHE_NAME = 'savit-v20';
+const CACHE_NAME = 'savit-v21';
 
 // Keep this list same-origin only; cross-origin precache can fail (CORS) and break install.
 const STATIC_ASSETS = [
