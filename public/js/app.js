@@ -1559,9 +1559,30 @@ const MindMapUI = {
     },
 
     _initMind(data, { editable }) {
+        // Tear down any previous instance first
+        try {
+            this.mind?.destroy?.();
+        } catch {
+            // ignore
+        }
+
+        // Fully replace the container element to ensure stale event handlers are removed
+        // (prevents errors like "beginEdit is not a function" from old closures).
+        try {
+            const oldEl = DOM.mindMapEditor;
+            const parent = oldEl?.parentNode;
+            if (oldEl && parent) {
+                const fresh = oldEl.cloneNode(false);
+                parent.replaceChild(fresh, oldEl);
+                DOM.mindMapEditor = fresh;
+            }
+        } catch {
+            // ignore
+        }
+
         // Clean container
         DOM.mindMapEditor.innerHTML = '';
-        this.mind?.destroy?.();
+        this.mind = null;
 
         // Ensure the editor can receive focus (important for key bindings like Tab/Enter)
         try {
