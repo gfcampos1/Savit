@@ -988,6 +988,14 @@
                     <div class="mindmap-help" id="mindMapHelp">
                         <strong>Dicas:</strong> clique no nó para selecionar, duplo-clique para editar. <strong>Tab</strong> cria um subtópico (filho), <strong>Enter</strong> cria um tópico no mesmo nível.
                     </div>
+
+                    <div class="mindmap-rename-row" aria-label="Renomear nó selecionado">
+                        <label class="mindmap-rename-label" for="mindMapNodeTitle">Nó selecionado</label>
+                        <div class="mindmap-rename-controls">
+                            <input type="text" id="mindMapNodeTitle" placeholder="Selecione um nó para editar..." autocomplete="off" />
+                            <button class="btn btn-secondary" id="mindMapRenameBtn" type="button" disabled>Renomear</button>
+                        </div>
+                    </div>
                     <div class="mindmap-editor" id="mindMapEditor" aria-label="Editor de mapa mental"></div>
                 </div>
                 <div class="modal-footer">

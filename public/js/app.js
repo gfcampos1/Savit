@@ -783,6 +783,8 @@ const DOM = {
     cancelMindMapBtn: document.getElementById('cancelMindMapBtn'),
     insertMindMapBtn: document.getElementById('insertMindMapBtn'),
     mindMapHelp: document.getElementById('mindMapHelp'),
+    mindMapNodeTitle: document.getElementById('mindMapNodeTitle'),
+    mindMapRenameBtn: document.getElementById('mindMapRenameBtn'),
 
     // Context Menu
     contextMenu: document.getElementById('contextMenu')
@@ -1378,6 +1380,8 @@ const MindMapUI = {
     _pendingInit: null,
     _fallbackBound: false,
     _lastTapTs: 0,
+    _renameUiBound: false,
+    selectedNodeObj: null,
 
     isAvailable() {
         return typeof window.MindElixirLite === 'function';
@@ -1398,36 +1402,90 @@ const MindMapUI = {
         return el?.closest?.('me-tpc') || null;
     },
 
-    _renameNodeWithPrompt(nodeEl) {
-        if (!nodeEl?.nodeObj) return;
-        const current = String(nodeEl.nodeObj.topic || '').trim();
-        const next = window.prompt('Editar nó', current);
-        if (next == null) return;
-        const trimmed = String(next).trim();
-        if (!trimmed) return;
+    _setSelectedNode(nodeObj) {
+        this.selectedNodeObj = nodeObj || null;
+        const input = DOM.mindMapNodeTitle;
+        const btn = DOM.mindMapRenameBtn;
+        if (!input || !btn) return;
 
-        nodeEl.nodeObj.topic = trimmed;
-
-        // Update visible text immediately
-        try {
-            if (this.mind?.markdown && nodeEl.text) nodeEl.text.innerHTML = this.mind.markdown(trimmed, nodeEl.nodeObj);
-            else if (nodeEl.text) nodeEl.text.textContent = trimmed;
-        } catch {
-            // ignore
+        if (!nodeObj) {
+            input.value = '';
+            btn.disabled = true;
+            return;
         }
 
-        // Reflow connectors/labels
+        input.value = String(nodeObj.topic || '');
+        btn.disabled = !String(input.value).trim();
+    },
+
+    _focusRenameInput() {
+        const input = DOM.mindMapNodeTitle;
+        if (!input) return;
         try {
-            this.mind?.linkDiv?.();
-            this.mind?.layout?.();
+            input.focus({ preventScroll: true });
+        } catch {
+            input.focus();
+        }
+        try {
+            input.select();
         } catch {
             // ignore
         }
     },
 
+    _startInlineRename(nodeEl) {
+        const obj = nodeEl?.nodeObj;
+        if (!obj) return;
+        this._setSelectedNode(obj);
+        this._focusRenameInput();
+    },
+
+    applyRenameFromInput() {
+        const input = DOM.mindMapNodeTitle;
+        if (!input) return;
+        const nodeObj = this.selectedNodeObj;
+        if (!nodeObj) return;
+        const trimmed = String(input.value || '').trim();
+        if (!trimmed) return;
+
+        nodeObj.topic = trimmed;
+
+        // Re-render via library to keep lines/labels correct
+        try {
+            this.mind?.refresh?.();
+        } catch {
+            // ignore
+        }
+
+        this._setSelectedNode(nodeObj);
+    },
+
+    _bindRenameUiOnce() {
+        if (this._renameUiBound) return;
+        this._renameUiBound = true;
+
+        const input = DOM.mindMapNodeTitle;
+        const btn = DOM.mindMapRenameBtn;
+
+        btn?.addEventListener('click', () => this.applyRenameFromInput());
+
+        input?.addEventListener('keydown', (e) => {
+            if (e.key === 'Enter') {
+                e.preventDefault();
+                this.applyRenameFromInput();
+            }
+        });
+
+        input?.addEventListener('input', () => {
+            const hasSel = !!this.selectedNodeObj;
+            const ok = !!String(input.value || '').trim();
+            if (btn) btn.disabled = !hasSel || !ok;
+        });
+    },
+
     _bindFallbackEditingIfNeeded({ editable }) {
         // iOS/WebKit doesn’t support contenteditable="plaintext-only"; MindElixirLite’s inline edit
-        // relies on that and can become unusable. Provide a prompt-based rename fallback.
+        // relies on that and can become unusable. Provide an inline-rename fallback.
         if (!editable) return;
         if (this.supportsPlaintextOnly()) return;
         if (!this.mind?.container) return;
@@ -1444,7 +1502,7 @@ const MindMapUI = {
             if (!nodeEl) return;
             e.preventDefault();
             e.stopPropagation();
-            this._renameNodeWithPrompt(nodeEl);
+            this._startInlineRename(nodeEl);
         }, true);
 
         // Mobile double-tap (pointerdown)
@@ -1458,19 +1516,9 @@ const MindMapUI = {
             if (dt > 0 && dt < 350) {
                 e.preventDefault();
                 e.stopPropagation();
-                this._renameNodeWithPrompt(nodeEl);
+                this._startInlineRename(nodeEl);
             }
         }, true);
-
-        // Hint the user (without changing HTML structure)
-        try {
-            if (DOM.mindMapHelp) {
-                DOM.mindMapHelp.innerHTML =
-                    '<strong>Dicas:</strong> clique no nó para selecionar. Para editar no iPhone/iPad: dê 2 toques rápidos no nó.';
-            }
-        } catch {
-            // ignore
-        }
     },
 
     getTheme() {
@@ -1696,6 +1744,16 @@ const MindMapUI = {
         // Ensure theme matches current UI
         if (!data.theme) data.theme = this.getTheme();
         this.mind.init(data);
+
+        this._bindRenameUiOnce();
+        this._setSelectedNode(null);
+        try {
+            this.mind?.bus?.addListener?.('selectNewNode', (nodeObj) => {
+                this._setSelectedNode(nodeObj);
+            });
+        } catch {
+            // ignore
+        }
 
         this._bindFallbackEditingIfNeeded({ editable });
 
