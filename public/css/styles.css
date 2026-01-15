@@ -118,8 +118,10 @@ body {
 #app {
     display: flex;
     flex-direction: column;
-    height: 100vh;
-    height: 100dvh;
+    height: var(--app-height, 100vh);
+    height: var(--app-height, 100dvh);
+    min-height: var(--app-height, 100vh);
+    min-height: var(--app-height, 100dvh);
     width: 100%;
     position: relative;
     overflow: hidden;
@@ -1526,12 +1528,18 @@ body {
     background: transparent;
     border: 0;
     border-radius: 0;
+    max-width: 100%;
+    overflow-x: auto;
+    overflow-y: hidden;
+    -webkit-overflow-scrolling: touch;
 }
 
 .format-toolbar--compact .format-btn {
     width: 32px;
     height: 32px;
     border-radius: 10px;
+    min-width: 32px;
+    padding: 0;
 }
 
 .format-toolbar--compact .format-sep {
@@ -1548,6 +1556,13 @@ body {
     background: rgba(0, 0, 0, 0.18);
     max-height: 220px;
     overflow: auto;
+}
+
+/* In the message input, keep preview BELOW what the user is typing */
+.input-wrapper .format-preview {
+    order: 10;
+    flex-basis: 100%;
+    margin: 8px 0 0;
 }
 
 /* Light theme adjustments for toolbar visibility */
@@ -1604,6 +1619,12 @@ body {
     border: 1px solid var(--border-color);
     overflow: hidden;
     background: var(--chat-bg);
+    touch-action: none;
+}
+
+/* Allow MindElixir to receive drag/tap events (mobile) */
+.mindmap-modal .modal-body {
+    overflow: hidden;
 }
 
 .mindmap-embed {
@@ -1866,19 +1887,44 @@ body {
     background: transparent;
     color: var(--text-primary);
     font-size: var(--font-size-md);
-    resize: none;
     outline: none;
     max-height: 120px;
-    line-height: 40px;
     min-height: 40px;
-    padding: 0;
-    vertical-align: middle;
+    padding: 6px 0;
+    overflow-y: auto;
+    line-height: 1.4;
+    word-break: break-word;
 }
 
-#messageInput::placeholder,
-#categoryMessageInput::placeholder {
-    line-height: 40px;
+/* WYSIWYG editors (contenteditable) */
+.wysiwyg-editor {
+    -webkit-user-select: text;
+    user-select: text;
+}
+
+.wysiwyg-editor[contenteditable="true"][data-placeholder].is-empty::before {
+    content: attr(data-placeholder);
     color: var(--text-muted);
+    pointer-events: none;
+}
+
+.wysiwyg-editor--modal {
+    min-height: 120px;
+    max-height: 45vh;
+    padding: 8px 10px;
+    border-radius: var(--radius-md);
+    border: 1px solid var(--border-color);
+    background: var(--input-bg);
+}
+
+.wysiwyg-editor[contenteditable="true"] {
+    caret-color: var(--text-primary);
+}
+
+/* Hide preview toggle buttons when the related input is WYSIWYG */
+.input-options .format-toolbar button[data-format="preview"],
+.modal .format-toolbar button[data-format="preview"] {
+    display: none;
 }
 
 .send-btn {

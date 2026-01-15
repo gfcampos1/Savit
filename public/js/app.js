@@ -193,17 +193,26 @@ const SpeechToText = {
             // Update input with transcription - use targetInput or default to messageInput
             const input = this.targetInput || DOM.messageInput;
             if (input) {
-                const currentText = input.value;
-                const cursorPos = input.selectionStart || currentText.length;
-                
                 if (finalTranscript) {
-                    // Add final transcript with proper spacing
+                    const t = String(finalTranscript || '');
+                    if (!t) return;
+
+                    // WYSIWYG editor
+                    if (input.isContentEditable && input.tagName !== 'TEXTAREA') {
+                        const current = RichText.getPlainText(input);
+                        const needsSpace = current.trim().length > 0 && !current.endsWith(' ');
+                        RichText.insertTextAtCursor(input, (needsSpace ? ' ' : '') + t);
+                        input.dispatchEvent(new Event('input'));
+                        return;
+                    }
+
+                    // Textarea fallback
+                    const currentText = input.value || '';
+                    const cursorPos = input.selectionStart || currentText.length;
                     const before = currentText.substring(0, cursorPos);
                     const after = currentText.substring(cursorPos);
                     const space = before.length > 0 && !before.endsWith(' ') ? ' ' : '';
-                    input.value = before + space + finalTranscript + after;
-                    
-                    // Trigger input event for auto-resize
+                    input.value = before + space + t + after;
                     input.dispatchEvent(new Event('input'));
                 }
             }
@@ -1082,12 +1091,268 @@ const Markdown = {
 };
 
 // =============================================
+// Rich Text (WYSIWYG) Helpers
+// =============================================
+
+const RichText = {
+    allowedTags: new Set([
+        'P', 'BR', 'STRONG', 'EM', 'B', 'I', 'U', 'S',
+        'UL', 'OL', 'LI',
+        'BLOCKQUOTE',
+        'CODE', 'PRE',
+        'A',
+        'DIV', 'SPAN',
+        'BUTTON'
+    ]),
+    allowedClassRe: /^mindmap-/i,
+
+    isLikelyHtml(text) {
+        const s = String(text || '');
+        // Only treat as HTML if it contains tags we actually allow.
+        return /<\s*\/?\s*(p|br|strong|em|b|i|u|s|ul|ol|li|blockquote|code|pre|a|div|span)\b/i.test(s);
+    },
+
+    sanitizeHtml(html) {
+        const input = String(html || '');
+        if (!input.trim()) return '';
+
+        const parser = new DOMParser();
+        const doc = parser.parseFromString(`<div>${input}</div>`, 'text/html');
+        const container = doc.body?.firstElementChild;
+        if (!container) return '';
+
+        const sanitizeElement = (el) => {
+            // Remove event handler attrs and disallowed attrs.
+            const tag = el.tagName;
+
+            // Strip all attributes by default
+            const attrs = Array.from(el.attributes || []);
+            for (const attr of attrs) {
+                const name = attr.name.toLowerCase();
+                if (name.startsWith('on')) {
+                    el.removeAttribute(attr.name);
+                    continue;
+                }
+
+                if (tag === 'A') {
+                    if (name !== 'href' && name !== 'target' && name !== 'rel') {
+                        el.removeAttribute(attr.name);
+                    }
+                    continue;
+                }
+
+                if (tag === 'DIV') {
+                    if (name === 'data-mindmap') continue;
+                    if (name === 'class') continue;
+                    el.removeAttribute(attr.name);
+                    continue;
+                }
+
+                if (tag === 'BUTTON') {
+                    if (name === 'class') continue;
+                    if (name === 'type') continue;
+                    el.removeAttribute(attr.name);
+                    continue;
+                }
+
+                // Remove any other attribute
+                el.removeAttribute(attr.name);
+            }
+
+            // Normalize anchors
+            if (tag === 'A') {
+                const href = el.getAttribute('href') || '';
+                if (!Markdown.isSafeUrl(href)) {
+                    // Replace link with its text
+                    const text = doc.createTextNode(el.textContent || '');
+                    el.replaceWith(text);
+                    return;
+                }
+                el.setAttribute('href', href.trim());
+                el.setAttribute('target', '_blank');
+                el.setAttribute('rel', 'noopener noreferrer');
+            }
+
+            // Limit classes (only allow mindmap-* for embeds)
+            const cls = el.getAttribute('class');
+            if (cls) {
+                const kept = cls
+                    .split(/\s+/g)
+                    .map(c => c.trim())
+                    .filter(Boolean)
+                    .filter(c => RichText.allowedClassRe.test(c));
+                if (kept.length) el.setAttribute('class', kept.join(' '));
+                else el.removeAttribute('class');
+            }
+
+            if (tag === 'BUTTON') {
+                // Avoid accidental form submits
+                el.setAttribute('type', 'button');
+            }
+        };
+
+        const walk = (node) => {
+            if (!node) return;
+            const children = Array.from(node.childNodes || []);
+            for (const child of children) {
+                if (child.nodeType === Node.ELEMENT_NODE) {
+                    const el = child;
+                    if (!RichText.allowedTags.has(el.tagName)) {
+                        // Unwrap: replace element with its children
+                        const frag = doc.createDocumentFragment();
+                        while (el.firstChild) frag.appendChild(el.firstChild);
+                        el.replaceWith(frag);
+                        walk(node);
+                        continue;
+                    }
+
+                    sanitizeElement(el);
+                    walk(el);
+                } else if (child.nodeType === Node.COMMENT_NODE) {
+                    child.remove();
+                } else {
+                    // Text nodes ok
+                }
+            }
+        };
+
+        walk(container);
+        return container.innerHTML;
+    },
+
+    normalizeEmptyHtml(html) {
+        const s = String(html || '').trim();
+        if (!s) return '';
+        if (s === '<br>' || s === '<p><br></p>') return '';
+        return s;
+    },
+
+    getPlainText(editorEl) {
+        return String(editorEl?.innerText || '').replace(/\u00A0/g, ' ');
+    },
+
+    getHtml(editorEl) {
+        if (!editorEl) return '';
+        const cleaned = RichText.sanitizeHtml(editorEl.innerHTML || '');
+        return RichText.normalizeEmptyHtml(cleaned);
+    },
+
+    setHtml(editorEl, html) {
+        if (!editorEl) return;
+        const cleaned = RichText.normalizeEmptyHtml(RichText.sanitizeHtml(html || ''));
+        editorEl.innerHTML = cleaned;
+
+        // Keep mindmap embeds atomic inside editors
+        if (editorEl.isContentEditable) {
+            editorEl.querySelectorAll?.('.mindmap-embed')?.forEach(el => {
+                try {
+                    el.setAttribute('contenteditable', 'false');
+                } catch {
+                    // ignore
+                }
+            });
+        }
+        RichText.updateEmptyClass(editorEl);
+    },
+
+    clear(editorEl) {
+        if (!editorEl) return;
+        editorEl.innerHTML = '';
+        RichText.updateEmptyClass(editorEl);
+    },
+
+    updateEmptyClass(editorEl) {
+        if (!editorEl) return;
+        const plain = RichText.getPlainText(editorEl).trim().length;
+        const html = RichText.normalizeEmptyHtml(editorEl.innerHTML || '');
+        const empty = plain === 0 && !html;
+        editorEl.classList.toggle('is-empty', empty);
+    },
+
+    focusEnd(editorEl) {
+        if (!editorEl) return;
+        editorEl.focus();
+        try {
+            const range = document.createRange();
+            range.selectNodeContents(editorEl);
+            range.collapse(false);
+            const sel = window.getSelection();
+            sel.removeAllRanges();
+            sel.addRange(range);
+        } catch {
+            // ignore
+        }
+    },
+
+    insertTextAtCursor(editorEl, text) {
+        if (!editorEl) return;
+        editorEl.focus();
+        const t = String(text || '');
+        if (!t) return;
+        const sel = window.getSelection();
+        if (!sel || sel.rangeCount === 0) {
+            editorEl.appendChild(document.createTextNode(t));
+            RichText.updateEmptyClass(editorEl);
+            return;
+        }
+        const range = sel.getRangeAt(0);
+        range.deleteContents();
+        range.insertNode(document.createTextNode(t));
+        // Move caret after inserted node
+        range.collapse(false);
+        sel.removeAllRanges();
+        sel.addRange(range);
+        RichText.updateEmptyClass(editorEl);
+    },
+
+    insertHtmlAtCursor(editorEl, html) {
+        if (!editorEl) return;
+        editorEl.focus();
+        const cleaned = RichText.normalizeEmptyHtml(RichText.sanitizeHtml(html || ''));
+        if (!cleaned) return;
+        const sel = window.getSelection();
+        if (!sel || sel.rangeCount === 0) {
+            const wrapper = document.createElement('div');
+            wrapper.innerHTML = cleaned;
+            while (wrapper.firstChild) editorEl.appendChild(wrapper.firstChild);
+            RichText.updateEmptyClass(editorEl);
+            return;
+        }
+        const range = sel.getRangeAt(0);
+        range.deleteContents();
+        const wrapper = document.createElement('div');
+        wrapper.innerHTML = cleaned;
+        const frag = document.createDocumentFragment();
+        let last = null;
+        while (wrapper.firstChild) {
+            last = frag.appendChild(wrapper.firstChild);
+        }
+        range.insertNode(frag);
+        if (last) {
+            range.setStartAfter(last);
+            range.collapse(true);
+            sel.removeAllRanges();
+            sel.addRange(range);
+        }
+        RichText.updateEmptyClass(editorEl);
+    },
+
+    renderMessage(text) {
+        const s = String(text || '');
+        if (!s.trim()) return '';
+        if (RichText.isLikelyHtml(s)) return RichText.sanitizeHtml(s);
+        return Markdown.render(s);
+    }
+};
+
+// =============================================
 // Mind Map UI (MindElixirLite)
 // =============================================
 
 const MindMapUI = {
     mind: null,
     activeTextarea: null,
+    activeEditor: null,
     replaceRange: null,
     viewOnly: false,
     _pendingInit: null,
@@ -1182,6 +1447,7 @@ const MindMapUI = {
         if (!DOM.mindMapModal || !DOM.mindMapEditor) return;
 
         this.activeTextarea = textarea;
+        this.activeEditor = null;
         this.viewOnly = false;
 
         const selStart = textarea.selectionStart ?? 0;
@@ -1215,6 +1481,7 @@ const MindMapUI = {
         if (!DOM.mindMapModal || !DOM.mindMapEditor) return;
 
         this.activeTextarea = textarea;
+        this.activeEditor = null;
         this.viewOnly = false;
 
         const block = this.findMindMapBlockByJson(textarea.value, jsonString) ||
@@ -1243,6 +1510,7 @@ const MindMapUI = {
         if (!DOM.mindMapModal || !DOM.mindMapEditor) return;
 
         this.activeTextarea = null;
+        this.activeEditor = null;
         this.replaceRange = null;
         this.viewOnly = true;
 
@@ -1315,6 +1583,65 @@ const MindMapUI = {
         }, 0);
     },
 
+    buildEmbedHtml(jsonRaw) {
+        const encoded = Markdown.escapeHtml(encodeURIComponent(String(jsonRaw || '').trim()));
+        return (
+            `<div class="mindmap-embed" contenteditable="false" data-mindmap="${encoded}">` +
+            `<div class="mindmap-embed-toolbar">` +
+            `<div class="mindmap-embed-title">Mapa mental</div>` +
+            `<button class="mindmap-embed-open" type="button">Abrir</button>` +
+            `</div>` +
+            `<div class="mindmap-embed-canvas" aria-label="Mapa mental"></div>` +
+            `</div>`
+        );
+    },
+
+    openForEditor(editorEl) {
+        if (!this.isAvailable()) {
+            showToast('Mapa mental indisponível (biblioteca não carregou)');
+            return;
+        }
+        if (!DOM.mindMapModal || !DOM.mindMapEditor) return;
+
+        this.activeTextarea = null;
+        this.activeEditor = editorEl;
+        this.replaceRange = null;
+        this.viewOnly = false;
+
+        const selectedText = RichText.getPlainText(editorEl).trim();
+        const data = this.defaultData(selectedText || 'Ideia');
+
+        DOM.insertMindMapBtn.textContent = 'Inserir na mensagem';
+        DOM.insertMindMapBtn.style.display = '';
+        openModal(DOM.mindMapModal);
+        this._scheduleInitMind(data, { editable: true });
+    },
+
+    openForEditorFromJson(editorEl, jsonString) {
+        if (!this.isAvailable()) {
+            showToast('Mapa mental indisponível (biblioteca não carregou)');
+            return;
+        }
+        if (!DOM.mindMapModal || !DOM.mindMapEditor) return;
+
+        this.activeTextarea = null;
+        this.activeEditor = editorEl;
+        this.replaceRange = null;
+        this.viewOnly = false;
+
+        let data;
+        try {
+            data = JSON.parse(jsonString);
+        } catch {
+            data = this.defaultData('Ideia');
+        }
+
+        DOM.insertMindMapBtn.textContent = 'Inserir na mensagem';
+        DOM.insertMindMapBtn.style.display = '';
+        openModal(DOM.mindMapModal);
+        this._scheduleInitMind(data, { editable: true });
+    },
+
     close() {
         if (DOM.mindMapModal) closeModal(DOM.mindMapModal);
         if (this._pendingInit) {
@@ -1328,6 +1655,7 @@ const MindMapUI = {
         }
         this.mind = null;
         this.activeTextarea = null;
+        this.activeEditor = null;
         this.replaceRange = null;
         this.viewOnly = false;
     },
@@ -1354,6 +1682,21 @@ const MindMapUI = {
 
         this.activeTextarea.dispatchEvent(new Event('input'));
         this.close();
+    },
+
+    insertIntoActiveEditor() {
+        if (!this.mind || !this.activeEditor) return;
+        const data = this.mind.getData();
+        data.theme = this.getTheme();
+        const json = JSON.stringify(data);
+        const html = this.buildEmbedHtml(json);
+        RichText.insertHtmlAtCursor(this.activeEditor, html);
+        this.close();
+    },
+
+    insert() {
+        if (this.activeEditor) return this.insertIntoActiveEditor();
+        return this.insertIntoActiveTextarea();
     },
 
     hydrateEmbeds(container) {
@@ -1489,9 +1832,39 @@ const TextareaFormat = {
 function setupFormattingToolbar(toolbarEl, textareaEl) {
     if (!toolbarEl || !textareaEl) return;
 
+    // If this is a WYSIWYG editor (contenteditable), use rich-text commands.
+    if (textareaEl.isContentEditable && textareaEl.tagName !== 'TEXTAREA') {
+        setupWysiwygToolbar(toolbarEl, textareaEl);
+        return;
+    }
+
     const wrapperEl = textareaEl.closest('.input-wrapper') || null;
     const previewEl = wrapperEl?.querySelector('.format-preview') || null;
-    let isPreviewing = true;
+
+    const previewPrefKey = `savit.preview.${textareaEl.id || 'textarea'}`;
+    const isMobile = window.matchMedia?.('(max-width: 768px)')?.matches;
+
+    const readPreviewPref = () => {
+        try {
+            const raw = localStorage.getItem(previewPrefKey);
+            if (raw === '1') return true;
+            if (raw === '0') return false;
+        } catch {
+            // ignore
+        }
+        // Default: off on mobile (so preview doesn't push the input), on for larger screens.
+        return !isMobile;
+    };
+
+    const writePreviewPref = (enabled) => {
+        try {
+            localStorage.setItem(previewPrefKey, enabled ? '1' : '0');
+        } catch {
+            // ignore
+        }
+    };
+
+    let isPreviewing = readPreviewPref();
     let previewUpdateTimer = null;
 
     const updatePreview = () => {
@@ -1523,11 +1896,14 @@ function setupFormattingToolbar(toolbarEl, textareaEl) {
             textareaEl.focus();
         }
 
+        writePreviewPref(enabled);
+
         // Toggle icon (eye / eye-slash)
         const previewBtnIcon = toolbarEl.querySelector('button[data-format="preview"] i');
         if (previewBtnIcon) {
-            previewBtnIcon.classList.toggle('fa-eye', enabled);
-            previewBtnIcon.classList.toggle('fa-eye-slash', !enabled);
+            // When preview is ON, show eye-slash (action = hide). When OFF, show eye (action = show).
+            previewBtnIcon.classList.toggle('fa-eye', !enabled);
+            previewBtnIcon.classList.toggle('fa-eye-slash', enabled);
         }
     };
 
@@ -1726,11 +2102,150 @@ function setupFormattingToolbar(toolbarEl, textareaEl) {
         });
     }
 
-    // Default: show live preview (but user can hide with the eye button)
+    // Initialize preview state (persisted per textarea id)
     if (previewEl) {
-        setPreviewMode(true);
+        // On mobile we still respect the preference, but default is OFF.
+        // If user previously enabled it, we render it.
+        setPreviewMode(isPreviewing);
+        // If there's no textarea id, avoid sticking preview on for mobile by mistake.
+        if (!textareaEl.id && isMobile) {
+            setPreviewMode(false);
+        }
     }
 
+    updateActiveButtons();
+}
+
+function setupWysiwygToolbar(toolbarEl, editorEl) {
+    if (!toolbarEl || !editorEl) return;
+
+    // Hide preview controls in WYSIWYG mode
+    const previewBtn = toolbarEl.querySelector('button[data-format="preview"]');
+    if (previewBtn) previewBtn.style.display = 'none';
+
+    const exec = (cmd, value = null) => {
+        editorEl.focus();
+        try {
+            document.execCommand(cmd, false, value);
+        } catch {
+            // ignore
+        }
+        RichText.updateEmptyClass(editorEl);
+    };
+
+    const setBtnActive = (action, active) => {
+        const btn = toolbarEl.querySelector(`button[data-format="${action}"]`);
+        if (!btn) return;
+        btn.classList.toggle('is-active', !!active);
+    };
+
+    const selectionTag = () => {
+        const sel = window.getSelection();
+        const node = sel?.anchorNode;
+        const el = node?.nodeType === Node.ELEMENT_NODE ? node : node?.parentElement;
+        return el;
+    };
+
+    const closestTag = (tag) => {
+        const el = selectionTag();
+        return el?.closest?.(tag) || null;
+    };
+
+    const updateActiveButtons = () => {
+        setBtnActive('bold', !!document.queryCommandState?.('bold'));
+        setBtnActive('italic', !!document.queryCommandState?.('italic'));
+        setBtnActive('ul', !!document.queryCommandState?.('insertUnorderedList'));
+        setBtnActive('ol', !!document.queryCommandState?.('insertOrderedList'));
+        setBtnActive('quote', !!closestTag('blockquote'));
+        setBtnActive('h2', !!closestTag('h2'));
+        setBtnActive('code', !!closestTag('pre, code'));
+    };
+
+    toolbarEl.addEventListener('click', (e) => {
+        const btn = e.target.closest('button[data-format]');
+        if (!btn) return;
+        e.preventDefault();
+        const action = btn.dataset.format;
+
+        switch (action) {
+            case 'bold':
+                exec('bold');
+                break;
+            case 'italic':
+                exec('italic');
+                break;
+            case 'h2':
+                exec('formatBlock', '<h2>');
+                break;
+            case 'ul':
+                exec('insertUnorderedList');
+                break;
+            case 'ol':
+                exec('insertOrderedList');
+                break;
+            case 'quote':
+                exec('formatBlock', '<blockquote>');
+                break;
+            case 'code':
+                exec('formatBlock', '<pre>');
+                break;
+            case 'link': {
+                const url = window.prompt('Cole o link (https://...)');
+                if (!url) return;
+                if (!Markdown.isSafeUrl(url)) {
+                    showToast('Link inválido (use https://)');
+                    return;
+                }
+                exec('createLink', url.trim());
+                break;
+            }
+            case 'mindmap':
+                MindMapUI.openForEditor(editorEl);
+                break;
+        }
+
+        updateActiveButtons();
+    });
+
+    editorEl.addEventListener('input', () => {
+        RichText.updateEmptyClass(editorEl);
+        updateActiveButtons();
+    });
+
+    editorEl.addEventListener('focus', () => {
+        RichText.updateEmptyClass(editorEl);
+        updateActiveButtons();
+    });
+
+    editorEl.addEventListener('keyup', updateActiveButtons);
+    editorEl.addEventListener('mouseup', updateActiveButtons);
+
+    editorEl.addEventListener('paste', (e) => {
+        // Safe default: paste as plain text.
+        e.preventDefault();
+        const text = e.clipboardData?.getData('text/plain') || '';
+        RichText.insertTextAtCursor(editorEl, text);
+    });
+
+    // Allow editing embedded mindmaps directly from the editor
+    editorEl.addEventListener('click', (e) => {
+        const btn = e.target.closest('.mindmap-embed-open');
+        if (!btn) return;
+        e.preventDefault();
+        e.stopPropagation();
+        const embed = btn.closest('.mindmap-embed');
+        if (!embed) return;
+        const encoded = embed.getAttribute('data-mindmap') || '';
+        let jsonRaw = encoded;
+        try {
+            jsonRaw = decodeURIComponent(encoded);
+        } catch {
+            jsonRaw = encoded;
+        }
+        MindMapUI.openForEditorFromJson(editorEl, jsonRaw);
+    });
+
+    RichText.updateEmptyClass(editorEl);
     updateActiveButtons();
 }
 
@@ -2942,7 +3457,7 @@ const App = {
 
         // Message text
         if (msg.text) {
-            html += `<div class="message-text">${Markdown.render(msg.text)}</div>`;
+            html += `<div class="message-text">${RichText.renderMessage(msg.text)}</div>`;
         }
 
         // Task section
@@ -3536,7 +4051,8 @@ const App = {
 
     async updateMessage(id) {
         try {
-            const rawText = DOM.editMessageText.value;
+            const isWysiwyg = DOM.editMessageText?.isContentEditable && DOM.editMessageText.tagName !== 'TEXTAREA';
+            const rawText = isWysiwyg ? RichText.getPlainText(DOM.editMessageText) : (DOM.editMessageText.value || '');
             const textForCheck = rawText.trim();
             if (!textForCheck) {
                 showToast('Digite uma mensagem');
@@ -3544,7 +4060,7 @@ const App = {
             }
 
             const { message } = await API.messages.update(id, {
-                text: rawText.trimEnd(),
+                text: isWysiwyg ? RichText.getHtml(DOM.editMessageText) : rawText.trimEnd(),
                 categoryId: DOM.editMessageCategory.value || null,
                 isTask: DOM.editMessageIsTask.checked,
                 taskDate: DOM.editMessageIsTask.checked ? DOM.editTaskDate.value : null,
@@ -3827,7 +4343,12 @@ const App = {
 
         AppState.editingMessageId = id;
 
-        DOM.editMessageText.value = message.text;
+        if (DOM.editMessageText?.isContentEditable && DOM.editMessageText.tagName !== 'TEXTAREA') {
+            RichText.setHtml(DOM.editMessageText, RichText.renderMessage(message.text));
+            RichText.focusEnd(DOM.editMessageText);
+        } else {
+            DOM.editMessageText.value = message.text;
+        }
         DOM.editMessageCategory.value = message.categoryId || '';
         DOM.editMessageIsTask.checked = message.isTask;
         DOM.editTaskDate.value = message.taskDate ? message.taskDate.split('T')[0] : '';
@@ -4227,9 +4748,10 @@ const App = {
         setupFormattingToolbar(DOM.formatToolbar, DOM.messageInput);
 
         DOM.sendBtn.addEventListener('click', async () => {
-            const rawText = DOM.messageInput.value;
+            const isWysiwyg = DOM.messageInput?.isContentEditable && DOM.messageInput.tagName !== 'TEXTAREA';
+            const rawText = isWysiwyg ? RichText.getPlainText(DOM.messageInput) : (DOM.messageInput.value || '');
             const textForCheck = rawText.trim();
-            const textToSend = rawText.trimEnd();
+            const textToSend = isWysiwyg ? RichText.getHtml(DOM.messageInput) : rawText.trimEnd();
             const hasImages = AppState.pendingImages.length > 0;
             
             if (!textForCheck && !hasImages) return;
@@ -4243,22 +4765,48 @@ const App = {
                 [...AppState.pendingImages]
             );
 
-            DOM.messageInput.value = '';
-            DOM.messageInput.style.height = 'auto';
+            if (isWysiwyg) {
+                RichText.clear(DOM.messageInput);
+            } else {
+                DOM.messageInput.value = '';
+                DOM.messageInput.style.height = 'auto';
+            }
             this.clearPendingImages(false);
             resetInputOptions();
         });
 
         DOM.messageInput.addEventListener('keydown', (e) => {
+            const isWysiwyg = DOM.messageInput?.isContentEditable && DOM.messageInput.tagName !== 'TEXTAREA';
+            if (!isWysiwyg) {
+                if (e.key === 'Enter' && !e.shiftKey) {
+                    e.preventDefault();
+                    DOM.sendBtn.click();
+                }
+                return;
+            }
+
             if (e.key === 'Enter' && !e.shiftKey) {
                 e.preventDefault();
                 DOM.sendBtn.click();
+                return;
+            }
+
+            if (e.key === 'Enter' && e.shiftKey) {
+                // Insert a line break
+                e.preventDefault();
+                try {
+                    document.execCommand('insertLineBreak');
+                } catch {
+                    RichText.insertHtmlAtCursor(DOM.messageInput, '<br>');
+                }
+                return;
             }
         });
 
         DOM.messageInput.addEventListener('input', () => {
-            DOM.messageInput.style.height = 'auto';
-            DOM.messageInput.style.height = Math.min(DOM.messageInput.scrollHeight, 120) + 'px';
+            if (DOM.messageInput?.isContentEditable) {
+                RichText.updateEmptyClass(DOM.messageInput);
+            }
         });
 
         // Input options
@@ -4445,9 +4993,10 @@ const App = {
 
         // Category page input - Send message
         DOM.categorySendBtn.addEventListener('click', async () => {
-            const rawText = DOM.categoryMessageInput.value;
+            const isWysiwyg = DOM.categoryMessageInput?.isContentEditable && DOM.categoryMessageInput.tagName !== 'TEXTAREA';
+            const rawText = isWysiwyg ? RichText.getPlainText(DOM.categoryMessageInput) : (DOM.categoryMessageInput.value || '');
             const textForCheck = rawText.trim();
-            const textToSend = rawText.trimEnd();
+            const textToSend = isWysiwyg ? RichText.getHtml(DOM.categoryMessageInput) : rawText.trimEnd();
             const hasImages = AppState.categoryPendingImages.length > 0;
             
             if ((!textForCheck && !hasImages) || !AppState.viewingCategoryId) return;
@@ -4461,8 +5010,12 @@ const App = {
                 [...AppState.categoryPendingImages]
             );
 
-            DOM.categoryMessageInput.value = '';
-            DOM.categoryMessageInput.style.height = 'auto';
+            if (isWysiwyg) {
+                RichText.clear(DOM.categoryMessageInput);
+            } else {
+                DOM.categoryMessageInput.value = '';
+                DOM.categoryMessageInput.style.height = 'auto';
+            }
             this.clearPendingImages(true);
             
             // Reset task mode
@@ -4475,15 +5028,36 @@ const App = {
         });
 
         DOM.categoryMessageInput.addEventListener('keydown', (e) => {
+            const isWysiwyg = DOM.categoryMessageInput?.isContentEditable && DOM.categoryMessageInput.tagName !== 'TEXTAREA';
+            if (!isWysiwyg) {
+                if (e.key === 'Enter' && !e.shiftKey) {
+                    e.preventDefault();
+                    DOM.categorySendBtn.click();
+                }
+                return;
+            }
+
             if (e.key === 'Enter' && !e.shiftKey) {
                 e.preventDefault();
                 DOM.categorySendBtn.click();
+                return;
+            }
+
+            if (e.key === 'Enter' && e.shiftKey) {
+                e.preventDefault();
+                try {
+                    document.execCommand('insertLineBreak');
+                } catch {
+                    RichText.insertHtmlAtCursor(DOM.categoryMessageInput, '<br>');
+                }
+                return;
             }
         });
 
         DOM.categoryMessageInput.addEventListener('input', () => {
-            DOM.categoryMessageInput.style.height = 'auto';
-            DOM.categoryMessageInput.style.height = Math.min(DOM.categoryMessageInput.scrollHeight, 120) + 'px';
+            if (DOM.categoryMessageInput?.isContentEditable) {
+                RichText.updateEmptyClass(DOM.categoryMessageInput);
+            }
         });
 
         // Category page - Task mode toggle
@@ -4710,7 +5284,7 @@ if (DOM.cancelMindMapBtn) {
     DOM.cancelMindMapBtn.addEventListener('click', () => MindMapUI.close());
 }
 if (DOM.insertMindMapBtn) {
-    DOM.insertMindMapBtn.addEventListener('click', () => MindMapUI.insertIntoActiveTextarea());
+    DOM.insertMindMapBtn.addEventListener('click', () => MindMapUI.insert());
 }
 
 // =============================================
@@ -4801,6 +5375,18 @@ window.App = App;
 
 // Initialize app
 document.addEventListener('DOMContentLoaded', () => {
+    // Keep the app height in sync with the *actual* viewport (fixes mobile landscape/URL bar issues)
+    const syncAppHeight = () => {
+        const h = window.visualViewport?.height || window.innerHeight;
+        document.documentElement.style.setProperty('--app-height', `${Math.round(h)}px`);
+    };
+    syncAppHeight();
+    window.addEventListener('resize', syncAppHeight, { passive: true });
+    window.addEventListener('orientationchange', () => setTimeout(syncAppHeight, 200), { passive: true });
+    if (window.visualViewport) {
+        window.visualViewport.addEventListener('resize', syncAppHeight, { passive: true });
+    }
+
     // Register Service Worker (PWA) - keep this in external JS to satisfy CSP.
     if ('serviceWorker' in navigator) {
         navigator.serviceWorker.register('/sw.js').catch(() => {});

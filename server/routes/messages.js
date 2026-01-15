@@ -5,6 +5,7 @@ const { validateBody, validateQuery, validateParams } = require('../middleware/v
 const { writeLimiter, readHeavyLimiter } = require('../middleware/rateLimiters');
 const { MessageCreateBody, MessageUpdateBody, MessagesQuery, IdParam } = require('../utils/schemas');
 const { encryptString, decryptString } = require('../utils/crypto');
+const { normalizeStoredText } = require('../utils/richText');
 
 const router = express.Router();
 const prisma = new PrismaClient();
@@ -168,7 +169,7 @@ router.post('/', writeLimiter, validateBody(MessageCreateBody), async (req, res)
 
         const message = await prisma.message.create({
             data: {
-                text: encryptString(text ? text.trim() : ''),
+                text: encryptString(normalizeStoredText(text)),
                 images: safeImages.length > 0 ? encryptString(JSON.stringify(safeImages)) : null,
                 categoryId: categoryId || null,
                 isTask: isTask || false,
@@ -220,7 +221,7 @@ router.put('/:id', validateParams(IdParam), writeLimiter, validateBody(MessageUp
 
         const updateData = {};
         
-        if (text !== undefined) updateData.text = encryptString(String(text).trim());
+        if (text !== undefined) updateData.text = encryptString(normalizeStoredText(text));
         if (categoryId !== undefined) updateData.categoryId = categoryId || null;
         if (isTask !== undefined) updateData.isTask = isTask;
         if (taskDate !== undefined) {
