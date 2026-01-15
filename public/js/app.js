@@ -2882,6 +2882,52 @@ function setupWysiwygToolbar(toolbarEl, editorEl) {
         }
     };
 
+    const placeCaretAfterNode = (node) => {
+        try {
+            if (!node) return;
+            editorEl.focus();
+            const range = document.createRange();
+            range.setStartAfter(node);
+            range.collapse(true);
+            const sel = window.getSelection();
+            sel?.removeAllRanges();
+            sel?.addRange(range);
+        } catch {
+            // ignore
+        }
+    };
+
+    const unwrapElement = (el) => {
+        if (!el) return;
+        const parent = el.parentNode;
+        if (!parent) return;
+        const frag = document.createDocumentFragment();
+        while (el.firstChild) frag.appendChild(el.firstChild);
+        const last = frag.lastChild;
+        try {
+            parent.replaceChild(frag, el);
+        } catch {
+            // Fallback: if replaceChild with fragment fails, append then remove.
+            while (frag.firstChild) parent.insertBefore(frag.firstChild, el);
+            try { el.remove(); } catch {}
+        }
+        // Place caret near where we unwrapped
+        if (last?.nodeType === Node.ELEMENT_NODE) placeCaretAtEnd(last);
+        else if (last) placeCaretAfterNode(last);
+        else editorEl.focus();
+    };
+
+    const toggleBlockWrapper = (tagName, createValue) => {
+        const current = closestTag(tagName);
+        if (current) {
+            unwrapElement(current);
+        } else {
+            exec('formatBlock', createValue);
+        }
+        RichText.enforceEmbedsAtomic(editorEl);
+        RichText.updateEmptyClass(editorEl);
+    };
+
     const indentListItem = () => {
         const li = closestLiInEditor();
         if (!li) {
@@ -2995,10 +3041,10 @@ function setupWysiwygToolbar(toolbarEl, editorEl) {
                 outdentListItem();
                 break;
             case 'quote':
-                exec('formatBlock', '<blockquote>');
+                toggleBlockWrapper('blockquote', '<blockquote>');
                 break;
             case 'code':
-                exec('formatBlock', '<pre>');
+                toggleBlockWrapper('pre', '<pre>');
                 break;
             case 'link': {
                 const url = window.prompt('Cole o link (https://...)');
