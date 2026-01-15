@@ -1383,6 +1383,7 @@ const MindMapUI = {
     _renameUiBound: false,
     selectedNodeObj: null,
     _selectedTpcEl: null,
+    _mindInteractionBoundForContainer: null,
 
     isAvailable() {
         return typeof window.MindElixirLite === 'function';
@@ -1437,6 +1438,228 @@ const MindMapUI = {
     },
 
     _tryRehighlightSelectedNode() {
+
+            _ensureMindFocusable() {
+                try {
+                    const container = this.mind?.container;
+                    if (container && !container.hasAttribute('tabindex')) {
+                        container.setAttribute('tabindex', '0');
+                    }
+                } catch {
+                    // ignore
+                }
+            },
+
+            _focusMind() {
+                try {
+                    const container = this.mind?.container;
+                    if (container) {
+                        container.focus({ preventScroll: true });
+                        return;
+                    }
+                } catch {
+                    // ignore
+                }
+
+                try {
+                    DOM.mindMapEditor?.focus?.({ preventScroll: true });
+                } catch {
+                    // ignore
+                }
+            },
+
+            _getDataNodeMaxId(node) {
+                if (!node) return 0;
+                const selfId = Number(node.id) || 0;
+                const kids = Array.isArray(node.children) ? node.children : [];
+                let maxId = selfId;
+                for (const c of kids) {
+                    const m = this._getDataNodeMaxId(c);
+                    if (m > maxId) maxId = m;
+                }
+                return maxId;
+            },
+
+            _findNodeAndParentById(node, targetId, parent = null) {
+                if (!node) return null;
+                if (String(node.id) === String(targetId)) return { node, parent };
+                const kids = Array.isArray(node.children) ? node.children : [];
+                for (const c of kids) {
+                    const found = this._findNodeAndParentById(c, targetId, node);
+                    if (found) return found;
+                }
+                return null;
+            },
+
+            _selectNodeById(nodeId) {
+                if (!DOM.mindMapEditor) return;
+                try {
+                    const tpc = DOM.mindMapEditor.querySelector(`me-tpc[data-nodeid="me${nodeId}"]`);
+                    if (!tpc?.nodeObj) return;
+                    this._setSelectedNode(tpc.nodeObj);
+                    this._markSelectedTpc(tpc);
+                    try {
+                        this.mind?.selectNode?.(tpc, true);
+                    } catch {
+                        // ignore
+                    }
+                } catch {
+                    // ignore
+                }
+            },
+
+            _beginEditOrFocusRename(tpcEl) {
+                if (!tpcEl?.nodeObj) return;
+                // Prefer native MindElixir edit if available
+                try {
+                    if (typeof this.mind?.beginEdit === 'function') {
+                        this.mind.beginEdit(tpcEl);
+                        return;
+                    }
+                } catch {
+                    // ignore
+                }
+
+                // Fallback to our rename UI
+                this._startInlineRename(tpcEl);
+            },
+
+            _addChildNodeAndRename() {
+                if (!this.mind) return;
+                const selected = this.selectedNodeObj;
+                if (!selected?.id) return;
+
+                const data = this.mind.getData();
+                const root = data?.nodeData;
+                if (!root) return;
+
+                const found = this._findNodeAndParentById(root, selected.id);
+                if (!found?.node) return;
+
+                const maxId = this._getDataNodeMaxId(root);
+                const newId = maxId + 1;
+                const child = { id: newId, topic: 'Novo nó', children: [] };
+
+                if (!Array.isArray(found.node.children)) found.node.children = [];
+                found.node.children.push(child);
+
+                try {
+                    this.mind.refresh({
+                        nodeData: root,
+                        arrows: data.arrows || [],
+                        summaries: data.summaries || [],
+                        direction: data.direction,
+                        theme: data.theme
+                    });
+                } catch {
+                    try {
+                        this.mind.refresh({ nodeData: root });
+                    } catch {
+                        // ignore
+                    }
+                }
+
+                // Select and start renaming the new node
+                setTimeout(() => {
+                    this._selectNodeById(newId);
+                    try {
+                        const tpc = DOM.mindMapEditor?.querySelector?.(`me-tpc[data-nodeid="me${newId}"]`);
+                        if (tpc) this._beginEditOrFocusRename(tpc);
+                    } catch {
+                        // ignore
+                    }
+                }, 0);
+            },
+
+            _addSiblingNodeAndRename() {
+                if (!this.mind) return;
+                const selected = this.selectedNodeObj;
+                if (!selected?.id) return;
+
+                const data = this.mind.getData();
+                const root = data?.nodeData;
+                if (!root) return;
+
+                const found = this._findNodeAndParentById(root, selected.id);
+                if (!found?.node) return;
+                if (!found.parent) {
+                    // Root has no siblings; treat Enter as add child for root.
+                    this._addChildNodeAndRename();
+                    return;
+                }
+
+                if (!Array.isArray(found.parent.children)) found.parent.children = [];
+                const idx = found.parent.children.findIndex(c => String(c.id) === String(selected.id));
+
+                const maxId = this._getDataNodeMaxId(root);
+                const newId = maxId + 1;
+                const sibling = { id: newId, topic: 'Novo nó', children: [] };
+
+                const insertAt = idx >= 0 ? idx + 1 : found.parent.children.length;
+                found.parent.children.splice(insertAt, 0, sibling);
+
+                try {
+                    this.mind.refresh({
+                        nodeData: root,
+                        arrows: data.arrows || [],
+                        summaries: data.summaries || [],
+                        direction: data.direction,
+                        theme: data.theme
+                    });
+                } catch {
+                    try {
+                        this.mind.refresh({ nodeData: root });
+                    } catch {
+                        // ignore
+                    }
+                }
+
+                setTimeout(() => {
+                    this._selectNodeById(newId);
+                    try {
+                        const tpc = DOM.mindMapEditor?.querySelector?.(`me-tpc[data-nodeid="me${newId}"]`);
+                        if (tpc) this._beginEditOrFocusRename(tpc);
+                    } catch {
+                        // ignore
+                    }
+                }, 0);
+            },
+
+            _bindMindInteractions({ editable }) {
+                if (!editable) return;
+                const container = this.mind?.container;
+                if (!container) return;
+                if (this._mindInteractionBoundForContainer === container) return;
+                this._mindInteractionBoundForContainer = container;
+
+                this._ensureMindFocusable();
+
+                // Double click: start editing selected node (or focus rename UI)
+                container.addEventListener('dblclick', (e) => {
+                    const tpc = e.target?.closest?.('me-tpc');
+                    if (!tpc?.nodeObj) return;
+                    e.preventDefault();
+                    e.stopPropagation();
+                    this._setSelectedNode(tpc.nodeObj);
+                    this._markSelectedTpc(tpc);
+                    this._beginEditOrFocusRename(tpc);
+                });
+
+                // Keyboard: Tab = child, Enter = sibling
+                container.addEventListener('keydown', (e) => {
+                    if (!this.mind) return;
+                    if (!this.selectedNodeObj) return;
+                    if (e.ctrlKey || e.metaKey || e.altKey) return;
+
+                    if (e.key === 'Tab') {
+                        e.preventDefault();
+                        this._addChildNodeAndRename();
+                    } else if (e.key === 'Enter') {
+                        e.preventDefault();
+                        this._addSiblingNodeAndRename();
+                    }
+                });
+            },
         const nodeObj = this.selectedNodeObj;
         if (!nodeObj || !DOM.mindMapEditor) return;
         try {
@@ -1779,6 +2002,8 @@ const MindMapUI = {
 
         this._bindTapSelectionFix({ editable });
 
+    this._ensureMindFocusable();
+    this._bindMindInteractions({ editable });
         this._bindRenameUiOnce();
         this._setSelectedNode(null);
         try {
@@ -1794,7 +2019,7 @@ const MindMapUI = {
         // Focus the mindmap so keypress handlers work immediately
         setTimeout(() => {
             try {
-                DOM.mindMapEditor.focus({ preventScroll: true });
+                this._focusMind();
             } catch {
                 // ignore
             }
@@ -1878,6 +2103,7 @@ const MindMapUI = {
             // Always update our own selection state/UI, regardless of library behavior.
             this._setSelectedNode(tpc.nodeObj);
             this._markSelectedTpc(tpc);
+            this._focusMind();
 
             try {
                 // Second arg = fire selectNewNode (keeps rename UI in sync)
@@ -1903,6 +2129,7 @@ const MindMapUI = {
             if (!tpc?.nodeObj) return;
             this._setSelectedNode(tpc.nodeObj);
             this._markSelectedTpc(tpc);
+            this._focusMind();
             try {
                 this.mind.selectNode(tpc, true);
             } catch {
