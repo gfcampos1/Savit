@@ -44,28 +44,13 @@ async function main() {
 
   // Maskable icons (with padding + solid background)
   const maskableSizes = [192, 512];
-  const maskBg = '#0b141a';
   for (const size of maskableSizes) {
-    const padding = Math.round(size * 0.18);
-    const innerSize = size - padding * 2;
-
-    // eslint-disable-next-line no-await-in-loop
-    const innerPng = await sharp(svgBuffer)
-      .resize(innerSize, innerSize, { fit: 'contain' })
-      .png()
-      .toBuffer();
-
     const outPath = path.join(outDir, `icon-maskable-${size}.png`);
+    // For maskable icons, avoid excessive padding (it makes the icon look smaller).
+    // Our SVG already contains a full-bleed background, so rendering full size is safe.
     // eslint-disable-next-line no-await-in-loop
-    await sharp({
-      create: {
-        width: size,
-        height: size,
-        channels: 4,
-        background: maskBg
-      }
-    })
-      .composite([{ input: innerPng, top: padding, left: padding }])
+    await sharp(svgBuffer)
+      .resize(size, size, { fit: 'cover' })
       .png()
       .toFile(outPath);
 
