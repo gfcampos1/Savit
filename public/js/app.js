@@ -1780,7 +1780,7 @@ const MindMapUI = {
 
     _bindTapSelectionFix({ editable }) {
         if (!editable) return;
-        if (!DOM.mindMapEditor) return;
+        if (!DOM.mindMapEditor || !DOM.mindMapModal) return;
 
         const el = DOM.mindMapEditor;
         if (el.__savitMindTapSelectFixBound) return;
@@ -1788,11 +1788,22 @@ const MindMapUI = {
 
         let down = null;
 
-        const findNodeAtPoint = (clientX, clientY) => {
+        const isEventInsideMindMap = (evt) => {
+            const t = evt.target;
+            if (!t) return false;
+            if (!DOM.mindMapModal.classList.contains('active')) return false;
+            return !!t.closest?.('#mindMapEditor');
+        };
+
+        const findTpcAtPoint = (clientX, clientY) => {
             // Prefer normal hit-testing
             const direct = document.elementFromPoint(clientX, clientY);
             const tpcDirect = direct?.closest?.('me-tpc');
             if (tpcDirect) return tpcDirect;
+
+            const parentDirect = direct?.closest?.('me-parent');
+            const tpcFromParent = parentDirect?.querySelector?.('me-tpc');
+            if (tpcFromParent) return tpcFromParent;
 
             // Fallback: bounding-box scan (works even if hit-testing is broken)
             const tpcs = el.querySelectorAll('me-tpc');
@@ -1805,13 +1816,19 @@ const MindMapUI = {
             return null;
         };
 
-        el.addEventListener('pointerdown', (e) => {
+        const onDown = (e) => {
+            if (!this.mind) return;
+            if (!isEventInsideMindMap(e)) return;
             down = { x: e.clientX, y: e.clientY, t: Date.now() };
-        }, { passive: true });
+        };
 
-        el.addEventListener('pointerup', (e) => {
+        const onUp = (e) => {
             if (!this.mind) return;
             if (!down) return;
+            if (!isEventInsideMindMap(e)) {
+                down = null;
+                return;
+            }
 
             const dt = Date.now() - down.t;
             const dx = e.clientX - down.x;
@@ -1820,10 +1837,10 @@ const MindMapUI = {
             down = null;
 
             // Treat as tap only
-            if (dt > 500) return;
-            if (dist > 12) return;
+            if (dt > 600) return;
+            if (dist > 14) return;
 
-            const tpc = findNodeAtPoint(e.clientX, e.clientY);
+            const tpc = findTpcAtPoint(e.clientX, e.clientY);
             if (!tpc?.nodeObj) return;
 
             try {
@@ -1832,7 +1849,15 @@ const MindMapUI = {
             } catch {
                 // ignore
             }
-        }, { passive: true });
+        };
+
+        // Capture-phase listeners so library handlers can't block us.
+        document.addEventListener('pointerdown', onDown, { capture: true, passive: true });
+        document.addEventListener('pointerup', onUp, { capture: true, passive: true });
+
+        // Mouse fallback (some environments still behave better with mouse events)
+        document.addEventListener('mousedown', onDown, { capture: true, passive: true });
+        document.addEventListener('mouseup', onUp, { capture: true, passive: true });
     },
 
     buildEmbedHtml(jsonRaw) {
