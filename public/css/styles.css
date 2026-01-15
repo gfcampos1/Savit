@@ -3301,6 +3301,20 @@ body {
 
 /* Landscape mobile */
 @media (max-height: 500px) and (orientation: landscape) {
+    /* Phones in landscape can hit the 768px+ 'tablet' breakpoint, which centers the app
+       (max-width: 600px) and makes it look squeezed. Keep full-width mobile layout here. */
+    .main-app {
+        max-width: 100%;
+        width: 100%;
+        margin: 0;
+        border-left: none;
+        border-right: none;
+    }
+
+    .fab {
+        right: var(--spacing-md);
+    }
+
     .page-content {
         padding-bottom: var(--spacing-lg);
     }
