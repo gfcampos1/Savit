@@ -1489,11 +1489,12 @@ const MindMapUI = {
         if (!nodeObj) {
             input.value = '';
             btn.disabled = true;
+            this._updateCollapseUi();
             return;
         }
 
         input.value = String(nodeObj.topic || '');
-            this._updateCollapseUi();
+        this._updateCollapseUi();
         btn.disabled = !String(input.value).trim();
     },
 
@@ -2060,6 +2061,9 @@ const MindMapUI = {
         DOM.mindMapEditor.innerHTML = '';
         this.mind = null;
 
+        // Sync title UI early so it reflects the map being edited/viewed.
+        this._syncTitleUiFromData(data);
+
         // Ensure the editor can receive focus (important for key bindings like Tab/Enter)
         try {
             DOM.mindMapEditor.setAttribute('tabindex', '0');
@@ -2224,21 +2228,21 @@ const MindMapUI = {
 
     buildEmbedHtml(jsonRaw) {
         const encoded = Markdown.escapeHtml(encodeURIComponent(String(jsonRaw || '').trim()));
-                let title = 'Mapa mental';
-                try {
-                    const parsed = JSON.parse(String(jsonRaw || ''));
-                    title = String(parsed?.meta?.title || parsed?.title || parsed?.nodeData?.topic || 'Mapa mental');
-                } catch {
-                    title = 'Mapa mental';
-                }
-                const safeTitle = Markdown.escapeHtml(title);
+        let title = 'Mapa mental';
+        try {
+            const parsed = JSON.parse(String(jsonRaw || ''));
+            title = String(parsed?.meta?.title || parsed?.title || parsed?.nodeData?.topic || 'Mapa mental');
+        } catch {
+            title = 'Mapa mental';
+        }
+        const safeTitle = Markdown.escapeHtml(title);
         return (
             `<div class="mindmap-embed" contenteditable="false" data-mindmap="${encoded}">` +
             `<div class="mindmap-embed-toolbar">` +
-            `<div class="mindmap-embed-title">Mapa mental</div>` +
+            `<div class="mindmap-embed-title">${safeTitle}</div>` +
             `<button class="mindmap-embed-open" type="button">Abrir</button>` +
             `</div>` +
-            `<div class="mindmap-embed-canvas" aria-label="Mapa mental"></div>` +
+            `<div class="mindmap-embed-canvas" aria-label="${safeTitle}"></div>` +
             `</div>`
         );
     },
@@ -2258,8 +2262,8 @@ const MindMapUI = {
 
         const selectedText = RichText.getPlainText(editorEl).trim();
         const data = this.defaultData(selectedText || 'Ideia');
-    if (!data.meta) data.meta = {};
-    if (!data.meta.title) data.meta.title = selectedText || data.nodeData?.topic || 'Mapa mental';
+        if (!data.meta) data.meta = {};
+        if (!data.meta.title) data.meta.title = selectedText || data.nodeData?.topic || 'Mapa mental';
 
         DOM.insertMindMapBtn.textContent = 'Inserir na mensagem';
         DOM.insertMindMapBtn.style.display = '';
@@ -2305,16 +2309,6 @@ const MindMapUI = {
     },
 
     openForEditorFromJson(editorEl, jsonString) {
-            if (!data.meta) data.meta = {};
-            if (!data.meta.title) data.meta.title = data.nodeData?.topic || 'Mapa mental';
-            if (!data.meta) data.meta = {};
-            if (!data.meta.title) data.meta.title = data.nodeData?.topic || 'Mapa mental';
-            if (!data.meta) data.meta = {};
-            if (!data.meta.title) data.meta.title = data.nodeData?.topic || 'Mapa mental';
-            if (!data.meta) data.meta = {};
-            if (!data.meta.title) data.meta.title = data.nodeData?.topic || 'Mapa mental';
-            this._syncTitleUiFromData(data);
-            this._updateCollapseUi();
         if (!this.isAvailable()) {
             showToast('Mapa mental indisponível (biblioteca não carregou)');
             return;
@@ -2333,6 +2327,9 @@ const MindMapUI = {
         } catch {
             data = this.defaultData('Ideia');
         }
+
+        if (!data.meta) data.meta = {};
+        if (!data.meta.title) data.meta.title = data.nodeData?.topic || 'Mapa mental';
 
         DOM.insertMindMapBtn.textContent = 'Inserir na mensagem';
         DOM.insertMindMapBtn.style.display = '';
@@ -2364,7 +2361,7 @@ const MindMapUI = {
 
         const data = this.mind.getData();
         data.theme = this.getTheme();
-            this._applyTitleToData(data);
+        this._applyTitleToData(data);
         const json = JSON.stringify(data);
         const block = `\n\n\`\`\`savit-mindmap\n${json}\n\`\`\`\n\n`;
 
@@ -2386,9 +2383,9 @@ const MindMapUI = {
 
     insertIntoActiveEditor() {
         if (!this.mind || !this.activeEditor) return;
-            this._applyTitleToData(data);
         const data = this.mind.getData();
         data.theme = this.getTheme();
+        this._applyTitleToData(data);
         const json = JSON.stringify(data);
 
         // Edit in-place when opening from an existing embed
@@ -2421,14 +2418,6 @@ const MindMapUI = {
 
     hydrateEmbeds(container) {
         if (!this.isAvailable() || !container) return;
-            const titleText = this._getTitleFromData(data);
-            const titleEl = embed.querySelector('.mindmap-embed-title');
-            if (titleEl) titleEl.textContent = titleText;
-            const canvasLabel = embed.querySelector('.mindmap-embed-canvas');
-            if (canvasLabel) {
-                try { canvasLabel.setAttribute('aria-label', titleText); } catch {}
-            }
-
         container.querySelectorAll('.mindmap-embed').forEach(embed => {
             if (embed.dataset.hydrated === '1') return;
             const encoded = embed.getAttribute('data-mindmap') || '';
@@ -2443,6 +2432,15 @@ const MindMapUI = {
                 data = JSON.parse(jsonRaw);
             } catch {
                 data = this.defaultData('Mapa');
+            }
+
+            // Update title text from stored data
+            const titleText = this._getTitleFromData(data);
+            const titleEl = embed.querySelector('.mindmap-embed-title');
+            if (titleEl) titleEl.textContent = titleText;
+            const canvasLabel = embed.querySelector('.mindmap-embed-canvas');
+            if (canvasLabel) {
+                try { canvasLabel.setAttribute('aria-label', titleText); } catch {}
             }
 
             const canvas = embed.querySelector('.mindmap-embed-canvas');
