@@ -2859,6 +2859,85 @@ function setupWysiwygToolbar(toolbarEl, editorEl) {
         RichText.updateEmptyClass(editorEl);
     };
 
+    const closestLiInEditor = () => {
+        const sel = window.getSelection();
+        const node = sel?.anchorNode;
+        const el = node?.nodeType === Node.ELEMENT_NODE ? node : node?.parentElement;
+        const li = el?.closest?.('li') || null;
+        if (!li) return null;
+        return editorEl.contains(li) ? li : null;
+    };
+
+    const placeCaretAtEnd = (el) => {
+        try {
+            editorEl.focus();
+            const range = document.createRange();
+            range.selectNodeContents(el);
+            range.collapse(false);
+            const sel = window.getSelection();
+            sel?.removeAllRanges();
+            sel?.addRange(range);
+        } catch {
+            // ignore
+        }
+    };
+
+    const indentListItem = () => {
+        const li = closestLiInEditor();
+        if (!li) {
+            showToast('Para criar subtópicos, use uma lista (• ou 1.)');
+            return;
+        }
+        const list = li.parentElement;
+        if (!list || (list.tagName !== 'UL' && list.tagName !== 'OL')) return;
+
+        const prevLi = li.previousElementSibling;
+        if (!prevLi || prevLi.tagName !== 'LI') return;
+
+        // Find or create a nested list inside previous LI
+        const listTag = list.tagName.toLowerCase();
+        let nested = null;
+        for (let i = prevLi.children.length - 1; i >= 0; i--) {
+            const child = prevLi.children[i];
+            if (child && child.tagName === list.tagName) {
+                nested = child;
+                break;
+            }
+        }
+        if (!nested) {
+            nested = document.createElement(listTag);
+            prevLi.appendChild(nested);
+        }
+
+        nested.appendChild(li);
+        placeCaretAtEnd(li);
+        RichText.enforceEmbedsAtomic(editorEl);
+        RichText.updateEmptyClass(editorEl);
+    };
+
+    const outdentListItem = () => {
+        const li = closestLiInEditor();
+        if (!li) return;
+        const list = li.parentElement;
+        if (!list || (list.tagName !== 'UL' && list.tagName !== 'OL')) return;
+
+        const parentLi = list.closest('li');
+        if (!parentLi) return; // already top-level in editor
+        const outerList = parentLi.parentElement;
+        if (!outerList || (outerList.tagName !== 'UL' && outerList.tagName !== 'OL')) return;
+
+        outerList.insertBefore(li, parentLi.nextSibling);
+
+        // Remove empty nested list container
+        if (!list.querySelector('li')) {
+            try { list.remove(); } catch {}
+        }
+
+        placeCaretAtEnd(li);
+        RichText.enforceEmbedsAtomic(editorEl);
+        RichText.updateEmptyClass(editorEl);
+    };
+
     const setBtnActive = (action, active) => {
         const btn = toolbarEl.querySelector(`button[data-format="${action}"]`);
         if (!btn) return;
@@ -2910,10 +2989,10 @@ function setupWysiwygToolbar(toolbarEl, editorEl) {
                 exec('insertOrderedList');
                 break;
             case 'indent':
-                exec('indent');
+                indentListItem();
                 break;
             case 'outdent':
-                exec('outdent');
+                outdentListItem();
                 break;
             case 'quote':
                 exec('formatBlock', '<blockquote>');
@@ -2945,8 +3024,8 @@ function setupWysiwygToolbar(toolbarEl, editorEl) {
         // Don't indent inside atomic embeds
         if (e.target?.closest?.('.mindmap-embed')) return;
         e.preventDefault();
-        if (e.shiftKey) exec('outdent');
-        else exec('indent');
+        if (e.shiftKey) outdentListItem();
+        else indentListItem();
     });
 
     editorEl.addEventListener('input', () => {
