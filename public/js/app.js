@@ -1376,9 +1376,101 @@ const MindMapUI = {
     replaceRange: null,
     viewOnly: false,
     _pendingInit: null,
+    _fallbackBound: false,
+    _lastTapTs: 0,
 
     isAvailable() {
         return typeof window.MindElixirLite === 'function';
+    },
+
+    supportsPlaintextOnly() {
+        try {
+            const el = document.createElement('div');
+            el.contentEditable = 'plaintext-only';
+            return el.contentEditable === 'plaintext-only';
+        } catch {
+            return false;
+        }
+    },
+
+    _getNodeElFromEventTarget(target) {
+        const el = target?.nodeType === Node.ELEMENT_NODE ? target : target?.parentElement;
+        return el?.closest?.('me-tpc') || null;
+    },
+
+    _renameNodeWithPrompt(nodeEl) {
+        if (!nodeEl?.nodeObj) return;
+        const current = String(nodeEl.nodeObj.topic || '').trim();
+        const next = window.prompt('Editar nó', current);
+        if (next == null) return;
+        const trimmed = String(next).trim();
+        if (!trimmed) return;
+
+        nodeEl.nodeObj.topic = trimmed;
+
+        // Update visible text immediately
+        try {
+            if (this.mind?.markdown && nodeEl.text) nodeEl.text.innerHTML = this.mind.markdown(trimmed, nodeEl.nodeObj);
+            else if (nodeEl.text) nodeEl.text.textContent = trimmed;
+        } catch {
+            // ignore
+        }
+
+        // Reflow connectors/labels
+        try {
+            this.mind?.linkDiv?.();
+            this.mind?.layout?.();
+        } catch {
+            // ignore
+        }
+    },
+
+    _bindFallbackEditingIfNeeded({ editable }) {
+        // iOS/WebKit doesn’t support contenteditable="plaintext-only"; MindElixirLite’s inline edit
+        // relies on that and can become unusable. Provide a prompt-based rename fallback.
+        if (!editable) return;
+        if (this.supportsPlaintextOnly()) return;
+        if (!this.mind?.container) return;
+        if (this._fallbackBound) return;
+
+        this._fallbackBound = true;
+        this._lastTapTs = 0;
+
+        const container = this.mind.container;
+
+        // Desktop dblclick
+        container.addEventListener('dblclick', (e) => {
+            const nodeEl = this._getNodeElFromEventTarget(e.target);
+            if (!nodeEl) return;
+            e.preventDefault();
+            e.stopPropagation();
+            this._renameNodeWithPrompt(nodeEl);
+        }, true);
+
+        // Mobile double-tap (pointerdown)
+        container.addEventListener('pointerdown', (e) => {
+            if (e.pointerType === 'mouse') return;
+            const nodeEl = this._getNodeElFromEventTarget(e.target);
+            if (!nodeEl) return;
+            const now = Date.now();
+            const dt = now - (this._lastTapTs || 0);
+            this._lastTapTs = now;
+            if (dt > 0 && dt < 350) {
+                e.preventDefault();
+                e.stopPropagation();
+                this._renameNodeWithPrompt(nodeEl);
+            }
+        }, true);
+
+        // Hint the user (without changing HTML structure)
+        try {
+            if (DOM.mindMapHelp) {
+                DOM.mindMapHelp.innerHTML =
+                    '<strong>Dicas:</strong> clique no nó para selecionar. Para editar no iPhone/iPad: dê 2 toques rápidos no nó.';
+            }
+        } catch {
+            // ignore
+        }
     },
 
     getTheme() {
@@ -1604,6 +1696,8 @@ const MindMapUI = {
         // Ensure theme matches current UI
         if (!data.theme) data.theme = this.getTheme();
         this.mind.init(data);
+
+        this._bindFallbackEditingIfNeeded({ editable });
 
         // Focus the mindmap so keypress handlers work immediately
         setTimeout(() => {
