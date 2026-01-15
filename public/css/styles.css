@@ -3330,6 +3330,24 @@ body {
     }
 }
 
+/* iOS Chrome/Safari can report a taller layout viewport in landscape (URL bars),
+   which may skip the max-height:500px rule above. This keeps phones full-width
+   whenever we're in landscape on a coarse pointer device.
+   (Prevents the 768px+ tablet max-width squeeze on iPhone landscape.) */
+@media (orientation: landscape) and (max-width: 1023px) and (pointer: coarse) {
+    .main-app {
+        max-width: 100% !important;
+        width: 100% !important;
+        margin: 0 !important;
+        border-left: none !important;
+        border-right: none !important;
+    }
+
+    .fab {
+        right: var(--spacing-md);
+    }
+}
+
 /* Print styles */
 @media print {
     .sidebar,
