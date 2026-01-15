@@ -1939,27 +1939,58 @@ body {
     .input-options .format-toolbar--compact .format-btn i {
         font-size: var(--font-size-md);
     }
+
+    .input-options .option-btn i {
+        font-size: var(--font-size-md);
+    }
 }
 
 .option-btn {
     width: 36px;
     height: 36px;
-    border: none;
-    background: var(--input-bg);
-    color: var(--icon-color);
-    font-size: var(--font-size-md);
+    border-radius: 10px;
+    border: 1px solid rgba(255, 255, 255, 0.12);
+    background: rgba(255, 255, 255, 0.08);
+    color: var(--text-primary);
     cursor: pointer;
-    border-radius: var(--radius-full);
     display: flex;
     align-items: center;
     justify-content: center;
-    transition: all var(--transition-fast);
+    transition: transform var(--transition-fast), background var(--transition-fast);
 }
 
-.option-btn:hover,
+.option-btn i {
+    font-size: 14px;
+    line-height: 1;
+}
+
+.option-btn:hover {
+    background: rgba(255, 255, 255, 0.14);
+    transform: translateY(-1px);
+}
+
+.option-btn:active {
+    transform: translateY(0);
+}
+
 .option-btn.active {
-    background: var(--teal-green);
-    color: white;
+    background: rgba(37, 211, 102, 0.22);
+    border-color: rgba(37, 211, 102, 0.55);
+}
+
+[data-theme="light"] .option-btn {
+    background: rgba(0, 0, 0, 0.04);
+    border: 1px solid rgba(0, 0, 0, 0.12);
+    color: var(--text-primary);
+}
+
+[data-theme="light"] .option-btn:hover {
+    background: rgba(0, 0, 0, 0.08);
+}
+
+[data-theme="light"] .option-btn.active {
+    background: rgba(37, 211, 102, 0.14);
+    border-color: rgba(0, 0, 0, 0.18);
 }
 
 .input-wrapper {
