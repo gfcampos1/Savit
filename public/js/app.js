@@ -1745,6 +1745,8 @@ const MindMapUI = {
         if (!data.theme) data.theme = this.getTheme();
         this.mind.init(data);
 
+        this._bindTapSelectionFix({ editable });
+
         this._bindRenameUiOnce();
         this._setSelectedNode(null);
         try {
@@ -1774,6 +1776,63 @@ const MindMapUI = {
                 // ignore
             }
         }, 0);
+    },
+
+    _bindTapSelectionFix({ editable }) {
+        if (!editable) return;
+        if (!DOM.mindMapEditor) return;
+
+        const el = DOM.mindMapEditor;
+        if (el.__savitMindTapSelectFixBound) return;
+        el.__savitMindTapSelectFixBound = true;
+
+        let down = null;
+
+        const findNodeAtPoint = (clientX, clientY) => {
+            // Prefer normal hit-testing
+            const direct = document.elementFromPoint(clientX, clientY);
+            const tpcDirect = direct?.closest?.('me-tpc');
+            if (tpcDirect) return tpcDirect;
+
+            // Fallback: bounding-box scan (works even if hit-testing is broken)
+            const tpcs = el.querySelectorAll('me-tpc');
+            for (const tpc of tpcs) {
+                const r = tpc.getBoundingClientRect();
+                if (clientX >= r.left && clientX <= r.right && clientY >= r.top && clientY <= r.bottom) {
+                    return tpc;
+                }
+            }
+            return null;
+        };
+
+        el.addEventListener('pointerdown', (e) => {
+            down = { x: e.clientX, y: e.clientY, t: Date.now() };
+        }, { passive: true });
+
+        el.addEventListener('pointerup', (e) => {
+            if (!this.mind) return;
+            if (!down) return;
+
+            const dt = Date.now() - down.t;
+            const dx = e.clientX - down.x;
+            const dy = e.clientY - down.y;
+            const dist = Math.hypot(dx, dy);
+            down = null;
+
+            // Treat as tap only
+            if (dt > 500) return;
+            if (dist > 12) return;
+
+            const tpc = findNodeAtPoint(e.clientX, e.clientY);
+            if (!tpc?.nodeObj) return;
+
+            try {
+                // Second arg = fire selectNewNode (keeps rename UI in sync)
+                this.mind.selectNode(tpc, true);
+            } catch {
+                // ignore
+            }
+        }, { passive: true });
     },
 
     buildEmbedHtml(jsonRaw) {
