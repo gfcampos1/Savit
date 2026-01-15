@@ -2909,6 +2909,12 @@ function setupWysiwygToolbar(toolbarEl, editorEl) {
             case 'ol':
                 exec('insertOrderedList');
                 break;
+            case 'indent':
+                exec('indent');
+                break;
+            case 'outdent':
+                exec('outdent');
+                break;
             case 'quote':
                 exec('formatBlock', '<blockquote>');
                 break;
@@ -2931,6 +2937,16 @@ function setupWysiwygToolbar(toolbarEl, editorEl) {
         }
 
         updateActiveButtons();
+    });
+
+    // Tab / Shift+Tab for subtopics (indent/outdent)
+    editorEl.addEventListener('keydown', (e) => {
+        if (e.key !== 'Tab') return;
+        // Don't indent inside atomic embeds
+        if (e.target?.closest?.('.mindmap-embed')) return;
+        e.preventDefault();
+        if (e.shiftKey) exec('outdent');
+        else exec('indent');
     });
 
     editorEl.addEventListener('input', () => {
