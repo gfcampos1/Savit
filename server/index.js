@@ -131,7 +131,10 @@ function parseAllowedOrigins() {
 
 const allowedOrigins = parseAllowedOrigins();
 
-app.use(cors({
+// Apply CORS only to API routes.
+// Serving static assets should never be blocked by CORS, otherwise the browser can receive
+// JSON (e.g. {"error": ...}) for a script URL, resulting in: "Unexpected token '{'".
+app.use('/api', cors({
     origin: (origin, cb) => {
         // Allow same-origin / server-to-server requests (no Origin header)
         if (!origin) return cb(null, true);
