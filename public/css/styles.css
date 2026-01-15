@@ -1786,6 +1786,35 @@ body {
     align-items: center;
 }
 
+/* Mobile: keep option buttons + editor toolbar aligned on one row */
+@media (max-width: 768px) {
+    .input-options {
+        flex-wrap: nowrap;
+        overflow-x: auto;
+        overflow-y: hidden;
+        -webkit-overflow-scrolling: touch;
+        align-items: center;
+        padding-bottom: 2px;
+    }
+
+    .input-options > * {
+        flex: 0 0 auto;
+    }
+
+    .input-options .format-toolbar--inline {
+        flex: 1 1 auto;
+        min-width: 0;
+        align-items: center;
+        height: 36px;
+    }
+
+    .input-options .format-toolbar--compact .format-btn {
+        width: 36px;
+        height: 36px;
+        min-width: 36px;
+    }
+}
+
 .option-btn {
     width: 36px;
     height: 36px;
