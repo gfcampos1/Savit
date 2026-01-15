@@ -2641,6 +2641,16 @@ body {
     flex-shrink: 0;
 }
 
+/* System dialog (custom alert/confirm/prompt) */
+.system-dialog-body {
+    white-space: pre-wrap;
+    color: var(--text-primary);
+}
+
+.system-dialog-input {
+    margin-top: var(--spacing-md);
+}
+
 /* Form Elements */
 .form-group {
     margin-bottom: var(--spacing-lg);

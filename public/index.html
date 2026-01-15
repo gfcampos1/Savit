@@ -1179,6 +1179,25 @@
             </div>
         </div>
 
+        <!-- System Dialog Modal (replaces browser alert/confirm/prompt) -->
+        <div class="modal" id="systemDialogModal" aria-hidden="true">
+            <div class="modal-content" role="dialog" aria-modal="true" aria-labelledby="systemDialogTitle">
+                <div class="modal-header">
+                    <h3 id="systemDialogTitle">Aviso</h3>
+                    <button class="close-modal" id="closeSystemDialogModal" aria-label="Fechar">
+                        <i class="fas fa-times"></i>
+                    </button>
+                </div>
+                <div class="modal-body">
+                    <div id="systemDialogBody" class="system-dialog-body"></div>
+                    <div class="form-group system-dialog-input" id="systemDialogInputWrap" style="display: none;">
+                        <input type="text" id="systemDialogInput" autocomplete="off" />
+                    </div>
+                </div>
+                <div class="modal-footer" id="systemDialogFooter"></div>
+            </div>
+        </div>
+
         <!-- Image Viewer -->
         <div class="image-viewer" id="imageViewer">
             <button class="image-viewer-close" id="closeImageViewer">

@@ -798,7 +798,16 @@ const DOM = {
     mindMapRenameBtn: document.getElementById('mindMapRenameBtn'),
 
     // Context Menu
-    contextMenu: document.getElementById('contextMenu')
+    contextMenu: document.getElementById('contextMenu'),
+
+    // System dialog (custom alert/confirm/prompt)
+    systemDialogModal: document.getElementById('systemDialogModal'),
+    closeSystemDialogModal: document.getElementById('closeSystemDialogModal'),
+    systemDialogTitle: document.getElementById('systemDialogTitle'),
+    systemDialogBody: document.getElementById('systemDialogBody'),
+    systemDialogInputWrap: document.getElementById('systemDialogInputWrap'),
+    systemDialogInput: document.getElementById('systemDialogInput'),
+    systemDialogFooter: document.getElementById('systemDialogFooter')
 };
 
 // =============================================
@@ -2544,10 +2553,13 @@ const TextareaFormat = {
         textarea.dispatchEvent(new Event('input'));
     },
 
-    insertLink(textarea) {
+    async insertLink(textarea) {
         const { start, end, selected } = TextareaFormat.getSelection(textarea);
         const text = selected || 'texto';
-        const url = window.prompt('Cole o link (https://...)');
+        const url = await SystemDialog.prompt('Cole o link (https://...)', {
+            title: 'Inserir link',
+            placeholder: 'https://...'
+        });
         if (!url) return;
 
         const replacement = `[${text}](${url})`;
@@ -2722,7 +2734,7 @@ function setupFormattingToolbar(toolbarEl, textareaEl) {
         textareaEl.dispatchEvent(new Event('input'));
     };
 
-    toolbarEl.addEventListener('click', (e) => {
+    toolbarEl.addEventListener('click', async (e) => {
         const btn = e.target.closest('button[data-format]');
         if (!btn) return;
         e.preventDefault();
@@ -2763,7 +2775,7 @@ function setupFormattingToolbar(toolbarEl, textareaEl) {
                 break;
             }
             case 'link':
-                TextareaFormat.insertLink(textareaEl);
+                await TextareaFormat.insertLink(textareaEl);
                 break;
             case 'mindmap':
                 MindMapUI.openForTextarea(textareaEl);
@@ -2777,7 +2789,7 @@ function setupFormattingToolbar(toolbarEl, textareaEl) {
         updateActiveButtons();
     });
 
-    textareaEl.addEventListener('keydown', (e) => {
+    textareaEl.addEventListener('keydown', async (e) => {
         // Tabs for indent/outdent
         if (e.key === 'Tab') {
             e.preventDefault();
@@ -2801,7 +2813,7 @@ function setupFormattingToolbar(toolbarEl, textareaEl) {
             toggleInlineMark('*');
         } else if (key === 'k') {
             e.preventDefault();
-            TextareaFormat.insertLink(textareaEl);
+            await TextareaFormat.insertLink(textareaEl);
         }
     });
 
@@ -3019,7 +3031,7 @@ function setupWysiwygToolbar(toolbarEl, editorEl) {
         setBtnActive('code', !!closestTag('pre, code'));
     };
 
-    toolbarEl.addEventListener('click', (e) => {
+    toolbarEl.addEventListener('click', async (e) => {
         const btn = e.target.closest('button[data-format]');
         if (!btn) return;
         e.preventDefault();
@@ -3054,7 +3066,10 @@ function setupWysiwygToolbar(toolbarEl, editorEl) {
                 toggleBlockWrapper('pre', '<pre>');
                 break;
             case 'link': {
-                const url = window.prompt('Cole o link (https://...)');
+                const url = await SystemDialog.prompt('Cole o link (https://...)', {
+                    title: 'Inserir link',
+                    placeholder: 'https://...'
+                });
                 if (!url) return;
                 if (!Markdown.isSafeUrl(url)) {
                     showToast('Link inválido (use https://)');
@@ -4187,7 +4202,12 @@ const App = {
     },
 
     async deleteUser(userId) {
-        if (!confirm('Tem certeza que deseja excluir este usuário? Esta ação não pode ser desfeita.')) {
+        const ok = await SystemDialog.confirm('Tem certeza que deseja excluir este usuário? Esta ação não pode ser desfeita.', {
+            title: 'Excluir usuário',
+            okText: 'Excluir',
+            danger: true
+        });
+        if (!ok) {
             return;
         }
 
@@ -4222,7 +4242,12 @@ const App = {
             return;
         }
 
-        if (!confirm('Aplicar migrations no servidor agora? (prisma migrate deploy)')) {
+        const ok = await SystemDialog.confirm('Aplicar migrations no servidor agora? (prisma migrate deploy)', {
+            title: 'Confirmar ação',
+            okText: 'Rodar',
+            cancelText: 'Cancelar'
+        });
+        if (!ok) {
             return;
         }
 
@@ -4256,7 +4281,12 @@ const App = {
             return;
         }
 
-        if (!confirm('Rodar backfill de criptografia/hashes agora? (pode levar alguns minutos)')) {
+        const ok = await SystemDialog.confirm('Rodar backfill de criptografia/hashes agora? (pode levar alguns minutos)', {
+            title: 'Confirmar ação',
+            okText: 'Rodar',
+            cancelText: 'Cancelar'
+        });
+        if (!ok) {
             return;
         }
 
@@ -4285,7 +4315,12 @@ const App = {
     },
 
     async resetUserPassword(userId) {
-        if (!confirm('Resetar a senha deste usuário? Uma senha temporária será gerada e exibida uma única vez.')) {
+        const ok = await SystemDialog.confirm('Resetar a senha deste usuário? Uma senha temporária será gerada e exibida uma única vez.', {
+            title: 'Resetar senha',
+            okText: 'Resetar',
+            danger: true
+        });
+        if (!ok) {
             return;
         }
 
@@ -4296,8 +4331,14 @@ const App = {
             });
 
             if (data.temporaryPassword) {
-                // prompt facilita copiar sem criar UI nova
-                prompt('Senha temporária (copie e envie ao usuário):', data.temporaryPassword);
+                await SystemDialog.prompt('Senha temporária (copie e envie ao usuário):', {
+                    title: 'Senha temporária',
+                    defaultValue: data.temporaryPassword,
+                    readOnly: true,
+                    showCopy: true,
+                    okText: 'Fechar',
+                    cancelText: null
+                });
             }
             showToast('Senha redefinida!');
             await this.loadAdminData();
@@ -5046,7 +5087,12 @@ const App = {
     },
 
     async deleteMessage(id) {
-        if (!confirm('Tem certeza que deseja excluir esta mensagem?')) return;
+        const ok = await SystemDialog.confirm('Tem certeza que deseja excluir esta mensagem?', {
+            title: 'Excluir mensagem',
+            okText: 'Excluir',
+            danger: true
+        });
+        if (!ok) return;
 
         try {
             await API.messages.delete(id);
@@ -5093,33 +5139,8 @@ const App = {
         const category = AppState.categories.find(c => c.id === categoryId);
         if (!category) return;
 
-        const sections = Array.isArray(AppState.categorySections) ? [...AppState.categorySections] : [];
-        sections.sort((a, b) => {
-            const pa = Number(a.position ?? 0);
-            const pb = Number(b.position ?? 0);
-            if (pa !== pb) return pa - pb;
-            return String(a.name || '').localeCompare(String(b.name || ''), 'pt-BR');
-        });
-
-        const lines = ['Escolha a seção:', '0) Sem seção'];
-        sections.forEach((s, idx) => {
-            lines.push(`${idx + 1}) ${s.name}`);
-        });
-
-        const chosen = window.prompt(lines.join('\n'));
-        if (chosen === null) return;
-        const n = Number(String(chosen).trim());
-        if (!Number.isFinite(n) || n < 0 || n > sections.length) return;
-
-        const sectionId = n === 0 ? null : sections[n - 1].id;
-
-        try {
-            await API.categories.update(categoryId, { sectionId });
-            await this.refreshCategories();
-            showToast('Categoria movida!');
-        } catch (error) {
-            showToast(error.message);
-        }
+        // Use the themed modal UI (preferred path) instead of browser prompt.
+        this.openMoveCategoryModal(categoryId);
     },
 
     async moveSection(sectionId, delta) {
@@ -5220,7 +5241,12 @@ const App = {
     },
 
     async deleteCategory(id) {
-        if (!confirm('Tem certeza que deseja excluir esta categoria? As mensagens não serão excluídas.')) return;
+        const ok = await SystemDialog.confirm('Tem certeza que deseja excluir esta categoria? As mensagens não serão excluídas.', {
+            title: 'Excluir categoria',
+            okText: 'Excluir',
+            danger: true
+        });
+        if (!ok) return;
 
         try {
             await API.categories.delete(id);
@@ -6227,9 +6253,15 @@ const App = {
         // Close modals on backdrop click
         document.querySelectorAll('.modal').forEach(modal => {
             modal.addEventListener('click', (e) => {
-                if (e.target === modal) {
-                    closeModal(modal);
+                if (e.target !== modal) return;
+
+                // System dialog must resolve its promise
+                if (DOM.systemDialogModal && modal === DOM.systemDialogModal) {
+                    SystemDialog.cancel();
+                    return;
                 }
+
+                closeModal(modal);
             });
         });
 
@@ -6366,6 +6398,257 @@ function showToast(message, duration = 2500) {
         setTimeout(() => toast.remove(), 300);
     }, duration);
 }
+
+// =============================================
+// System Dialog (themed alert/confirm/prompt)
+// =============================================
+
+const SystemDialog = (() => {
+    let active = null;
+    let keyHandler = null;
+
+    const clearFooter = () => {
+        if (!DOM.systemDialogFooter) return;
+        DOM.systemDialogFooter.innerHTML = '';
+    };
+
+    const setInputVisible = (visible) => {
+        if (!DOM.systemDialogInputWrap || !DOM.systemDialogInput) return;
+        DOM.systemDialogInputWrap.style.display = visible ? 'block' : 'none';
+    };
+
+    const cleanup = () => {
+        if (keyHandler) {
+            document.removeEventListener('keydown', keyHandler, true);
+            keyHandler = null;
+        }
+        active = null;
+    };
+
+    const close = (result) => {
+        if (!DOM.systemDialogModal) return;
+        closeModal(DOM.systemDialogModal);
+        DOM.systemDialogModal.setAttribute('aria-hidden', 'true');
+        const toResolve = active?.resolve;
+        const returnFocus = active?.returnFocusEl;
+        cleanup();
+        try {
+            returnFocus?.focus?.();
+        } catch {
+            // ignore
+        }
+        if (toResolve) toResolve(result);
+    };
+
+    const cancel = () => {
+        if (!active) {
+            if (DOM.systemDialogModal) closeModal(DOM.systemDialogModal);
+            return;
+        }
+        close(active.cancelValue);
+    };
+
+    const copyToClipboard = async (text) => {
+        const value = String(text ?? '');
+        try {
+            if (navigator.clipboard && typeof navigator.clipboard.writeText === 'function') {
+                await navigator.clipboard.writeText(value);
+                return true;
+            }
+        } catch {
+            // ignore
+        }
+
+        // Fallback: select input and try execCommand
+        try {
+            if (DOM.systemDialogInput) {
+                DOM.systemDialogInput.focus();
+                DOM.systemDialogInput.select();
+            }
+            // eslint-disable-next-line deprecation/deprecation
+            return !!document.execCommand?.('copy');
+        } catch {
+            return false;
+        }
+    };
+
+    const open = (config) => {
+        if (!DOM.systemDialogModal || !DOM.systemDialogTitle || !DOM.systemDialogBody || !DOM.systemDialogFooter) {
+            // Fallback to native dialogs if markup is missing
+            if (config?.type === 'confirm') return Promise.resolve(window.confirm(config.message || ''));
+            if (config?.type === 'prompt') return Promise.resolve(window.prompt(config.message || '', config.defaultValue || ''));
+            window.alert(config?.message || '');
+            return Promise.resolve(true);
+        }
+
+        if (active) {
+            // Close any previous dialog to avoid deadlocks
+            try { close(active.cancelValue); } catch { /* ignore */ }
+        }
+
+        const {
+            type,
+            title,
+            message,
+            okText,
+            cancelText,
+            danger,
+            showInput,
+            defaultValue,
+            placeholder,
+            readOnly,
+            showCopy,
+            cancelValue
+        } = config;
+
+        DOM.systemDialogTitle.textContent = title || (type === 'confirm' ? 'Confirmar' : type === 'prompt' ? 'Digite' : 'Aviso');
+        DOM.systemDialogBody.textContent = String(message ?? '');
+        clearFooter();
+
+        setInputVisible(!!showInput);
+        if (showInput && DOM.systemDialogInput) {
+            DOM.systemDialogInput.value = String(defaultValue ?? '');
+            DOM.systemDialogInput.placeholder = String(placeholder ?? '');
+            DOM.systemDialogInput.readOnly = !!readOnly;
+        }
+
+        const returnFocusEl = document.activeElement;
+
+        const promise = new Promise((resolve) => {
+            active = {
+                resolve,
+                cancelValue: cancelValue,
+                returnFocusEl
+            };
+
+            const primaryBtn = document.createElement('button');
+            primaryBtn.type = 'button';
+            primaryBtn.className = `btn ${danger ? 'btn-danger' : 'btn-primary'}`;
+            primaryBtn.textContent = okText || (type === 'confirm' ? 'Confirmar' : 'OK');
+
+            const onOk = async () => {
+                if (type === 'prompt') {
+                    const value = DOM.systemDialogInput ? DOM.systemDialogInput.value : '';
+                    close(value);
+                    return;
+                }
+                close(true);
+            };
+
+            primaryBtn.addEventListener('click', () => { void onOk(); });
+
+            let cancelBtn = null;
+            if (cancelText !== null && (type === 'confirm' || type === 'prompt')) {
+                cancelBtn = document.createElement('button');
+                cancelBtn.type = 'button';
+                cancelBtn.className = 'btn btn-secondary';
+                cancelBtn.textContent = cancelText || 'Cancelar';
+                cancelBtn.addEventListener('click', () => cancel());
+            }
+
+            let copyBtn = null;
+            if (showCopy && showInput) {
+                copyBtn = document.createElement('button');
+                copyBtn.type = 'button';
+                copyBtn.className = 'btn btn-secondary';
+                copyBtn.textContent = 'Copiar';
+                copyBtn.addEventListener('click', async () => {
+                    const value = DOM.systemDialogInput ? DOM.systemDialogInput.value : '';
+                    const ok = await copyToClipboard(value);
+                    showToast(ok ? 'Copiado!' : 'Não foi possível copiar');
+                });
+            }
+
+            // Order: cancel (left) then copy then ok (right)
+            if (cancelBtn) DOM.systemDialogFooter.appendChild(cancelBtn);
+            if (copyBtn) DOM.systemDialogFooter.appendChild(copyBtn);
+            DOM.systemDialogFooter.appendChild(primaryBtn);
+
+            // Close button in header
+            if (DOM.closeSystemDialogModal) {
+                DOM.closeSystemDialogModal.onclick = () => cancel();
+            }
+
+            keyHandler = (e) => {
+                if (!active) return;
+                if (e.key === 'Escape') {
+                    e.preventDefault();
+                    cancel();
+                    return;
+                }
+
+                if (e.key === 'Enter') {
+                    // Enter submits when prompt input is focused (or on confirm/alert)
+                    if (type === 'prompt') {
+                        if (document.activeElement === DOM.systemDialogInput) {
+                            e.preventDefault();
+                            void onOk();
+                        }
+                        return;
+                    }
+                    e.preventDefault();
+                    void onOk();
+                }
+            };
+
+            document.addEventListener('keydown', keyHandler, true);
+
+            DOM.systemDialogModal.setAttribute('aria-hidden', 'false');
+            openModal(DOM.systemDialogModal);
+
+            // Focus management
+            setTimeout(() => {
+                try {
+                    if (showInput && DOM.systemDialogInput) {
+                        DOM.systemDialogInput.focus();
+                        DOM.systemDialogInput.select?.();
+                    } else {
+                        primaryBtn.focus();
+                    }
+                } catch {
+                    // ignore
+                }
+            }, 0);
+        });
+
+        return promise;
+    };
+
+    return {
+        isOpen: () => !!active,
+        cancel,
+        alert: (message, opts = {}) => open({
+            type: 'alert',
+            title: opts.title || 'Aviso',
+            message,
+            okText: opts.okText || 'OK',
+            cancelText: null,
+            cancelValue: true
+        }),
+        confirm: (message, opts = {}) => open({
+            type: 'confirm',
+            title: opts.title || 'Confirmar',
+            message,
+            okText: opts.okText || 'Confirmar',
+            cancelText: Object.prototype.hasOwnProperty.call(opts, 'cancelText') ? opts.cancelText : 'Cancelar',
+            danger: !!opts.danger,
+            cancelValue: false
+        }),
+        prompt: (message, opts = {}) => open({
+            type: 'prompt',
+            title: opts.title || 'Digite',
+            message,
+            okText: opts.okText || 'OK',
+            cancelText: Object.prototype.hasOwnProperty.call(opts, 'cancelText') ? opts.cancelText : 'Cancelar',
+            showInput: true,
+            defaultValue: opts.defaultValue || '',
+            placeholder: opts.placeholder || '',
+            readOnly: !!opts.readOnly,
+            showCopy: !!opts.showCopy,
+            cancelValue: null
+        })
+    };
+})();
 
 // If something blows up during startup, don't leave the user stuck on the loader.
 window.addEventListener('error', (event) => {
