@@ -1382,6 +1382,7 @@ const MindMapUI = {
     _lastTapTs: 0,
     _renameUiBound: false,
     selectedNodeObj: null,
+    _selectedTpcEl: null,
 
     isAvailable() {
         return typeof window.MindElixirLite === 'function';
@@ -1416,6 +1417,34 @@ const MindMapUI = {
 
         input.value = String(nodeObj.topic || '');
         btn.disabled = !String(input.value).trim();
+    },
+
+    _markSelectedTpc(tpcEl) {
+        try {
+            if (this._selectedTpcEl && this._selectedTpcEl !== tpcEl) {
+                this._selectedTpcEl.classList.remove('savit-selected');
+            }
+        } catch {
+            // ignore
+        }
+
+        this._selectedTpcEl = tpcEl || null;
+        try {
+            if (tpcEl) tpcEl.classList.add('savit-selected');
+        } catch {
+            // ignore
+        }
+    },
+
+    _tryRehighlightSelectedNode() {
+        const nodeObj = this.selectedNodeObj;
+        if (!nodeObj || !DOM.mindMapEditor) return;
+        try {
+            const tpc = DOM.mindMapEditor.querySelector(`me-tpc[data-nodeid="me${nodeObj.id}"]`);
+            if (tpc) this._markSelectedTpc(tpc);
+        } catch {
+            // ignore
+        }
     },
 
     _focusRenameInput() {
@@ -1456,6 +1485,9 @@ const MindMapUI = {
         } catch {
             // ignore
         }
+
+        // Refresh rebuilds DOM; re-highlight our selection.
+        this._tryRehighlightSelectedNode();
 
         this._setSelectedNode(nodeObj);
     },
@@ -1843,6 +1875,10 @@ const MindMapUI = {
             const tpc = findTpcAtPoint(e.clientX, e.clientY);
             if (!tpc?.nodeObj) return;
 
+            // Always update our own selection state/UI, regardless of library behavior.
+            this._setSelectedNode(tpc.nodeObj);
+            this._markSelectedTpc(tpc);
+
             try {
                 // Second arg = fire selectNewNode (keeps rename UI in sync)
                 this.mind.selectNode(tpc, true);
@@ -1858,6 +1894,21 @@ const MindMapUI = {
         // Mouse fallback (some environments still behave better with mouse events)
         document.addEventListener('mousedown', onDown, { capture: true, passive: true });
         document.addEventListener('mouseup', onUp, { capture: true, passive: true });
+
+        // Click fallback (covers browsers that synthesize clicks differently)
+        document.addEventListener('click', (e) => {
+            if (!this.mind) return;
+            if (!isEventInsideMindMap(e)) return;
+            const tpc = findTpcAtPoint(e.clientX, e.clientY);
+            if (!tpc?.nodeObj) return;
+            this._setSelectedNode(tpc.nodeObj);
+            this._markSelectedTpc(tpc);
+            try {
+                this.mind.selectNode(tpc, true);
+            } catch {
+                // ignore
+            }
+        }, { capture: true, passive: true });
     },
 
     buildEmbedHtml(jsonRaw) {
