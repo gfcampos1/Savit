@@ -4349,7 +4349,6 @@ const App = {
         html += `
             <div class="message-footer">
                 <span class="message-time">${Utils.formatTime(msg.createdAt)}</span>
-                <span class="message-status"><i class="fas fa-check-double"></i></span>
             </div>
         `;
 

@@ -1346,10 +1346,11 @@ body {
    ============================================= */
 .message {
     max-width: 85%;
-    margin-left: auto;
-    background: var(--message-out);
+    margin-left: 0;
+    margin-right: auto;
+    background: var(--message-in);
     border-radius: var(--radius-lg);
-    border-top-right-radius: var(--radius-sm);
+    border-top-left-radius: var(--radius-sm);
     padding: var(--spacing-sm) var(--spacing-md);
     position: relative;
     animation: messageIn 0.2s ease;
@@ -1848,9 +1849,18 @@ body {
     color: rgba(255, 255, 255, 0.6);
 }
 
+[data-theme="light"] .message-time {
+    color: rgba(0, 0, 0, 0.55);
+}
+
 .message-status {
     color: var(--teal-green);
     font-size: 14px;
+}
+
+/* WhatsApp-like delivery/read checks are not used */
+.message-status {
+    display: none;
 }
 
 /* Date Separator */
