@@ -2060,6 +2060,12 @@ body {
     border-radius: var(--radius-md);
     border: 1px solid var(--border-color);
     background: var(--input-bg);
+    overflow-y: auto;
+    overflow-x: hidden;
+    -webkit-overflow-scrolling: touch;
+    line-height: 1.4;
+    overflow-wrap: anywhere;
+    word-break: break-word;
 }
 
 .wysiwyg-editor[contenteditable="true"] {
