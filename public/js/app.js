@@ -1519,15 +1519,7 @@ const MindMapUI = {
 
     _beginEditOrFocusRename(tpcEl) {
         if (!tpcEl?.nodeObj) return;
-        try {
-            if (typeof this.mind?.beginEdit === 'function') {
-                this.mind.beginEdit(tpcEl);
-                return;
-            }
-        } catch {
-            // ignore
-        }
-
+        // Always use our rename UI. The vendor's beginEdit path can throw in some builds.
         this._startInlineRename(tpcEl);
     },
 
@@ -1980,14 +1972,17 @@ const MindMapUI = {
             // ignore
         }
 
+        // NOTE: MindElixirLite's built-in edit/toolbar/keypress paths are flaky across environments
+        // and have been throwing runtime errors (beginEdit/cancel). We keep the map interactive
+        // (drag/select) but use our own rename UI + handlers for editing.
         this.mind = new window.MindElixirLite({
             el: DOM.mindMapEditor,
             direction: data.direction ?? window.MindElixirLite.RIGHT,
             draggable: editable,
-            editable,
-            contextMenu: editable,
-            toolBar: editable,
-            keypress: editable
+            editable: false,
+            contextMenu: false,
+            toolBar: false,
+            keypress: false
         });
 
         // Ensure theme matches current UI

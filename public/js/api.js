@@ -113,6 +113,7 @@ const API = {
                 }
                 // Preserve pendingApproval flag for login errors
                 const error = new Error(data.error || 'Erro na requisição');
+                error.status = response.status;
                 if (data.pendingApproval) {
                     error.pendingApproval = true;
                 }
@@ -125,7 +126,11 @@ const API = {
             if (error && (error.name === 'AbortError' || String(error).includes('AbortError'))) {
                 throw new Error('Tempo esgotado. Verifique sua conexão e tente novamente.');
             }
-            console.error('API Error:', error);
+
+            // 401 is expected when the user isn't logged in yet.
+            if (error?.status !== 401) {
+                console.error('API Error:', error);
+            }
             throw error;
         }
     },
