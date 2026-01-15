@@ -1978,7 +1978,7 @@ const MindMapUI = {
         this.mind = new window.MindElixirLite({
             el: DOM.mindMapEditor,
             direction: data.direction ?? window.MindElixirLite.RIGHT,
-            draggable: editable,
+            draggable: false,
             editable: false,
             contextMenu: false,
             toolBar: false,
@@ -5984,6 +5984,15 @@ function showToast(message, duration = 2500) {
 // If something blows up during startup, don't leave the user stuck on the loader.
 window.addEventListener('error', (event) => {
     try {
+        // MindElixirLite can throw internal errors in some builds/browsers even when our
+        // fallback editing flow works. Avoid breaking the app with global error handling.
+        const msg = String(event?.message || event?.error?.message || '');
+        const src = String(event?.filename || '');
+        if (src.includes('MindElixirLite') && (msg.includes('beginEdit is not a function') || msg.includes("reading 'cancel'") || msg.includes('reading \"cancel\"'))) {
+            try { event.preventDefault(); } catch {}
+            return;
+        }
+
         console.error('Unhandled error:', event?.error || event);
         if (DOM?.loadingScreen) DOM.loadingScreen.style.display = 'none';
         if (window.App?.showAuthScreen) window.App.showAuthScreen();
