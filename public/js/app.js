@@ -2394,11 +2394,11 @@ function setupFormattingToolbar(toolbarEl, textareaEl) {
     if (previewEl) {
         // Allow editing embedded mindmaps directly from the live preview
         previewEl.addEventListener('click', (e) => {
-            const btn = e.target.closest('.mindmap-embed-open');
-            if (!btn) return;
+            const trigger = e.target.closest('.mindmap-embed-open, .mindmap-embed-canvas');
+            if (!trigger) return;
             e.preventDefault();
             e.stopPropagation();
-            const embed = btn.closest('.mindmap-embed');
+            const embed = trigger.closest('.mindmap-embed');
             if (!embed) return;
             const encoded = embed.getAttribute('data-mindmap') || '';
             let jsonRaw = encoded;
@@ -2540,11 +2540,11 @@ function setupWysiwygToolbar(toolbarEl, editorEl) {
 
     // Allow editing embedded mindmaps directly from the editor
     editorEl.addEventListener('click', (e) => {
-        const btn = e.target.closest('.mindmap-embed-open');
-        if (!btn) return;
+        const trigger = e.target.closest('.mindmap-embed-open, .mindmap-embed-canvas');
+        if (!trigger) return;
         e.preventDefault();
         e.stopPropagation();
-        const embed = btn.closest('.mindmap-embed');
+        const embed = trigger.closest('.mindmap-embed');
         if (!embed) return;
         MindMapUI.openForEditorFromEmbed(editorEl, embed);
     });
@@ -3821,20 +3821,31 @@ const App = {
         });
 
         // Mind map open button
-        container.querySelectorAll('.mindmap-embed-open').forEach(btn => {
-            btn.addEventListener('click', (e) => {
+        const openMindMapFromEmbed = (embed, e) => {
+            if (e) {
                 e.preventDefault();
                 e.stopPropagation();
-                const embed = btn.closest('.mindmap-embed');
-                if (!embed) return;
-                const encoded = embed.getAttribute('data-mindmap') || '';
-                let jsonRaw = encoded;
-                try {
-                    jsonRaw = decodeURIComponent(encoded);
-                } catch {
-                    jsonRaw = encoded;
-                }
-                MindMapUI.openViewerFromJson(jsonRaw);
+            }
+            if (!embed) return;
+            const encoded = embed.getAttribute('data-mindmap') || '';
+            let jsonRaw = encoded;
+            try {
+                jsonRaw = decodeURIComponent(encoded);
+            } catch {
+                jsonRaw = encoded;
+            }
+            MindMapUI.openViewerFromJson(jsonRaw);
+        };
+
+        container.querySelectorAll('.mindmap-embed-open').forEach(btn => {
+            btn.addEventListener('click', (e) => {
+                openMindMapFromEmbed(btn.closest('.mindmap-embed'), e);
+            });
+        });
+
+        container.querySelectorAll('.mindmap-embed-canvas').forEach(canvas => {
+            canvas.addEventListener('click', (e) => {
+                openMindMapFromEmbed(canvas.closest('.mindmap-embed'), e);
             });
         });
 

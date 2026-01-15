@@ -1724,6 +1724,16 @@ body {
     width: 100%;
 }
 
+/* Make preview map act like a single clickable surface (tap anywhere to open) */
+.mindmap-embed .mindmap-embed-canvas {
+    cursor: pointer;
+}
+
+.mindmap-embed .mindmap-embed-canvas .map-container,
+.mindmap-embed .mindmap-embed-canvas .map-container * {
+    pointer-events: none;
+}
+
 .message-task {
     display: flex;
     align-items: flex-start;
