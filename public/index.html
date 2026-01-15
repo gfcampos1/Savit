@@ -987,7 +987,19 @@
                 </div>
                 <div class="modal-body">
                     <div class="mindmap-help" id="mindMapHelp">
-                        <strong>Dicas:</strong> clique no nó para selecionar, duplo-clique para editar. <strong>Tab</strong> cria um subtópico (filho), <strong>Enter</strong> cria um tópico no mesmo nível.
+                        <strong>Dicas:</strong> clique no nó para selecionar. <strong>Tab</strong> cria um subtópico (filho), <strong>Enter</strong> cria um tópico no mesmo nível. Use o botão <strong>Colapsar/Expandir</strong> (ou o ícone +/-) para organizar a visualização.
+                    </div>
+
+                    <div class="mindmap-title-row" aria-label="Nome do mapa mental">
+                        <label class="mindmap-rename-label" for="mindMapTitle">Nome do mapa</label>
+                        <div class="mindmap-title-controls">
+                            <input type="text" id="mindMapTitle" placeholder="Ex: Planejamento 2026" autocomplete="off" />
+                            <button class="btn btn-secondary" id="mindMapToggleCollapseBtn" type="button" disabled>Colapsar nó</button>
+                        </div>
+                        <div class="mindmap-actions-controls">
+                            <button class="btn btn-secondary" id="mindMapExpandAllBtn" type="button">Expandir tudo</button>
+                            <button class="btn btn-secondary" id="mindMapCollapseAllBtn" type="button">Colapsar tudo</button>
+                        </div>
                     </div>
 
                     <div class="mindmap-rename-row" aria-label="Renomear nó selecionado">

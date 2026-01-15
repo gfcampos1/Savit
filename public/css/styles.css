@@ -1616,6 +1616,39 @@ body {
     margin-bottom: var(--spacing-md);
 }
 
+.mindmap-title-row {
+    margin-bottom: var(--spacing-md);
+}
+
+.mindmap-title-controls {
+    display: flex;
+    gap: 8px;
+    align-items: center;
+}
+
+.mindmap-actions-controls {
+    display: flex;
+    gap: 8px;
+    margin-top: 8px;
+}
+
+#mindMapTitle {
+    flex: 1;
+    min-width: 0;
+    height: 40px;
+    padding: 0 10px;
+    border-radius: var(--radius-md);
+    border: 1px solid var(--border-color);
+    background: var(--input-bg);
+    color: var(--text-primary);
+    outline: none;
+}
+
+#mindMapToggleCollapseBtn[disabled] {
+    opacity: 0.6;
+    cursor: not-allowed;
+}
+
 .mindmap-rename-label {
     display: block;
     font-size: var(--font-size-sm);
@@ -1709,6 +1742,10 @@ body {
     font-size: var(--font-size-sm);
     font-weight: 600;
     color: var(--text-primary);
+    max-width: 70%;
+    overflow: hidden;
+    text-overflow: ellipsis;
+    white-space: nowrap;
 }
 
 .mindmap-embed .mindmap-embed-open {

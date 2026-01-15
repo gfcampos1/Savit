@@ -783,6 +783,10 @@ const DOM = {
     cancelMindMapBtn: document.getElementById('cancelMindMapBtn'),
     insertMindMapBtn: document.getElementById('insertMindMapBtn'),
     mindMapHelp: document.getElementById('mindMapHelp'),
+    mindMapTitle: document.getElementById('mindMapTitle'),
+    mindMapToggleCollapseBtn: document.getElementById('mindMapToggleCollapseBtn'),
+    mindMapExpandAllBtn: document.getElementById('mindMapExpandAllBtn'),
+    mindMapCollapseAllBtn: document.getElementById('mindMapCollapseAllBtn'),
     mindMapNodeTitle: document.getElementById('mindMapNodeTitle'),
     mindMapRenameBtn: document.getElementById('mindMapRenameBtn'),
 
@@ -980,14 +984,22 @@ const Markdown = {
                 if (/^\s*```\s*$/.test(line)) {
                     inMindMap = false;
                     const jsonRaw = mindMapLines.join('\n').trim();
+                    let title = 'Mapa mental';
+                    try {
+                        const parsed = JSON.parse(jsonRaw);
+                        title = String(parsed?.meta?.title || parsed?.title || parsed?.nodeData?.topic || 'Mapa mental');
+                    } catch {
+                        title = 'Mapa mental';
+                    }
                     const encoded = Markdown.escapeHtml(encodeURIComponent(jsonRaw));
+                    const safeTitle = Markdown.escapeHtml(title);
                     out.push(
                         `<div class="mindmap-embed" data-mindmap="${encoded}">` +
                         `<div class="mindmap-embed-toolbar">` +
-                        `<div class="mindmap-embed-title">Mapa mental</div>` +
+                        `<div class="mindmap-embed-title">${safeTitle}</div>` +
                         `<button class="mindmap-embed-open" type="button">Abrir</button>` +
                         `</div>` +
-                        `<div class="mindmap-embed-canvas" aria-label="Mapa mental"></div>` +
+                        `<div class="mindmap-embed-canvas" aria-label="${safeTitle}"></div>` +
                         `</div>`
                     );
                     mindMapLines = [];
@@ -1384,6 +1396,70 @@ const MindMapUI = {
     selectedNodeObj: null,
     _selectedTpcEl: null,
     _mindInteractionBoundForContainer: null,
+    _getTitleFromData(data) {
+        try {
+            return String(data?.meta?.title || data?.title || data?.nodeData?.topic || 'Mapa mental');
+        } catch {
+            return 'Mapa mental';
+        }
+    },
+    _getTitleFromUi() {
+        return String(DOM.mindMapTitle?.value || '').trim();
+    },
+    _syncTitleUiFromData(data) {
+        if (!DOM.mindMapTitle) return;
+        const title = this._getTitleFromData(data);
+        DOM.mindMapTitle.value = title === 'Mapa mental' ? '' : title;
+    },
+    _applyTitleToData(data) {
+        if (!data) return;
+        const title = this._getTitleFromUi();
+        if (!data.meta) data.meta = {};
+        if (title) {
+            data.meta.title = title;
+        } else {
+            // If empty, remove the explicit title so we can fall back to nodeData.topic.
+            try { delete data.meta.title; } catch {}
+        }
+    },
+    _updateCollapseUi() {
+        const btn = DOM.mindMapToggleCollapseBtn;
+        if (!btn) return;
+        if (!this.mind || !this.selectedNodeObj) {
+            btn.disabled = true;
+            btn.textContent = 'Colapsar nó';
+            return;
+        }
+        const expanded = this.selectedNodeObj.expanded !== false;
+        btn.disabled = false;
+        btn.textContent = expanded ? 'Colapsar nó' : 'Expandir nó';
+    },
+    toggleCollapseSelected() {
+        if (!this.mind || !this.selectedNodeObj || !DOM.mindMapEditor) return;
+        try {
+            const tpc = DOM.mindMapEditor.querySelector(`me-tpc[data-nodeid="me${this.selectedNodeObj.id}"]`);
+            if (!tpc) return;
+            const expanded = this.selectedNodeObj.expanded !== false;
+            this.mind.expandNode?.(tpc, !expanded);
+            this._tryRehighlightSelectedNode();
+            this._updateCollapseUi();
+        } catch {
+            // ignore
+        }
+    },
+    expandAll(expanded) {
+        if (!this.mind || !DOM.mindMapEditor) return;
+        try {
+            const rootTpc = DOM.mindMapEditor.querySelector('me-tpc[data-nodeid="meroot"]')
+                || DOM.mindMapEditor.querySelector('me-tpc');
+            if (!rootTpc) return;
+            this.mind.expandNodeAll?.(rootTpc, !!expanded);
+            this._tryRehighlightSelectedNode();
+            this._updateCollapseUi();
+        } catch {
+            // ignore
+        }
+    },
 
     isAvailable() {
         return typeof window.MindElixirLite === 'function';
@@ -1417,6 +1493,7 @@ const MindMapUI = {
         }
 
         input.value = String(nodeObj.topic || '');
+            this._updateCollapseUi();
         btn.disabled = !String(input.value).trim();
     },
 
@@ -1639,6 +1716,24 @@ const MindMapUI = {
             this._setSelectedNode(tpc.nodeObj);
             this._markSelectedTpc(tpc);
             this._beginEditOrFocusRename(tpc);
+                // Click on +/- collapse icon (me-epd)
+                container.addEventListener('click', (e) => {
+                    const epd = e.target?.closest?.('me-epd');
+                    if (!epd) return;
+                    const parent = epd.closest?.('me-parent');
+                    const tpc = parent?.querySelector?.('me-tpc') || epd.closest?.('me-wrapper')?.querySelector?.('me-tpc');
+                    if (!tpc?.nodeObj) return;
+                    e.preventDefault();
+                    e.stopPropagation();
+                    try {
+                        this.mind?.expandNode?.(tpc);
+                    } catch {
+                        // ignore
+                    }
+                    this._setSelectedNode(tpc.nodeObj);
+                    this._markSelectedTpc(tpc);
+                    this._updateCollapseUi();
+                }, true);
         });
 
         container.addEventListener('keydown', (e) => {
@@ -2129,6 +2224,14 @@ const MindMapUI = {
 
     buildEmbedHtml(jsonRaw) {
         const encoded = Markdown.escapeHtml(encodeURIComponent(String(jsonRaw || '').trim()));
+                let title = 'Mapa mental';
+                try {
+                    const parsed = JSON.parse(String(jsonRaw || ''));
+                    title = String(parsed?.meta?.title || parsed?.title || parsed?.nodeData?.topic || 'Mapa mental');
+                } catch {
+                    title = 'Mapa mental';
+                }
+                const safeTitle = Markdown.escapeHtml(title);
         return (
             `<div class="mindmap-embed" contenteditable="false" data-mindmap="${encoded}">` +
             `<div class="mindmap-embed-toolbar">` +
@@ -2155,6 +2258,8 @@ const MindMapUI = {
 
         const selectedText = RichText.getPlainText(editorEl).trim();
         const data = this.defaultData(selectedText || 'Ideia');
+    if (!data.meta) data.meta = {};
+    if (!data.meta.title) data.meta.title = selectedText || data.nodeData?.topic || 'Mapa mental';
 
         DOM.insertMindMapBtn.textContent = 'Inserir na mensagem';
         DOM.insertMindMapBtn.style.display = '';
@@ -2187,6 +2292,8 @@ const MindMapUI = {
         let data;
         try {
             data = JSON.parse(jsonRaw);
+            if (!data.meta) data.meta = {};
+            if (!data.meta.title) data.meta.title = data.nodeData?.topic || 'Mapa mental';
         } catch {
             data = this.defaultData('Ideia');
         }
@@ -2198,6 +2305,16 @@ const MindMapUI = {
     },
 
     openForEditorFromJson(editorEl, jsonString) {
+            if (!data.meta) data.meta = {};
+            if (!data.meta.title) data.meta.title = data.nodeData?.topic || 'Mapa mental';
+            if (!data.meta) data.meta = {};
+            if (!data.meta.title) data.meta.title = data.nodeData?.topic || 'Mapa mental';
+            if (!data.meta) data.meta = {};
+            if (!data.meta.title) data.meta.title = data.nodeData?.topic || 'Mapa mental';
+            if (!data.meta) data.meta = {};
+            if (!data.meta.title) data.meta.title = data.nodeData?.topic || 'Mapa mental';
+            this._syncTitleUiFromData(data);
+            this._updateCollapseUi();
         if (!this.isAvailable()) {
             showToast('Mapa mental indisponível (biblioteca não carregou)');
             return;
@@ -2247,6 +2364,7 @@ const MindMapUI = {
 
         const data = this.mind.getData();
         data.theme = this.getTheme();
+            this._applyTitleToData(data);
         const json = JSON.stringify(data);
         const block = `\n\n\`\`\`savit-mindmap\n${json}\n\`\`\`\n\n`;
 
@@ -2268,6 +2386,7 @@ const MindMapUI = {
 
     insertIntoActiveEditor() {
         if (!this.mind || !this.activeEditor) return;
+            this._applyTitleToData(data);
         const data = this.mind.getData();
         data.theme = this.getTheme();
         const json = JSON.stringify(data);
@@ -2302,6 +2421,13 @@ const MindMapUI = {
 
     hydrateEmbeds(container) {
         if (!this.isAvailable() || !container) return;
+            const titleText = this._getTitleFromData(data);
+            const titleEl = embed.querySelector('.mindmap-embed-title');
+            if (titleEl) titleEl.textContent = titleText;
+            const canvasLabel = embed.querySelector('.mindmap-embed-canvas');
+            if (canvasLabel) {
+                try { canvasLabel.setAttribute('aria-label', titleText); } catch {}
+            }
 
         container.querySelectorAll('.mindmap-embed').forEach(embed => {
             if (embed.dataset.hydrated === '1') return;
@@ -5896,6 +6022,16 @@ if (DOM.cancelMindMapBtn) {
 }
 if (DOM.insertMindMapBtn) {
     DOM.insertMindMapBtn.addEventListener('click', () => MindMapUI.insert());
+}
+
+if (DOM.mindMapToggleCollapseBtn) {
+    DOM.mindMapToggleCollapseBtn.addEventListener('click', () => MindMapUI.toggleCollapseSelected());
+}
+if (DOM.mindMapExpandAllBtn) {
+    DOM.mindMapExpandAllBtn.addEventListener('click', () => MindMapUI.expandAll(true));
+}
+if (DOM.mindMapCollapseAllBtn) {
+    DOM.mindMapCollapseAllBtn.addEventListener('click', () => MindMapUI.expandAll(false));
 }
 
 // =============================================
