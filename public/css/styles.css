@@ -3907,16 +3907,62 @@ body {
     display: flex;
     flex-direction: column;
     gap: var(--spacing-md);
-    padding: var(--spacing-md);
+    padding: 0;
     background: var(--chat-bg-light);
     border-radius: var(--radius-lg);
     margin-bottom: var(--spacing-md);
+    overflow: hidden;
+}
+
+.theme-selector-header {
+    width: 100%;
+    display: flex;
+    align-items: center;
+    gap: var(--spacing-sm);
+    padding: var(--spacing-md);
+    background: transparent;
+    border: none;
+    color: var(--text-primary);
+    cursor: pointer;
+}
+
+.theme-selector-header:hover {
+    background: rgba(255, 255, 255, 0.04);
+}
+
+[data-theme="light"] .theme-selector-header:hover {
+    background: rgba(0, 0, 0, 0.03);
 }
 
 .theme-selector-title {
     font-size: var(--font-size-sm);
     color: var(--text-secondary);
-    margin-bottom: var(--spacing-xs);
+    margin-bottom: 0;
+    flex: 1;
+    text-align: left;
+}
+
+.theme-selector-current {
+    font-size: var(--font-size-sm);
+    color: var(--text-primary);
+    opacity: 0.9;
+}
+
+.theme-selector-header i {
+    color: var(--icon-color);
+    transition: transform var(--transition-fast);
+}
+
+.theme-selector.is-collapsed .theme-selector-header i {
+    transform: rotate(-90deg);
+}
+
+.theme-selector-content {
+    padding: 0 var(--spacing-md) var(--spacing-md);
+}
+
+.theme-selector.is-collapsed .theme-selector-content {
+    display: none;
 }
 
 .theme-options {

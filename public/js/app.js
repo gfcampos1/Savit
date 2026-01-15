@@ -387,8 +387,61 @@ const ThemeManager = {
         document.querySelectorAll('.theme-option').forEach(btn => {
             btn.classList.toggle('active', btn.dataset.theme === AppState.theme);
         });
+
+        const labels = { light: 'Claro', dark: 'Escuro', system: 'Sistema' };
+        if (DOM.themeCurrentLabel) {
+            DOM.themeCurrentLabel.textContent = labels[AppState.theme] || 'Sistema';
+        }
     }
 };
+
+function initThemeSectionCollapsible() {
+    if (!DOM.themeSection || !DOM.themeSectionToggle) return;
+
+    const storageKey = 'savit.themeSectionCollapsed';
+
+    const readPref = () => {
+        try {
+            const v = localStorage.getItem(storageKey);
+            if (v === '0') return false;
+            if (v === '1') return true;
+        } catch {
+            // ignore
+        }
+        return true;
+    };
+
+    const writePref = (collapsed) => {
+        try {
+            localStorage.setItem(storageKey, collapsed ? '1' : '0');
+        } catch {
+            // ignore
+        }
+    };
+
+    const setCollapsed = (collapsed) => {
+        DOM.themeSection.classList.toggle('is-collapsed', !!collapsed);
+        writePref(!!collapsed);
+
+        if (!collapsed) {
+            setTimeout(() => {
+                try {
+                    const activeBtn = DOM.themeSection.querySelector('.theme-option.active');
+                    activeBtn?.focus?.();
+                } catch {
+                    // ignore
+                }
+            }, 0);
+        }
+    };
+
+    setCollapsed(readPref());
+
+    DOM.themeSectionToggle.addEventListener('click', () => {
+        const isCollapsed = DOM.themeSection.classList.contains('is-collapsed');
+        setCollapsed(!isCollapsed);
+    });
+}
 
 // =============================================
 // Drawing Canvas
@@ -689,6 +742,12 @@ const DOM = {
     themeLightBtn: document.getElementById('themeLightBtn'),
     themeDarkBtn: document.getElementById('themeDarkBtn'),
     themeSystemBtn: document.getElementById('themeSystemBtn'),
+
+    // Theme section (collapsible)
+    themeSection: document.getElementById('themeSection'),
+    themeSectionToggle: document.getElementById('themeSectionToggle'),
+    themeSectionContent: document.getElementById('themeSectionContent'),
+    themeCurrentLabel: document.getElementById('themeCurrentLabel'),
 
     // Image & Drawing
     attachImageBtn: document.getElementById('attachImageBtn'),
@@ -3240,6 +3299,9 @@ const App = {
         
         // Initialize Theme Manager
         ThemeManager.init();
+
+        // Initialize collapsible UI sections
+        initThemeSectionCollapsible();
     },
 
     // Load initial data

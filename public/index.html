@@ -561,22 +561,28 @@
                         </div>
 
                         <div class="profile-menu">
-                            <!-- Theme Selector -->
-                            <div class="theme-selector">
-                                <span class="theme-selector-title">Tema do aplicativo</span>
-                                <div class="theme-options">
-                                    <button class="theme-option" data-theme="light" id="themeLightBtn">
-                                        <i class="fas fa-sun"></i>
-                                        <span>Claro</span>
-                                    </button>
-                                    <button class="theme-option active" data-theme="dark" id="themeDarkBtn">
-                                        <i class="fas fa-moon"></i>
-                                        <span>Escuro</span>
-                                    </button>
-                                    <button class="theme-option" data-theme="system" id="themeSystemBtn">
-                                        <i class="fas fa-desktop"></i>
-                                        <span>Sistema</span>
-                                    </button>
+                            <!-- Theme Selector (collapsible) -->
+                            <div class="theme-selector is-collapsed" id="themeSection">
+                                <button class="theme-selector-header" id="themeSectionToggle" type="button">
+                                    <span class="theme-selector-title">Tema do aplicativo</span>
+                                    <span class="theme-selector-current" id="themeCurrentLabel">Sistema</span>
+                                    <i class="fas fa-chevron-down" aria-hidden="true"></i>
+                                </button>
+                                <div class="theme-selector-content" id="themeSectionContent">
+                                    <div class="theme-options">
+                                        <button class="theme-option" data-theme="light" id="themeLightBtn">
+                                            <i class="fas fa-sun"></i>
+                                            <span>Claro</span>
+                                        </button>
+                                        <button class="theme-option active" data-theme="dark" id="themeDarkBtn">
+                                            <i class="fas fa-moon"></i>
+                                            <span>Escuro</span>
+                                        </button>
+                                        <button class="theme-option" data-theme="system" id="themeSystemBtn">
+                                            <i class="fas fa-desktop"></i>
+                                            <span>Sistema</span>
+                                        </button>
+                                    </div>
                                 </div>
                             </div>
 
