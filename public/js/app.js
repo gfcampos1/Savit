@@ -5375,16 +5375,44 @@ window.App = App;
 
 // Initialize app
 document.addEventListener('DOMContentLoaded', () => {
-    // Keep the app height in sync with the *actual* viewport (fixes mobile landscape/URL bar issues)
-    const syncAppHeight = () => {
-        const h = window.visualViewport?.height || window.innerHeight;
+    // Keep the app viewport vars in sync with the *actual* viewport.
+    // Mobile browsers (especially iOS Safari) can report stale values during/after rotation,
+    // so we refresh in a short burst.
+    const syncViewportVars = () => {
+        const vv = window.visualViewport;
+        const h = vv?.height || window.innerHeight;
+        const w = vv?.width || window.innerWidth;
         document.documentElement.style.setProperty('--app-height', `${Math.round(h)}px`);
+        document.documentElement.style.setProperty('--app-width', `${Math.round(w)}px`);
     };
-    syncAppHeight();
-    window.addEventListener('resize', syncAppHeight, { passive: true });
-    window.addEventListener('orientationchange', () => setTimeout(syncAppHeight, 200), { passive: true });
+
+    const scheduleViewportSyncBurst = () => {
+        syncViewportVars();
+
+        // A few frames to catch intermediate values while rotating
+        let frames = 0;
+        const tick = () => {
+            frames += 1;
+            syncViewportVars();
+            if (frames < 10) requestAnimationFrame(tick);
+        };
+        requestAnimationFrame(tick);
+
+        // And a couple delayed checks for browsers that settle late
+        setTimeout(syncViewportVars, 250);
+        setTimeout(syncViewportVars, 600);
+        setTimeout(syncViewportVars, 1000);
+    };
+
+    scheduleViewportSyncBurst();
+    window.addEventListener('resize', scheduleViewportSyncBurst, { passive: true });
+    window.addEventListener('orientationchange', () => setTimeout(scheduleViewportSyncBurst, 50), { passive: true });
+    document.addEventListener('visibilitychange', () => {
+        if (!document.hidden) scheduleViewportSyncBurst();
+    }, { passive: true });
     if (window.visualViewport) {
-        window.visualViewport.addEventListener('resize', syncAppHeight, { passive: true });
+        window.visualViewport.addEventListener('resize', scheduleViewportSyncBurst, { passive: true });
+        window.visualViewport.addEventListener('scroll', scheduleViewportSyncBurst, { passive: true });
     }
 
     // Register Service Worker (PWA) - keep this in external JS to satisfy CSP.
