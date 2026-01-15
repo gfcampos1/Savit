@@ -1659,14 +1659,14 @@ body {
 
 /* iOS/WebKit: ensure MindElixir custom elements remain hit-testable */
 .mindmap-editor .map-container me-wrapper {
-    pointer-events: auto;
+    pointer-events: auto !important;
 }
 
 .mindmap-editor .map-container me-main,
 .mindmap-editor .map-container me-children,
 .mindmap-editor .map-container me-parent,
 .mindmap-editor .map-container me-root {
-    pointer-events: auto;
+    pointer-events: auto !important;
 }
 
 /* Allow MindElixir to receive drag/tap events (mobile) */
@@ -1731,7 +1731,7 @@ body {
 
 .mindmap-embed .mindmap-embed-canvas .map-container,
 .mindmap-embed .mindmap-embed-canvas .map-container * {
-    pointer-events: none;
+    pointer-events: none !important;
 }
 
 .message-task {
