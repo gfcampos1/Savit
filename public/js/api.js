@@ -8,6 +8,25 @@ const API = {
     token: null,
     _refreshPromise: null,
 
+    async fetchWithTimeout(url, config, timeoutMs) {
+        const ms = typeof timeoutMs === 'number' && timeoutMs > 0 ? timeoutMs : 15000;
+
+        // AbortController is supported by modern browsers (including iOS 15+).
+        if (typeof AbortController !== 'undefined') {
+            const controller = new AbortController();
+            const timeoutId = setTimeout(() => controller.abort(), ms);
+            try {
+                const res = await fetch(url, { ...config, signal: controller.signal });
+                return res;
+            } finally {
+                clearTimeout(timeoutId);
+            }
+        }
+
+        // Fallback: no abort support; just do a normal fetch.
+        return fetch(url, config);
+    },
+
     // Set auth token
     setToken(token) {
         // Deprecated: auth is cookie-based (httpOnly).
@@ -64,7 +83,7 @@ const API = {
         }
 
         try {
-            const response = await fetch(url, config);
+            const response = await this.fetchWithTimeout(url, config, options.timeoutMs);
             const data = await response.json().catch(() => ({}));
 
             if (!response.ok) {
@@ -102,6 +121,10 @@ const API = {
 
             return data;
         } catch (error) {
+            // Normalize AbortError into a friendly message.
+            if (error && (error.name === 'AbortError' || String(error).includes('AbortError'))) {
+                throw new Error('Tempo esgotado. Verifique sua conexão e tente novamente.');
+            }
             console.error('API Error:', error);
             throw error;
         }

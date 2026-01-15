@@ -5992,6 +5992,29 @@ function showToast(message, duration = 2500) {
     }, duration);
 }
 
+// If something blows up during startup, don't leave the user stuck on the loader.
+window.addEventListener('error', (event) => {
+    try {
+        console.error('Unhandled error:', event?.error || event);
+        if (DOM?.loadingScreen) DOM.loadingScreen.style.display = 'none';
+        if (window.App?.showAuthScreen) window.App.showAuthScreen();
+        showToast('Erro ao iniciar. Recarregue a página.');
+    } catch {
+        // best-effort
+    }
+});
+
+window.addEventListener('unhandledrejection', (event) => {
+    try {
+        console.error('Unhandled rejection:', event?.reason || event);
+        if (DOM?.loadingScreen) DOM.loadingScreen.style.display = 'none';
+        if (window.App?.showAuthScreen) window.App.showAuthScreen();
+        showToast('Erro ao iniciar. Recarregue a página.');
+    } catch {
+        // best-effort
+    }
+});
+
 // Make App globally available
 window.App = App;
 
@@ -6042,5 +6065,9 @@ document.addEventListener('DOMContentLoaded', () => {
         navigator.serviceWorker.register('/sw.js').catch(() => {});
     }
 
-    App.init();
+    App.init().catch((err) => {
+        console.error('App.init failed:', err);
+        try { showToast(err?.message || 'Erro ao iniciar'); } catch {}
+        try { App.showAuthScreen(); } catch {}
+    });
 });
