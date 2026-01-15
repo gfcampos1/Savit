@@ -2084,6 +2084,62 @@ body {
     caret-color: var(--text-primary);
 }
 
+/* WYSIWYG: make quotes/code/links visually obvious while editing */
+.wysiwyg-editor a {
+    color: rgba(255, 255, 255, 0.95);
+    text-decoration: underline;
+    text-underline-offset: 2px;
+}
+
+[data-theme="light"] .wysiwyg-editor a {
+    color: rgba(0, 0, 0, 0.92);
+}
+
+.wysiwyg-editor blockquote {
+    margin: 0.5em 0;
+    padding: 0.15em 0 0.15em 0.9em;
+    border-left: 3px solid rgba(255, 255, 255, 0.35);
+    color: rgba(255, 255, 255, 0.92);
+    background: rgba(0, 0, 0, 0.10);
+    border-radius: 8px;
+}
+
+[data-theme="light"] .wysiwyg-editor blockquote {
+    border-left: 3px solid rgba(0, 0, 0, 0.25);
+    color: rgba(0, 0, 0, 0.88);
+    background: rgba(0, 0, 0, 0.04);
+}
+
+.wysiwyg-editor code {
+    font-family: ui-monospace, SFMono-Regular, Menlo, Monaco, Consolas, "Liberation Mono", "Courier New", monospace;
+    font-size: 0.95em;
+    padding: 0.12em 0.35em;
+    border-radius: 6px;
+    background: rgba(0, 0, 0, 0.25);
+}
+
+[data-theme="light"] .wysiwyg-editor code {
+    background: rgba(0, 0, 0, 0.08);
+}
+
+.wysiwyg-editor pre {
+    margin: 0.6em 0;
+    padding: 0.6em 0.75em;
+    border-radius: var(--radius-md);
+    background: rgba(0, 0, 0, 0.25);
+    overflow: auto;
+    white-space: pre;
+}
+
+[data-theme="light"] .wysiwyg-editor pre {
+    background: rgba(0, 0, 0, 0.08);
+}
+
+.wysiwyg-editor pre code {
+    padding: 0;
+    background: transparent;
+}
+
 /* Hide preview toggle buttons when the related input is WYSIWYG */
 .input-options .format-toolbar button[data-format="preview"],
 .modal .format-toolbar button[data-format="preview"] {
