@@ -1794,7 +1794,13 @@ body {
         overflow-y: hidden;
         -webkit-overflow-scrolling: touch;
         align-items: center;
-        padding-bottom: 2px;
+        padding-bottom: 0;
+        scrollbar-width: none;
+    }
+
+    .input-options::-webkit-scrollbar {
+        height: 0;
+        display: none;
     }
 
     .input-options > * {
@@ -1806,12 +1812,22 @@ body {
         min-width: 0;
         align-items: center;
         height: 36px;
+        scrollbar-width: none;
+    }
+
+    .input-options .format-toolbar--inline::-webkit-scrollbar {
+        height: 0;
+        display: none;
     }
 
     .input-options .format-toolbar--compact .format-btn {
         width: 36px;
         height: 36px;
         min-width: 36px;
+    }
+
+    .input-options .format-toolbar--compact .format-btn i {
+        font-size: var(--font-size-md);
     }
 }
 
