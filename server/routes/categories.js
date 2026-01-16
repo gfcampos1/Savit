@@ -396,7 +396,6 @@ router.put('/:id', validateParams(IdParam), writeLimiter, validateBody(CategoryU
                 ...(inheritedColor !== undefined ? { color: normalizeHexColor(inheritedColor) } : {}),
                 ...(finalSectionId !== undefined ? { sectionId: finalSectionId } : {})
             },
-            },
             include: {
                 _count: {
                     select: { messages: true }
