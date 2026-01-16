@@ -5316,8 +5316,10 @@ const App = {
     },
 
     updateSectionDropdownDisplay(trigger, value, placeholder) {
+        if (!trigger) return;
         const colorSpan = trigger.querySelector('.category-dropdown-color');
         const textSpan = trigger.querySelector('.category-dropdown-text');
+        if (!colorSpan || !textSpan) return;
 
         if (!value) {
             colorSpan.style.background = 'var(--text-muted)';
