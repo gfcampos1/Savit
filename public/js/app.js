@@ -1195,14 +1195,15 @@ const RichText = {
         'CODE', 'PRE',
         'A',
         'DIV', 'SPAN',
-        'BUTTON'
+        'BUTTON',
+        'DETAILS', 'SUMMARY'
     ]),
-    allowedClassRe: /^mindmap-/i,
+    allowedClassRe: /^(mindmap-|details-content$)/i,
 
     isLikelyHtml(text) {
         const s = String(text || '');
         // Only treat as HTML if it contains tags we actually allow.
-        return /<\s*\/?\s*(p|br|strong|em|b|i|u|s|h1|h2|h3|ul|ol|li|blockquote|code|pre|a|div|span|button)\b/i.test(s);
+        return /<\s*\/?\s*(p|br|strong|em|b|i|u|s|h1|h2|h3|ul|ol|li|blockquote|code|pre|a|div|span|button|details|summary)\b/i.test(s);
     },
 
     plainTextFromStored(text) {
@@ -1270,6 +1271,12 @@ const RichText = {
                 if (tag === 'BUTTON') {
                     if (name === 'class') continue;
                     if (name === 'type') continue;
+                    el.removeAttribute(attr.name);
+                    continue;
+                }
+
+                if (tag === 'DETAILS') {
+                    if (name === 'open') continue;
                     el.removeAttribute(attr.name);
                     continue;
                 }
