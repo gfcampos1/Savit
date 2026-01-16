@@ -4611,7 +4611,7 @@ const App = {
             }
             showToast('Cores sincronizadas!');
             // Reload categories to reflect changes
-            await this.loadCategories();
+            await this.refreshCategories();
         } catch (error) {
             const msg = error?.message || 'Erro ao sincronizar cores';
             showToast(msg);
