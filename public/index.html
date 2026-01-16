@@ -965,10 +965,18 @@
                         <div id="editMessageText" class="wysiwyg-editor wysiwyg-editor--modal" contenteditable="true" role="textbox" aria-multiline="true" aria-label="Editar mensagem" data-placeholder="Edite sua mensagem..."></div>
                     </div>
                     <div class="form-group">
-                        <label for="editMessageCategory">Categoria</label>
-                        <select id="editMessageCategory">
-                            <option value="">Sem categoria</option>
-                        </select>
+                        <label>Categoria</label>
+                        <div class="category-dropdown" id="editMessageCategoryDropdown">
+                            <button type="button" class="category-dropdown-trigger" id="editMessageCategoryTrigger">
+                                <span class="category-dropdown-color"></span>
+                                <span class="category-dropdown-text">Sem categoria</span>
+                                <i class="fas fa-chevron-down"></i>
+                            </button>
+                            <div class="category-dropdown-menu" id="editMessageCategoryMenu">
+                                <!-- Options rendered by JS -->
+                            </div>
+                            <input type="hidden" id="editMessageCategory" value="">
+                        </div>
                     </div>
                     <div class="form-group">
                         <label class="checkbox-label">
@@ -1124,10 +1132,18 @@
                         <textarea id="quickAddText" rows="4" placeholder="Digite sua ideia..."></textarea>
                     </div>
                     <div class="form-group">
-                        <label for="quickAddCategory">Categoria (opcional)</label>
-                        <select id="quickAddCategory">
-                            <option value="">Sem categoria</option>
-                        </select>
+                        <label>Categoria (opcional)</label>
+                        <div class="category-dropdown" id="quickAddCategoryDropdown">
+                            <button type="button" class="category-dropdown-trigger" id="quickAddCategoryTrigger">
+                                <span class="category-dropdown-color"></span>
+                                <span class="category-dropdown-text">Sem categoria</span>
+                                <i class="fas fa-chevron-down"></i>
+                            </button>
+                            <div class="category-dropdown-menu" id="quickAddCategoryMenu">
+                                <!-- Options rendered by JS -->
+                            </div>
+                            <input type="hidden" id="quickAddCategory" value="">
+                        </div>
                     </div>
                     <div class="form-group">
                         <label class="checkbox-label">

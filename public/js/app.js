@@ -814,6 +814,9 @@ const DOM = {
     closeEditMessageModal: document.getElementById('closeEditMessageModal'),
     editMessageText: document.getElementById('editMessageText'),
     editMessageCategory: document.getElementById('editMessageCategory'),
+    editMessageCategoryDropdown: document.getElementById('editMessageCategoryDropdown'),
+    editMessageCategoryTrigger: document.getElementById('editMessageCategoryTrigger'),
+    editMessageCategoryMenu: document.getElementById('editMessageCategoryMenu'),
     editMessageIsTask: document.getElementById('editMessageIsTask'),
     editTaskFields: document.getElementById('editTaskFields'),
     editTaskDate: document.getElementById('editTaskDate'),
@@ -836,6 +839,9 @@ const DOM = {
     closeQuickAddModal: document.getElementById('closeQuickAddModal'),
     quickAddText: document.getElementById('quickAddText'),
     quickAddCategory: document.getElementById('quickAddCategory'),
+    quickAddCategoryDropdown: document.getElementById('quickAddCategoryDropdown'),
+    quickAddCategoryTrigger: document.getElementById('quickAddCategoryTrigger'),
+    quickAddCategoryMenu: document.getElementById('quickAddCategoryMenu'),
     quickAddIsTask: document.getElementById('quickAddIsTask'),
     quickAddTaskFields: document.getElementById('quickAddTaskFields'),
     quickAddTaskDate: document.getElementById('quickAddTaskDate'),
@@ -5046,7 +5052,7 @@ const App = {
     renderCategoryDropdowns() {
         const categories = AppState.categories;
 
-        // Build <option> via DOM APIs (avoid HTML injection in attributes)
+        // Build <option> via DOM APIs for native selects (search filter)
         const setOptions = (selectEl, firstLabel) => {
             if (!selectEl) return;
             selectEl.innerHTML = '';
@@ -5063,11 +5069,114 @@ const App = {
         };
 
         setOptions(DOM.searchCategoryFilter, 'Todas categorias');
-        setOptions(DOM.editMessageCategory, 'Sem categoria');
-        setOptions(DOM.quickAddCategory, 'Sem categoria');
+
+        // Render custom dropdowns with colors
+        this.renderCustomCategoryDropdown(
+            DOM.editMessageCategoryDropdown,
+            DOM.editMessageCategoryTrigger,
+            DOM.editMessageCategoryMenu,
+            DOM.editMessageCategory,
+            'Sem categoria'
+        );
+        this.renderCustomCategoryDropdown(
+            DOM.quickAddCategoryDropdown,
+            DOM.quickAddCategoryTrigger,
+            DOM.quickAddCategoryMenu,
+            DOM.quickAddCategory,
+            'Sem categoria'
+        );
 
         // Category selector modal
         this.renderCategorySelector();
+    },
+
+    renderCustomCategoryDropdown(dropdown, trigger, menu, hiddenInput, placeholder) {
+        if (!dropdown || !trigger || !menu || !hiddenInput) return;
+
+        const categories = AppState.categories;
+
+        // Build menu options
+        let html = `
+            <div class="category-dropdown-option" data-value="">
+                <span class="option-color no-category"><i class="fas fa-ban" style="font-size: 10px;"></i></span>
+                <span class="option-name">${Utils.escapeHtml(placeholder)}</span>
+            </div>
+        `;
+
+        categories.forEach(cat => {
+            const msgCount = AppState.messages.filter(m => m.categoryId === cat.id).length;
+            html += `
+                <div class="category-dropdown-option" data-value="${cat.id}">
+                    <span class="option-color" style="background: ${Utils.sanitizeCssColor(cat.color)}">
+                        <i class="fas fa-folder"></i>
+                    </span>
+                    <span class="option-name">${Utils.escapeHtml(cat.name)}</span>
+                    ${msgCount > 0 ? `<span class="option-count">${msgCount}</span>` : ''}
+                </div>
+            `;
+        });
+
+        menu.innerHTML = html;
+
+        // Update trigger display based on current value
+        this.updateCategoryDropdownDisplay(trigger, hiddenInput.value, placeholder);
+
+        // Remove old event listeners by cloning
+        const newTrigger = trigger.cloneNode(true);
+        trigger.parentNode.replaceChild(newTrigger, trigger);
+
+        // Re-assign the trigger reference
+        if (dropdown.id === 'editMessageCategoryDropdown') {
+            DOM.editMessageCategoryTrigger = newTrigger;
+        } else if (dropdown.id === 'quickAddCategoryDropdown') {
+            DOM.quickAddCategoryTrigger = newTrigger;
+        }
+
+        // Toggle dropdown
+        newTrigger.addEventListener('click', (e) => {
+            e.preventDefault();
+            e.stopPropagation();
+            const isOpen = dropdown.classList.contains('open');
+            // Close all other dropdowns
+            document.querySelectorAll('.category-dropdown.open').forEach(d => d.classList.remove('open'));
+            if (!isOpen) {
+                dropdown.classList.add('open');
+            }
+        });
+
+        // Handle option selection
+        menu.querySelectorAll('.category-dropdown-option').forEach(opt => {
+            opt.addEventListener('click', (e) => {
+                e.stopPropagation();
+                const value = opt.dataset.value;
+                hiddenInput.value = value;
+                this.updateCategoryDropdownDisplay(newTrigger, value, placeholder);
+                dropdown.classList.remove('open');
+
+                // Mark selected
+                menu.querySelectorAll('.category-dropdown-option').forEach(o => o.classList.remove('selected'));
+                opt.classList.add('selected');
+            });
+        });
+    },
+
+    updateCategoryDropdownDisplay(trigger, value, placeholder) {
+        const colorSpan = trigger.querySelector('.category-dropdown-color');
+        const textSpan = trigger.querySelector('.category-dropdown-text');
+
+        if (!value) {
+            colorSpan.style.background = 'var(--text-muted)';
+            textSpan.textContent = placeholder;
+        } else {
+            const cat = AppState.categories.find(c => c.id === value);
+            if (cat) {
+                colorSpan.style.background = Utils.sanitizeCssColor(cat.color);
+                textSpan.textContent = cat.name;
+            } else {
+                colorSpan.style.background = 'var(--text-muted)';
+                textSpan.textContent = placeholder;
+            }
+        }
     },
 
     renderCategorySectionSelect(selectedSectionId = '') {
@@ -5614,6 +5723,13 @@ const App = {
             DOM.editMessageText.value = message.text;
         }
         DOM.editMessageCategory.value = message.categoryId || '';
+        this.updateCategoryDropdownDisplay(DOM.editMessageCategoryTrigger, message.categoryId || '', 'Sem categoria');
+        // Mark selected in menu
+        if (DOM.editMessageCategoryMenu) {
+            DOM.editMessageCategoryMenu.querySelectorAll('.category-dropdown-option').forEach(opt => {
+                opt.classList.toggle('selected', opt.dataset.value === (message.categoryId || ''));
+            });
+        }
         DOM.editMessageIsTask.checked = message.isTask;
         DOM.editTaskDate.value = message.taskDate ? message.taskDate.split('T')[0] : '';
         DOM.editTaskTime.value = message.taskTime || '';
@@ -5976,6 +6092,13 @@ const App = {
         DOM.quickAddBtn.addEventListener('click', () => {
             DOM.quickAddText.value = '';
             DOM.quickAddCategory.value = '';
+            this.updateCategoryDropdownDisplay(DOM.quickAddCategoryTrigger, '', 'Sem categoria');
+            // Reset selected in menu
+            if (DOM.quickAddCategoryMenu) {
+                DOM.quickAddCategoryMenu.querySelectorAll('.category-dropdown-option').forEach(opt => {
+                    opt.classList.toggle('selected', opt.dataset.value === '');
+                });
+            }
             DOM.quickAddIsTask.checked = false;
             DOM.quickAddTaskFields.style.display = 'none';
             DOM.quickAddTaskDate.value = new Date().toISOString().split('T')[0];
@@ -6526,6 +6649,10 @@ const App = {
         document.addEventListener('click', (e) => {
             if (!e.target.closest('.context-menu') && !e.target.closest('.message')) {
                 this.hideContextMenu();
+            }
+            // Close custom category dropdowns
+            if (!e.target.closest('.category-dropdown')) {
+                document.querySelectorAll('.category-dropdown.open').forEach(d => d.classList.remove('open'));
             }
         });
 
