@@ -1205,7 +1205,7 @@ const Markdown = {
 
 const RichText = {
     allowedTags: new Set([
-        'P', 'BR', 'STRONG', 'EM', 'B', 'I', 'U', 'S',
+        'P', 'BR', 'STRONG', 'EM', 'B', 'I', 'U', 'S', 'MARK',
         'H1', 'H2', 'H3',
         'UL', 'OL', 'LI',
         'BLOCKQUOTE',
@@ -1220,7 +1220,7 @@ const RichText = {
     isLikelyHtml(text) {
         const s = String(text || '');
         // Only treat as HTML if it contains tags we actually allow.
-        return /<\s*\/?\s*(p|br|strong|em|b|i|u|s|h1|h2|h3|ul|ol|li|blockquote|code|pre|a|div|span|button|details|summary)\b/i.test(s);
+        return /<\s*\/?\s*(p|br|strong|em|b|i|u|s|mark|h1|h2|h3|ul|ol|li|blockquote|code|pre|a|div|span|button|details|summary)\b/i.test(s);
     },
 
     plainTextFromStored(text) {
