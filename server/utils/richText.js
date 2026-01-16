@@ -2,7 +2,7 @@ const sanitizeHtml = require('sanitize-html');
 
 function isLikelyHtml(text) {
   const s = String(text || '');
-  return /<\s*\/?\s*(p|br|strong|em|b|i|u|s|h1|h2|h3|ul|ol|li|blockquote|code|pre|a|div|span|button|details|summary)\b/i.test(s);
+  return /<\s*\/?\s*(p|br|strong|em|b|i|u|s|mark|h1|h2|h3|ul|ol|li|blockquote|code|pre|a|div|span|button|details|summary)\b/i.test(s);
 }
 
 function sanitizeRichTextHtml(html) {
@@ -11,7 +11,7 @@ function sanitizeRichTextHtml(html) {
 
   return sanitizeHtml(input, {
     allowedTags: [
-      'p', 'br', 'strong', 'em', 'b', 'i', 'u', 's',
+      'p', 'br', 'strong', 'em', 'b', 'i', 'u', 's', 'mark',
       'h1', 'h2', 'h3',
       'ul', 'ol', 'li',
       'blockquote',
