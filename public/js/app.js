@@ -6458,10 +6458,21 @@ const App = {
             }
         });
 
-        // Close modals on backdrop click
+        // Close modals on backdrop click (only if mousedown AND mouseup both on backdrop)
         document.querySelectorAll('.modal').forEach(modal => {
+            let mouseDownOnBackdrop = false;
+
+            modal.addEventListener('mousedown', (e) => {
+                mouseDownOnBackdrop = (e.target === modal);
+            });
+
             modal.addEventListener('click', (e) => {
-                if (e.target !== modal) return;
+                // Only close if both mousedown and click happened on the backdrop
+                if (!mouseDownOnBackdrop || e.target !== modal) {
+                    mouseDownOnBackdrop = false;
+                    return;
+                }
+                mouseDownOnBackdrop = false;
 
                 // System dialog must resolve its promise
                 if (DOM.systemDialogModal && modal === DOM.systemDialogModal) {
