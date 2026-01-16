@@ -6221,6 +6221,37 @@ const App = {
         this.renderImagePreviews(isCategory);
     },
 
+    // Handle paste event for images (screenshots, copied images)
+    handleImagePaste(e, isCategory = false) {
+        const clipboardData = e.clipboardData || window.clipboardData;
+        if (!clipboardData) return false;
+
+        const items = clipboardData.items;
+        if (!items) return false;
+
+        const allowedTypes = new Set(['image/png', 'image/jpeg', 'image/webp']);
+        let hasImage = false;
+
+        for (let i = 0; i < items.length; i++) {
+            const item = items[i];
+            if (item.kind === 'file' && allowedTypes.has(item.type)) {
+                const file = item.getAsFile();
+                if (!file) continue;
+
+                hasImage = true;
+                const reader = new FileReader();
+                reader.onload = (event) => {
+                    const pendingImages = isCategory ? AppState.categoryPendingImages : AppState.pendingImages;
+                    pendingImages.push(event.target.result);
+                    this.renderImagePreviews(isCategory);
+                };
+                reader.readAsDataURL(file);
+            }
+        }
+
+        return hasImage;
+    },
+
     // Image viewer
     openImageViewer(src) {
         DOM.imageViewerImg.src = src;
@@ -6775,12 +6806,32 @@ const App = {
             DOM.imageInput.addEventListener('change', (e) => this.handleImageSelect(e, false));
         }
 
+        // Paste image support - Main chat
+        if (DOM.messageInput) {
+            DOM.messageInput.addEventListener('paste', (e) => {
+                if (this.handleImagePaste(e, false)) {
+                    // If image was pasted, prevent default only for the image
+                    // Text paste should still work normally
+                }
+            });
+        }
+
         // Image attachment - Category page
         if (DOM.categoryAttachImageBtn) {
             DOM.categoryAttachImageBtn.addEventListener('click', () => DOM.categoryImageInput.click());
         }
         if (DOM.categoryImageInput) {
             DOM.categoryImageInput.addEventListener('change', (e) => this.handleImageSelect(e, true));
+        }
+
+        // Paste image support - Category page
+        if (DOM.categoryMessageInput) {
+            DOM.categoryMessageInput.addEventListener('paste', (e) => {
+                if (this.handleImagePaste(e, true)) {
+                    // If image was pasted, prevent default only for the image
+                    // Text paste should still work normally
+                }
+            });
         }
 
         // Drawing - Main chat
