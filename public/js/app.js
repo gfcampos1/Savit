@@ -4849,6 +4849,32 @@ const App = {
         }, 0);
     },
 
+    // Get collapsed sections state from localStorage
+    getCollapsedSections() {
+        try {
+            const saved = localStorage.getItem('savit_collapsed_sections');
+            return saved ? JSON.parse(saved) : {};
+        } catch {
+            return {};
+        }
+    },
+
+    // Save collapsed sections state to localStorage
+    setCollapsedSections(state) {
+        try {
+            localStorage.setItem('savit_collapsed_sections', JSON.stringify(state));
+        } catch {
+            // ignore
+        }
+    },
+
+    // Toggle section collapsed state
+    toggleSectionCollapse(sectionId) {
+        const state = this.getCollapsedSections();
+        state[sectionId] = !state[sectionId];
+        this.setCollapsedSections(state);
+    },
+
     // Render categories
     renderCategories() {
         const categories = Array.isArray(AppState.categories) ? [...AppState.categories] : [];
@@ -4910,27 +4936,33 @@ const App = {
 
         let html = '';
 
+        const collapsedState = this.getCollapsedSections();
+
         const unsectioned = bySection.get('') || [];
         if (unsectioned.length > 0) {
+            const isOpen = !collapsedState['unsectioned'];
             html += `
-                <div class="category-section" data-section-id="">
-                    <div class="category-section-header">
+                <details class="category-section" data-section-id="" ${isOpen ? 'open' : ''}>
+                    <summary class="category-section-header">
+                        <div class="category-section-toggle"><i class="fas fa-chevron-right"></i></div>
                         <div class="category-section-title">Sem seção</div>
                         <div class="category-section-meta">${unsectioned.length}</div>
-                    </div>
+                    </summary>
                     <div class="category-section-body">
                         ${unsectioned.map(renderCategoryItem).join('')}
                     </div>
-                </div>
+                </details>
             `;
         }
 
         for (const section of sortedSections) {
             const list = bySection.get(section.id) || [];
             const canReorder = AppState.sectionSortMode === 'manual';
+            const isOpen = !collapsedState[section.id];
             html += `
-                <div class="category-section" data-section-id="${section.id}">
-                    <div class="category-section-header">
+                <details class="category-section" data-section-id="${section.id}" ${isOpen ? 'open' : ''}>
+                    <summary class="category-section-header">
+                        <div class="category-section-toggle"><i class="fas fa-chevron-right"></i></div>
                         <div class="category-section-title">${Utils.escapeHtml(section.name)}</div>
                         <div class="category-section-actions">
                             ${canReorder ? `<button class="section-btn section-up" data-id="${section.id}" title="Subir"><i class="fas fa-chevron-up"></i></button>` : ''}
@@ -4939,15 +4971,25 @@ const App = {
                             <button class="section-btn section-delete" data-id="${section.id}" title="Excluir"><i class="fas fa-trash"></i></button>
                             <span class="category-section-meta">${list.length}</span>
                         </div>
-                    </div>
+                    </summary>
                     <div class="category-section-body">
                         ${list.length ? list.map(renderCategoryItem).join('') : `<div class="category-section-empty">Sem categorias nesta seção</div>`}
                     </div>
-                </div>
+                </details>
             `;
         }
 
         DOM.categoriesList.innerHTML = html;
+
+        // Toggle collapse state handlers
+        DOM.categoriesList.querySelectorAll('.category-section').forEach(section => {
+            section.addEventListener('toggle', () => {
+                const sectionId = section.dataset.sectionId || 'unsectioned';
+                const state = this.getCollapsedSections();
+                state[sectionId] = !section.open;
+                this.setCollapsedSections(state);
+            });
+        });
 
         // Category item handlers
         DOM.categoriesList.querySelectorAll('.category-item').forEach(item => {
