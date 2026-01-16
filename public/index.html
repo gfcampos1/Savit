@@ -1001,42 +1001,51 @@
                     </button>
                 </div>
                 <div class="modal-body">
-                    <div class="mindmap-help" id="mindMapHelp">
-                        <strong>Dicas:</strong> toque no nó para selecionar. Em teclado: <strong>Tab</strong> cria um subtópico (filho) e <strong>Enter</strong> cria um tópico no mesmo nível. No touchscreen, use os botões de <strong>Adicionar</strong> abaixo.
-                        Use o botão <strong>Colapsar/Expandir</strong> (ou o ícone +/-) para organizar a visualização.
+                    <!-- Toolbar compacta -->
+                    <div class="mindmap-toolbar">
+                        <div class="mindmap-toolbar-section mindmap-toolbar-title">
+                            <input type="text" id="mindMapTitle" placeholder="Nome do mapa..." autocomplete="off" />
+                        </div>
+                        <div class="mindmap-toolbar-section mindmap-toolbar-actions">
+                            <button class="mindmap-tool-btn" id="mindMapExpandAllBtn" type="button" title="Expandir todos os nós">
+                                <i class="fas fa-expand-alt"></i>
+                            </button>
+                            <button class="mindmap-tool-btn" id="mindMapCollapseAllBtn" type="button" title="Colapsar todos os nós">
+                                <i class="fas fa-compress-alt"></i>
+                            </button>
+                            <span class="mindmap-toolbar-sep"></span>
+                            <button class="mindmap-tool-btn" id="mindMapToggleCollapseBtn" type="button" title="Colapsar/Expandir nó selecionado" disabled>
+                                <i class="fas fa-folder"></i>
+                            </button>
+                        </div>
                     </div>
 
-                    <div class="mindmap-title-row" aria-label="Nome do mapa mental">
-                        <label class="mindmap-rename-label" for="mindMapTitle">Nome do mapa</label>
-                        <div class="mindmap-title-controls">
-                            <input type="text" id="mindMapTitle" placeholder="Ex: Planejamento 2026" autocomplete="off" />
-                            <button class="btn btn-secondary" id="mindMapToggleCollapseBtn" type="button" disabled>Colapsar nó</button>
-                        </div>
-                        <div class="mindmap-actions-controls">
-                            <button class="btn btn-secondary" id="mindMapExpandAllBtn" type="button">Expandir tudo</button>
-                            <button class="btn btn-secondary" id="mindMapCollapseAllBtn" type="button">Colapsar tudo</button>
-                        </div>
-                    </div>
-
-                    <div class="mindmap-rename-row" aria-label="Renomear nó selecionado">
-                        <label class="mindmap-rename-label" for="mindMapNodeTitle">Nó selecionado</label>
-                        <div class="mindmap-rename-controls">
+                    <!-- Área do nó selecionado -->
+                    <div class="mindmap-node-panel">
+                        <div class="mindmap-node-input">
                             <input type="text" id="mindMapNodeTitle" placeholder="Selecione um nó para editar..." autocomplete="off" />
-                            <button class="btn btn-secondary" id="mindMapRenameBtn" type="button" disabled>Renomear</button>
+                            <button class="mindmap-tool-btn mindmap-rename-btn" id="mindMapRenameBtn" type="button" title="Renomear nó" disabled>
+                                <i class="fas fa-pen"></i>
+                            </button>
+                        </div>
+                        <div class="mindmap-node-btns">
+                            <button class="mindmap-action-btn mindmap-action-add" id="mindMapAddChildBtn" type="button" title="Adicionar subtópico" disabled>
+                                <i class="fas fa-plus"></i> Subtópico
+                            </button>
+                            <button class="mindmap-action-btn mindmap-action-add" id="mindMapAddSiblingBtn" type="button" title="Adicionar no mesmo nível" disabled>
+                                <i class="fas fa-plus"></i> Mesmo nível
+                            </button>
+                            <button class="mindmap-action-btn mindmap-action-delete" id="mindMapDeleteNodeBtn" type="button" title="Excluir nó" disabled>
+                                <i class="fas fa-trash"></i>
+                            </button>
                         </div>
                     </div>
 
-                    <div class="mindmap-node-actions" aria-label="Ações do nó selecionado">
-                        <button class="btn btn-secondary" id="mindMapAddChildBtn" type="button" disabled>
-                            <i class="fas fa-sitemap"></i> Subtópico
-                        </button>
-                        <button class="btn btn-secondary" id="mindMapAddSiblingBtn" type="button" disabled>
-                            <i class="fas fa-level-up-alt"></i> Mesmo nível
-                        </button>
-                        <button class="btn btn-danger" id="mindMapDeleteNodeBtn" type="button" disabled>
-                            <i class="fas fa-trash"></i> Excluir
-                        </button>
-                    </div>
+                    <!-- Dica colapsável -->
+                    <details class="mindmap-help-details">
+                        <summary><i class="fas fa-info-circle"></i> Dicas de uso</summary>
+                        <p><strong>Tab</strong> = subtópico &bull; <strong>Enter</strong> = mesmo nível &bull; <strong>Delete</strong> = excluir &bull; <strong>Clique duplo</strong> = editar texto</p>
+                    </details>
 
                     <div class="mindmap-editor" id="mindMapEditor" aria-label="Editor de mapa mental"></div>
                 </div>
