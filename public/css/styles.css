@@ -1523,6 +1523,54 @@ body {
     text-underline-offset: 2px;
 }
 
+/* Message: Collapsible sections (details/summary) */
+.message-text details {
+    margin: 0.5em 0;
+    padding: 0.4em 0.6em;
+    border-radius: var(--radius-md);
+    background: rgba(0, 0, 0, 0.12);
+    border-left: 3px solid var(--teal-green);
+}
+
+[data-theme="light"] .message-text details {
+    background: rgba(0, 0, 0, 0.04);
+}
+
+.message-text summary {
+    cursor: pointer;
+    font-weight: 600;
+    color: var(--teal-green);
+    padding: 0.2em 0;
+    list-style: none;
+    display: flex;
+    align-items: center;
+    gap: 0.4em;
+}
+
+.message-text summary::before {
+    content: '▶';
+    font-size: 0.7em;
+    transition: transform var(--transition-fast);
+}
+
+.message-text details[open] summary::before {
+    transform: rotate(90deg);
+}
+
+.message-text summary::-webkit-details-marker {
+    display: none;
+}
+
+.message-text .details-content {
+    margin-top: 0.4em;
+    padding-left: 1em;
+    border-left: 1px dashed rgba(255, 255, 255, 0.2);
+}
+
+[data-theme="light"] .message-text .details-content {
+    border-left: 1px dashed rgba(0, 0, 0, 0.12);
+}
+
 /* Formatting toolbar (Markdown helpers) */
 .format-toolbar {
     display: flex;
@@ -2253,6 +2301,54 @@ body {
 .wysiwyg-editor pre code {
     padding: 0;
     background: transparent;
+}
+
+/* WYSIWYG: Collapsible sections (details/summary) */
+.wysiwyg-editor details {
+    margin: 0.6em 0;
+    padding: 0.5em 0.75em;
+    border-radius: var(--radius-md);
+    background: rgba(0, 0, 0, 0.15);
+    border-left: 3px solid var(--teal-green);
+}
+
+[data-theme="light"] .wysiwyg-editor details {
+    background: rgba(0, 0, 0, 0.05);
+}
+
+.wysiwyg-editor summary {
+    cursor: pointer;
+    font-weight: 600;
+    color: var(--teal-green);
+    padding: 0.25em 0;
+    list-style: none;
+    display: flex;
+    align-items: center;
+    gap: 0.5em;
+}
+
+.wysiwyg-editor summary::before {
+    content: '▶';
+    font-size: 0.75em;
+    transition: transform var(--transition-fast);
+}
+
+.wysiwyg-editor details[open] summary::before {
+    transform: rotate(90deg);
+}
+
+.wysiwyg-editor summary::-webkit-details-marker {
+    display: none;
+}
+
+.wysiwyg-editor .details-content {
+    margin-top: 0.5em;
+    padding-left: 1.25em;
+    border-left: 1px dashed rgba(255, 255, 255, 0.2);
+}
+
+[data-theme="light"] .wysiwyg-editor .details-content {
+    border-left: 1px dashed rgba(0, 0, 0, 0.15);
 }
 
 /* Hide preview toggle buttons when the related input is WYSIWYG */

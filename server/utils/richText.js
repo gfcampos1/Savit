@@ -2,7 +2,7 @@ const sanitizeHtml = require('sanitize-html');
 
 function isLikelyHtml(text) {
   const s = String(text || '');
-  return /<\s*\/?\s*(p|br|strong|em|b|i|u|s|h1|h2|h3|ul|ol|li|blockquote|code|pre|a|div|span|button)\b/i.test(s);
+  return /<\s*\/?\s*(p|br|strong|em|b|i|u|s|h1|h2|h3|ul|ol|li|blockquote|code|pre|a|div|span|button|details|summary)\b/i.test(s);
 }
 
 function sanitizeRichTextHtml(html) {
@@ -18,19 +18,21 @@ function sanitizeRichTextHtml(html) {
       'code', 'pre',
       'a',
       'div', 'span',
-      'button'
+      'button',
+      'details', 'summary'
     ],
     allowedAttributes: {
       a: ['href', 'target', 'rel'],
       div: ['class', 'data-mindmap'],
       span: ['class'],
-      button: ['class', 'type']
+      button: ['class', 'type'],
+      details: ['open']
     },
     allowedSchemes: ['http', 'https', 'mailto'],
     allowProtocolRelative: false,
-    // Only keep mindmap-* classes (defense-in-depth)
+    // Only keep allowed classes (defense-in-depth)
     allowedClasses: {
-      div: [/^mindmap-/i],
+      div: [/^mindmap-/i, 'details-content'],
       span: [/^mindmap-/i],
       button: [/^mindmap-/i]
     },

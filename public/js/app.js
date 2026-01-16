@@ -3168,6 +3168,69 @@ function setupWysiwygToolbar(toolbarEl, editorEl) {
         setBtnActive('quote', !!closestTag('blockquote'));
         setBtnActive('h2', !!closestTag('h2'));
         setBtnActive('code', !!closestTag('pre, code'));
+        setBtnActive('details', !!closestTag('details'));
+    };
+
+    const insertDetailsBlock = async () => {
+        // Check if already inside details
+        const existing = closestTag('details');
+        if (existing) {
+            // Unwrap the details block
+            unwrapElement(existing);
+            RichText.enforceEmbedsAtomic(editorEl);
+            RichText.updateEmptyClass(editorEl);
+            return;
+        }
+
+        // Prompt for the summary text
+        const summaryText = await SystemDialog.prompt('Título da seção (clique para expandir/recolher):', {
+            title: 'Seção expansível',
+            placeholder: 'Ex: Detalhes da reunião...'
+        });
+        if (!summaryText) return;
+
+        // Get selected content or use placeholder
+        const sel = window.getSelection();
+        let content = '';
+        if (sel && !sel.isCollapsed) {
+            const range = sel.getRangeAt(0);
+            const frag = range.extractContents();
+            const temp = document.createElement('div');
+            temp.appendChild(frag);
+            content = temp.innerHTML || '';
+        }
+        if (!content.trim()) {
+            content = '<p>Conteúdo aqui...</p>';
+        }
+
+        // Create details element
+        const details = document.createElement('details');
+        details.setAttribute('open', '');
+        const summary = document.createElement('summary');
+        summary.textContent = summaryText;
+        details.appendChild(summary);
+
+        const contentDiv = document.createElement('div');
+        contentDiv.className = 'details-content';
+        contentDiv.innerHTML = content;
+        details.appendChild(contentDiv);
+
+        // Insert at cursor
+        if (sel && sel.rangeCount > 0) {
+            const range = sel.getRangeAt(0);
+            range.deleteContents();
+            range.insertNode(details);
+            // Move cursor after the details block
+            range.setStartAfter(details);
+            range.collapse(true);
+            sel.removeAllRanges();
+            sel.addRange(range);
+        } else {
+            editorEl.appendChild(details);
+        }
+
+        RichText.enforceEmbedsAtomic(editorEl);
+        RichText.updateEmptyClass(editorEl);
     };
 
     toolbarEl.addEventListener('click', async (e) => {
@@ -3184,7 +3247,7 @@ function setupWysiwygToolbar(toolbarEl, editorEl) {
                 exec('italic');
                 break;
             case 'h2':
-                exec('formatBlock', '<h2>');
+                toggleBlockWrapper('h2', '<h2>');
                 break;
             case 'ul':
                 exec('insertUnorderedList');
@@ -3219,6 +3282,9 @@ function setupWysiwygToolbar(toolbarEl, editorEl) {
             }
             case 'mindmap':
                 MindMapUI.openForEditor(editorEl);
+                break;
+            case 'details':
+                await insertDetailsBlock();
                 break;
         }
 
