@@ -3,8 +3,6 @@ const bcrypt = require('bcryptjs');
 const jwt = require('jsonwebtoken');
 const { PrismaClient } = require('@prisma/client');
 const auth = require('../middleware/auth');
-const path = require('path');
-const { execFile } = require('child_process');
 
 const { validateBody, validateParams } = require('../middleware/validate');
 const { authWriteLimiter, adminLimiter, writeLimiter } = require('../middleware/rateLimiters');
@@ -37,9 +35,6 @@ const { generateTotpSecret, encryptTotpSecret, decryptTotpSecret, verifyTotpCode
 
 const router = express.Router();
 const prisma = new PrismaClient();
-
-let migrationsRunning = false;
-let backfillRunning = false;
 
 // Generate JWT token
 const generateToken = (userId) => {
@@ -513,72 +508,6 @@ const isAdmin = (req, res, next) => {
     next();
 };
 
-function runPrismaCommand(args, options = {}) {
-    const cwd = options.cwd || process.cwd();
-    const timeoutMs = options.timeoutMs || 120_000;
-
-    const isWindows = process.platform === 'win32';
-    const npxCmd = isWindows ? 'npx.cmd' : 'npx';
-
-    return new Promise((resolve, reject) => {
-        execFile(
-            npxCmd,
-            ['prisma', ...args],
-            {
-                cwd,
-                env: process.env,
-                windowsHide: true,
-                timeout: timeoutMs,
-                maxBuffer: 1024 * 1024
-            },
-            (error, stdout, stderr) => {
-                if (error) {
-                    const combined = String(stdout || '') + (stdout && stderr ? '\n' : '') + String(stderr || '');
-                    const err = new Error(combined || error.message || 'Falha ao executar Prisma CLI');
-                    err.code = error.code;
-                    return reject(err);
-                }
-                const combined = String(stdout || '') + (stdout && stderr ? '\n' : '') + String(stderr || '');
-                return resolve(combined);
-            }
-        );
-    });
-}
-
-function runNodeScript(scriptPath, options = {}) {
-    const cwd = options.cwd || process.cwd();
-    const timeoutMs = options.timeoutMs || 600_000;
-
-    return new Promise((resolve, reject) => {
-        execFile(
-            process.execPath,
-            [scriptPath],
-            {
-                cwd,
-                env: process.env,
-                windowsHide: true,
-                timeout: timeoutMs,
-                maxBuffer: 1024 * 1024
-            },
-            (error, stdout, stderr) => {
-                const combined = String(stdout || '') + (stdout && stderr ? '\n' : '') + String(stderr || '');
-                if (error) {
-                    const err = new Error(combined || error.message || 'Falha ao executar script');
-                    err.code = error.code;
-                    return reject(err);
-                }
-                return resolve(combined);
-            }
-        );
-    });
-}
-
-function truncateOutput(text, maxChars = 12_000) {
-    const s = String(text || '').trim();
-    if (s.length <= maxChars) return s;
-    return s.slice(0, maxChars) + `\n... (truncado; ${s.length - maxChars} chars omitidos)`;
-}
-
 function generateTemporaryPassword(length = 16) {
     const crypto = require('crypto');
     const alphabet = 'ABCDEFGHJKLMNPQRSTUVWXYZabcdefghijkmnopqrstuvwxyz23456789';
@@ -792,73 +721,7 @@ router.post(
     }
 );
 
-// Admin: run database migrations (prisma migrate deploy)
-router.post('/admin/migrations/deploy', auth, isAdmin, adminLimiter, async (req, res) => {
-    if (migrationsRunning) {
-        return res.status(409).json({ error: 'Uma migração já está em execução. Tente novamente em instantes.' });
-    }
-
-    migrationsRunning = true;
-    const startedAt = Date.now();
-    try {
-        const schemaPath = path.join('prisma', 'schema.prisma');
-        const output = await runPrismaCommand(['migrate', 'deploy', '--schema', schemaPath], { timeoutMs: 180_000 });
-
-        audit('admin.migrations.deploy', {
-            adminId: req.user.id,
-            durationMs: Date.now() - startedAt
-        });
-
-        return res.json({
-            message: 'Migrations aplicadas.',
-            output: truncateOutput(output)
-        });
-    } catch (error) {
-        audit('admin.migrations.deploy.fail', {
-            adminId: req.user.id,
-            durationMs: Date.now() - startedAt,
-            code: error?.code || null
-        });
-        return res.status(500).json({ error: 'Falha ao aplicar migrations.', details: truncateOutput(error?.message || String(error)) });
-    } finally {
-        migrationsRunning = false;
-    }
-});
-
-// Admin: backfill encryption + deterministic hashes for existing rows
-router.post('/admin/backfill/encryption', auth, isAdmin, adminLimiter, async (req, res) => {
-    if (backfillRunning) {
-        return res.status(409).json({ error: 'Um backfill já está em execução. Tente novamente em instantes.' });
-    }
-
-    backfillRunning = true;
-    const startedAt = Date.now();
-    try {
-        const scriptPath = path.join('prisma', 'encrypt-existing.js');
-        const output = await runNodeScript(scriptPath, { timeoutMs: 600_000 });
-
-        audit('admin.backfill.encryption', {
-            adminId: req.user.id,
-            durationMs: Date.now() - startedAt
-        });
-
-        return res.json({
-            message: 'Backfill concluído.',
-            output: truncateOutput(output)
-        });
-    } catch (error) {
-        audit('admin.backfill.encryption.fail', {
-            adminId: req.user.id,
-            durationMs: Date.now() - startedAt,
-            code: error?.code || null
-        });
-        return res.status(500).json({ error: 'Falha ao rodar backfill.', details: truncateOutput(error?.message || String(error)) });
-    } finally {
-        backfillRunning = false;
-    }
-});
-
-// Admin: sync category colors from sections
+// Admin: sync category colors from sections (safe operation - no shell commands)
 router.post('/admin/sync-category-colors', auth, isAdmin, adminLimiter, async (req, res) => {
     try {
         // Get all sections with their colors

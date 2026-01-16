@@ -660,10 +660,6 @@ const DOM = {
     pendingCount: document.getElementById('pendingCount'),
     allUsersList: document.getElementById('allUsersList'),
     refreshUsersBtn: document.getElementById('refreshUsersBtn'),
-    runMigrationsBtn: document.getElementById('runMigrationsBtn'),
-    migrationsOutput: document.getElementById('migrationsOutput'),
-    runBackfillBtn: document.getElementById('runBackfillBtn'),
-    backfillOutput: document.getElementById('backfillOutput'),
     syncCategoryColorsBtn: document.getElementById('syncCategoryColorsBtn'),
     syncColorsOutput: document.getElementById('syncColorsOutput'),
 
@@ -4536,84 +4532,6 @@ const App = {
         }
     },
 
-    async runMigrations() {
-        if (!AppState.user || AppState.user.role !== 'admin') {
-            showToast('Apenas administradores.');
-            return;
-        }
-
-        const ok = await SystemDialog.confirm('Aplicar migrations no servidor agora? (prisma migrate deploy)', {
-            title: 'Confirmar ação',
-            okText: 'Rodar',
-            cancelText: 'Cancelar'
-        });
-        if (!ok) {
-            return;
-        }
-
-        try {
-            if (DOM.migrationsOutput) {
-                DOM.migrationsOutput.textContent = 'Executando...';
-            }
-
-            const data = await API.request('/auth/admin/migrations/deploy', {
-                method: 'POST',
-                body: {}
-            });
-
-            const output = data.output || '(sem saída)';
-            if (DOM.migrationsOutput) {
-                DOM.migrationsOutput.textContent = output;
-            }
-            showToast('Migrations concluídas.');
-        } catch (error) {
-            const msg = error?.message || 'Erro ao rodar migrations';
-            showToast(msg);
-            if (DOM.migrationsOutput) {
-                DOM.migrationsOutput.textContent = `Erro: ${msg}`;
-            }
-        }
-    },
-
-    async runBackfillEncryption() {
-        if (!AppState.user || AppState.user.role !== 'admin') {
-            showToast('Apenas administradores.');
-            return;
-        }
-
-        const ok = await SystemDialog.confirm('Rodar backfill de criptografia/hashes agora? (pode levar alguns minutos)', {
-            title: 'Confirmar ação',
-            okText: 'Rodar',
-            cancelText: 'Cancelar'
-        });
-        if (!ok) {
-            return;
-        }
-
-        try {
-            if (DOM.backfillOutput) {
-                DOM.backfillOutput.textContent = 'Executando...';
-            }
-
-            const data = await API.request('/auth/admin/backfill/encryption', {
-                method: 'POST',
-                body: {}
-            });
-
-            const output = data.output || '(sem saída)';
-            if (DOM.backfillOutput) {
-                DOM.backfillOutput.textContent = output;
-            }
-            showToast('Backfill concluído.');
-        } catch (error) {
-            const msg = error?.message || 'Erro ao rodar backfill';
-            showToast(msg);
-            if (DOM.backfillOutput) {
-                DOM.backfillOutput.textContent = `Erro: ${msg}`;
-            }
-        }
-    },
-
     async syncCategoryColors() {
         if (!AppState.user || AppState.user.role !== 'admin') {
             showToast('Apenas administradores.');
@@ -7008,14 +6926,6 @@ const App = {
         // Admin refresh button
         if (DOM.refreshUsersBtn) {
             DOM.refreshUsersBtn.addEventListener('click', () => this.loadAdminData());
-        }
-
-        if (DOM.runMigrationsBtn) {
-            DOM.runMigrationsBtn.addEventListener('click', () => this.runMigrations());
-        }
-
-        if (DOM.runBackfillBtn) {
-            DOM.runBackfillBtn.addEventListener('click', () => this.runBackfillEncryption());
         }
 
         if (DOM.syncCategoryColorsBtn) {

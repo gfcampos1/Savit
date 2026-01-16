@@ -640,17 +640,11 @@
                                 </div>
                             </div>
 
-                            <!-- Migrations -->
+                            <!-- Database Tools -->
                             <div class="admin-card">
                                 <div class="admin-card-header">
                                     <span><i class="fas fa-database"></i> Banco de Dados</span>
                                     <div style="display:flex; gap:8px;">
-                                        <button class="btn-sm" id="runMigrationsBtn" title="Aplicar migrations (prisma migrate deploy)">
-                                            <i class="fas fa-play"></i>
-                                        </button>
-                                        <button class="btn-sm" id="runBackfillBtn" title="Backfill: criptografar dados existentes + recalcular hashes">
-                                            <i class="fas fa-shield-alt"></i>
-                                        </button>
                                         <button class="btn-sm" id="syncCategoryColorsBtn" title="Sincronizar cores das categorias com suas seções">
                                             <i class="fas fa-palette"></i>
                                         </button>
@@ -658,11 +652,7 @@
                                 </div>
                                 <div class="admin-list">
                                     <div class="admin-empty" style="text-align:left; gap:8px;">
-                                        <p style="margin:0;">Executa <strong>prisma migrate deploy</strong> no servidor.</p>
-                                        <pre id="migrationsOutput" style="white-space:pre-wrap; font-size:12px; opacity:.9; margin:0;">Saída: (vazia)</pre>
-                                        <p style="margin:8px 0 0;">Executa <strong>backfill</strong> de criptografia/hashes (para dados antigos).</p>
-                                        <pre id="backfillOutput" style="white-space:pre-wrap; font-size:12px; opacity:.9; margin:0;">Saída: (vazia)</pre>
-                                        <p style="margin:8px 0 0;">Sincroniza <strong>cores</strong> das categorias com suas seções.</p>
+                                        <p style="margin:0;">Sincroniza <strong>cores</strong> das categorias com suas seções.</p>
                                         <pre id="syncColorsOutput" style="white-space:pre-wrap; font-size:12px; opacity:.9; margin:0;">Saída: (vazia)</pre>
                                     </div>
                                 </div>
