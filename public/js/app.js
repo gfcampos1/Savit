@@ -818,8 +818,6 @@ const DOM = {
     categorySectionDropdown: document.getElementById('categorySectionDropdown'),
     categorySectionTrigger: document.getElementById('categorySectionTrigger'),
     categorySectionMenu: document.getElementById('categorySectionMenu'),
-    colorPicker: document.getElementById('colorPicker'),
-    customColor: document.getElementById('customColor'),
     cancelCategoryBtn: document.getElementById('cancelCategoryBtn'),
     saveCategoryBtn: document.getElementById('saveCategoryBtn'),
     editMessageModal: document.getElementById('editMessageModal'),
@@ -5894,7 +5892,7 @@ const App = {
         AppState.editingCategoryId = id;
         DOM.categoryModalTitle.textContent = 'Editar Categoria';
         DOM.categoryName.value = category.name;
-        selectColorOption(Utils.sanitizeCssColor(category.color));
+        // Pre-select the current section
         this.renderCategorySectionSelect(category.sectionId || '');
 
         openModal(DOM.categoryModal);
@@ -6559,13 +6557,6 @@ const App = {
             }
         });
 
-        // Color picker
-        document.querySelectorAll('.color-option').forEach(opt => {
-            opt.addEventListener('click', () => selectColorOption(opt.dataset.color));
-        });
-
-        DOM.customColor.addEventListener('input', (e) => selectColorOption(e.target.value));
-
         // Category selector modal
         DOM.closeCategorySelectorModal.addEventListener('click', () => closeModal(DOM.categorySelectorModal));
 
@@ -6944,26 +6935,14 @@ function closeModal(modal) {
 
 function resetCategoryModal() {
     DOM.categoryName.value = '';
-    AppState.selectedColorForCategory = '#25D366';
-    selectColorOption('#25D366');
-    if (DOM.categorySectionSelect) {
-        DOM.categorySectionSelect.value = '';
+    // Reset section dropdown
+    if (DOM.categorySectionTrigger) {
+        DOM.categorySectionTrigger.innerHTML = '<span>Selecione uma seção</span><i class="fas fa-chevron-down"></i>';
     }
+    AppState.selectedSectionIdForCategory = null;
 }
 
-function selectColorOption(color) {
-    const safe = Utils.sanitizeCssColor(color);
-    AppState.selectedColorForCategory = safe;
-
-    document.querySelectorAll('.color-option').forEach(opt => {
-        opt.classList.remove('selected');
-        if (opt.dataset.color === safe) {
-            opt.classList.add('selected');
-        }
-    });
-
-    DOM.customColor.value = safe;
-}
+// Color is now inherited from sections, no longer selected per category
 
 function resetInputOptions() {
     AppState.selectedCategoryId = null;
