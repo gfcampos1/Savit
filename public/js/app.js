@@ -3222,22 +3222,38 @@ function setupWysiwygToolbar(toolbarEl, editorEl) {
         contentDiv.innerHTML = content;
         details.appendChild(contentDiv);
 
+        // Create a paragraph after details so user can continue typing
+        const afterParagraph = document.createElement('p');
+        afterParagraph.innerHTML = '<br>';
+
         // Insert at cursor
         if (sel && sel.rangeCount > 0) {
             const range = sel.getRangeAt(0);
             range.deleteContents();
+            range.insertNode(afterParagraph);
             range.insertNode(details);
-            // Move cursor after the details block
-            range.setStartAfter(details);
+            // Move cursor to the paragraph after details
+            range.setStart(afterParagraph, 0);
             range.collapse(true);
             sel.removeAllRanges();
             sel.addRange(range);
         } else {
             editorEl.appendChild(details);
+            editorEl.appendChild(afterParagraph);
         }
 
         RichText.enforceEmbedsAtomic(editorEl);
         RichText.updateEmptyClass(editorEl);
+    };
+
+    // Ensure there's always a paragraph at the end for typing after block elements
+    const ensureTrailingParagraph = () => {
+        const lastChild = editorEl.lastElementChild;
+        if (lastChild && (lastChild.tagName === 'DETAILS' || lastChild.tagName === 'BLOCKQUOTE' || lastChild.tagName === 'PRE' || lastChild.tagName === 'UL' || lastChild.tagName === 'OL')) {
+            const p = document.createElement('p');
+            p.innerHTML = '<br>';
+            editorEl.appendChild(p);
+        }
     };
 
     toolbarEl.addEventListener('click', async (e) => {
@@ -3311,11 +3327,13 @@ function setupWysiwygToolbar(toolbarEl, editorEl) {
     editorEl.addEventListener('input', () => {
         RichText.enforceEmbedsAtomic(editorEl);
         RichText.updateEmptyClass(editorEl);
+        ensureTrailingParagraph();
         updateActiveButtons();
     });
 
     editorEl.addEventListener('focus', () => {
         RichText.updateEmptyClass(editorEl);
+        ensureTrailingParagraph();
         updateActiveButtons();
     });
 
