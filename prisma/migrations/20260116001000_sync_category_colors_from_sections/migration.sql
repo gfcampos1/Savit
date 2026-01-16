@@ -5,9 +5,9 @@
 UPDATE categories c
 SET color = cs.color
 FROM category_sections cs
-WHERE c.section_id = cs.id;
+WHERE c."sectionId" = cs.id;
 
 -- Categories without a section get the default color
 UPDATE categories
 SET color = '#25D366'
-WHERE section_id IS NULL;
+WHERE "sectionId" IS NULL;

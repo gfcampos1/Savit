@@ -36,6 +36,32 @@ async function main() {
 
   const output = `${deploy1.stdout}\n${deploy1.stderr}`;
   const isP3005 = output.includes('P3005') && output.includes('schema is not empty');
+  const isP3009 = output.includes('P3009') && output.includes('failed migrations');
+
+  // Handle failed migration (P3009) - mark as rolled back and retry
+  if (isP3009) {
+    // Extract migration name from output
+    const match = output.match(/`(\d+_[^`]+)`\s+migration started at/);
+    if (match) {
+      const failedMigration = match[1];
+      process.stderr.write(
+        `\n[railway-migrate] Detected P3009 (failed migration). ` +
+          `Rolling back migration: ${failedMigration}\n\n`
+      );
+
+      const rollback = await runShell(
+        `npx prisma migrate resolve --rolled-back ${failedMigration}`
+      );
+      if (rollback.code !== 0) {
+        process.exit(rollback.code);
+        return;
+      }
+
+      const deploy2 = await runShell('npx prisma migrate deploy');
+      process.exit(deploy2.code);
+      return;
+    }
+  }
 
   if (!isP3005) {
     process.exit(deploy1.code);
