@@ -43,6 +43,7 @@ router.get('/sections', async (req, res) => {
             sections: sections.map((s) => ({
                 id: s.id,
                 name: decryptString(s.name),
+                color: s.color,
                 position: s.position,
                 categoryCount: s._count.categories,
                 createdAt: s.createdAt,
@@ -58,7 +59,7 @@ router.get('/sections', async (req, res) => {
 // Create category section
 router.post('/sections', writeLimiter, validateBody(CategorySectionCreateBody), async (req, res) => {
     try {
-        const { name } = req.body;
+        const { name, color } = req.body;
         const nameHash = hmacNormalized(name);
 
         const dup = await prisma.categorySection.findFirst({
@@ -79,6 +80,7 @@ router.post('/sections', writeLimiter, validateBody(CategorySectionCreateBody), 
             data: {
                 name: encryptString(name),
                 nameHash,
+                color: normalizeHexColor(color) || '#25D366',
                 position: nextPosition,
                 userId: req.user.id
             },
@@ -89,6 +91,7 @@ router.post('/sections', writeLimiter, validateBody(CategorySectionCreateBody), 
             section: {
                 id: section.id,
                 name: decryptString(section.name),
+                color: section.color,
                 position: section.position,
                 categoryCount: section._count.categories,
                 createdAt: section.createdAt,
@@ -104,7 +107,7 @@ router.post('/sections', writeLimiter, validateBody(CategorySectionCreateBody), 
 // Update category section
 router.put('/sections/:id', validateParams(IdParam), writeLimiter, validateBody(CategorySectionUpdateBody), async (req, res) => {
     try {
-        const { name } = req.body;
+        const { name, color } = req.body;
 
         const existing = await prisma.categorySection.findFirst({
             where: { id: req.params.id, userId: req.user.id }
@@ -131,7 +134,8 @@ router.put('/sections/:id', validateParams(IdParam), writeLimiter, validateBody(
         const section = await prisma.categorySection.update({
             where: { id: req.params.id },
             data: {
-                ...(name !== undefined ? { name: encryptString(name), nameHash: nextHash } : {})
+                ...(name !== undefined ? { name: encryptString(name), nameHash: nextHash } : {}),
+                ...(color !== undefined ? { color: normalizeHexColor(color) } : {})
             },
             include: { _count: { select: { categories: true } } }
         });
@@ -140,6 +144,7 @@ router.put('/sections/:id', validateParams(IdParam), writeLimiter, validateBody(
             section: {
                 id: section.id,
                 name: decryptString(section.name),
+                color: section.color,
                 position: section.position,
                 categoryCount: section._count.categories,
                 createdAt: section.createdAt,

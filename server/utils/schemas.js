@@ -82,11 +82,13 @@ const CategoryUpdateBody = z.object({
 }).partial();
 
 const CategorySectionCreateBody = z.object({
-  name: z.string().trim().min(1, 'O nome da seção é obrigatório.').max(80, 'Nome muito longo.')
+  name: z.string().trim().min(1, 'O nome da seção é obrigatório.').max(80, 'Nome muito longo.'),
+  color: HexColor.optional().default('#25D366')
 });
 
 const CategorySectionUpdateBody = z.object({
-  name: z.string().trim().min(1).max(80).optional()
+  name: z.string().trim().min(1).max(80).optional(),
+  color: HexColor.optional()
 }).partial();
 
 const CategorySectionReorderBody = z.object({

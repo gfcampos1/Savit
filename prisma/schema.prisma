@@ -69,6 +69,7 @@ model CategorySection {
   id        String   @id @default(cuid())
   name      String
   nameHash  String   @map("name_hash")
+  color     String   @default("#25D366")
   position  Int      @default(0)
   userId    String
   createdAt DateTime @default(now())

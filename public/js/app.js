@@ -777,6 +777,10 @@ const DOM = {
     closeSectionsModal: document.getElementById('closeSectionsModal'),
     closeSectionsBtn: document.getElementById('closeSectionsBtn'),
     newSectionName: document.getElementById('newSectionName'),
+    newSectionColorPicker: document.getElementById('newSectionColorPicker'),
+    newSectionColorBtn: document.getElementById('newSectionColorBtn'),
+    newSectionColorMenu: document.getElementById('newSectionColorMenu'),
+    newSectionColor: document.getElementById('newSectionColor'),
     createSectionBtn: document.getElementById('createSectionBtn'),
     sectionsList: document.getElementById('sectionsList'),
     sectionsSortModeBtn: document.getElementById('sectionsSortModeBtn'),
@@ -788,6 +792,9 @@ const DOM = {
     confirmMoveCategoryBtn: document.getElementById('confirmMoveCategoryBtn'),
     moveCategoryName: document.getElementById('moveCategoryName'),
     moveCategorySectionSelect: document.getElementById('moveCategorySectionSelect'),
+    moveCategorySectionDropdown: document.getElementById('moveCategorySectionDropdown'),
+    moveCategorySectionTrigger: document.getElementById('moveCategorySectionTrigger'),
+    moveCategorySectionMenu: document.getElementById('moveCategorySectionMenu'),
 
     // Rename/delete section modals
     renameSectionModal: document.getElementById('renameSectionModal'),
@@ -795,6 +802,8 @@ const DOM = {
     cancelRenameSectionBtn: document.getElementById('cancelRenameSectionBtn'),
     saveRenameSectionBtn: document.getElementById('saveRenameSectionBtn'),
     renameSectionInput: document.getElementById('renameSectionInput'),
+    editSectionColorPicker: document.getElementById('editSectionColorPicker'),
+    editSectionColor: document.getElementById('editSectionColor'),
 
     deleteSectionModal: document.getElementById('deleteSectionModal'),
     closeDeleteSectionModal: document.getElementById('closeDeleteSectionModal'),
@@ -806,6 +815,9 @@ const DOM = {
     categoryModalTitle: document.getElementById('categoryModalTitle'),
     categoryName: document.getElementById('categoryName'),
     categorySectionSelect: document.getElementById('categorySectionSelect'),
+    categorySectionDropdown: document.getElementById('categorySectionDropdown'),
+    categorySectionTrigger: document.getElementById('categorySectionTrigger'),
+    categorySectionMenu: document.getElementById('categorySectionMenu'),
     colorPicker: document.getElementById('colorPicker'),
     customColor: document.getElementById('customColor'),
     cancelCategoryBtn: document.getElementById('cancelCategoryBtn'),
@@ -3692,17 +3704,19 @@ const App = {
         DOM.sectionsList.innerHTML = sections
             .map((s) => {
                 const count = Number(s.categoryCount ?? 0);
+                const sectionColor = s.color || '#25D366';
                 return `
                     <div class="section-item" data-id="${s.id}" draggable="${canReorder ? 'true' : 'false'}">
                         <div class="section-left">
                             <div class="section-grip" title="Arrastar para reordenar" style="${canReorder ? '' : 'opacity:0.45'}">
                                 <i class="fas fa-grip-vertical"></i>
                             </div>
+                            <div class="section-color-dot" style="background: ${Utils.sanitizeCssColor(sectionColor)}"></div>
                             <div class="section-name">${Utils.escapeHtml(s.name)}</div>
                             <div class="section-meta">${count}</div>
                         </div>
                         <div class="section-actions">
-                            <button class="section-edit" title="Renomear"><i class="fas fa-edit"></i></button>
+                            <button class="section-edit" title="Editar"><i class="fas fa-edit"></i></button>
                             <button class="section-delete" title="Excluir"><i class="fas fa-trash"></i></button>
                         </div>
                     </div>
@@ -3793,6 +3807,19 @@ const App = {
                 DOM.renameSectionInput.setSelectionRange(DOM.renameSectionInput.value.length, DOM.renameSectionInput.value.length);
             } catch { /* ignore */ }
         }
+
+        // Set section color
+        const sectionColor = section.color || '#25D366';
+        if (DOM.editSectionColor) {
+            DOM.editSectionColor.value = sectionColor;
+        }
+        // Highlight selected color
+        if (DOM.editSectionColorPicker) {
+            DOM.editSectionColorPicker.querySelectorAll('.color-option').forEach(opt => {
+                opt.classList.toggle('selected', opt.dataset.color === sectionColor);
+            });
+        }
+
         openModal(DOM.renameSectionModal);
         DOM.renameSectionInput?.focus();
     },
@@ -3807,12 +3834,13 @@ const App = {
         const sectionId = AppState.renamingSectionId;
         if (!sectionId) return;
         const name = String(DOM.renameSectionInput?.value || '').trim();
+        const color = DOM.editSectionColor?.value || '#25D366';
         if (!name) {
             showToast('Digite um nome para a seção');
             return;
         }
         try {
-            await API.categories.updateSection(sectionId, { name });
+            await API.categories.updateSection(sectionId, { name, color });
             await this.refreshCategories();
             this.closeRenameSectionModal();
             showToast('Seção atualizada!');
@@ -3853,13 +3881,17 @@ const App = {
 
     async createSectionFromModal() {
         const name = String(DOM.newSectionName?.value || '').trim();
+        const color = DOM.newSectionColor?.value || '#25D366';
         if (!name) {
             showToast('Digite um nome para a seção');
             return;
         }
         try {
-            await API.categories.createSection({ name });
+            await API.categories.createSection({ name, color });
             DOM.newSectionName.value = '';
+            // Reset color to default
+            if (DOM.newSectionColor) DOM.newSectionColor.value = '#25D366';
+            if (DOM.newSectionColorBtn) DOM.newSectionColorBtn.style.background = '#25D366';
             await this.refreshCategories();
             showToast('Seção criada!');
         } catch (error) {
@@ -3876,30 +3908,15 @@ const App = {
             DOM.moveCategoryName.textContent = category.name || '';
         }
 
-        // Populate select
-        if (DOM.moveCategorySectionSelect) {
-            DOM.moveCategorySectionSelect.innerHTML = '';
-            const none = document.createElement('option');
-            none.value = '';
-            none.textContent = 'Sem seção';
-            DOM.moveCategorySectionSelect.appendChild(none);
-
-            const sections = Array.isArray(AppState.categorySections) ? [...AppState.categorySections] : [];
-            sections.sort((a, b) => {
-                const pa = Number(a.position ?? 0);
-                const pb = Number(b.position ?? 0);
-                if (pa !== pb) return pa - pb;
-                return String(a.name || '').localeCompare(String(b.name || ''), 'pt-BR');
-            });
-            sections.forEach((s) => {
-                const opt = document.createElement('option');
-                opt.value = String(s.id || '');
-                opt.textContent = String(s.name || '');
-                DOM.moveCategorySectionSelect.appendChild(opt);
-            });
-
-            DOM.moveCategorySectionSelect.value = category.sectionId || '';
-        }
+        // Render custom section dropdown
+        this.renderCustomSectionDropdown(
+            DOM.moveCategorySectionDropdown,
+            DOM.moveCategorySectionTrigger,
+            DOM.moveCategorySectionMenu,
+            DOM.moveCategorySectionSelect,
+            'Sem seção',
+            category.sectionId || ''
+        );
 
         openModal(DOM.moveCategoryModal);
     },
@@ -3915,11 +3932,21 @@ const App = {
         if (!id) return;
         const sectionIdRaw = DOM.moveCategorySectionSelect ? DOM.moveCategorySectionSelect.value : '';
         const sectionId = sectionIdRaw ? sectionIdRaw : null;
+
+        // Get color from selected section
+        let color = '#25D366'; // default
+        if (sectionId) {
+            const section = AppState.categorySections.find(s => s.id === sectionId);
+            if (section && section.color) {
+                color = section.color;
+            }
+        }
+
         try {
-            await API.categories.update(id, { sectionId });
+            await API.categories.update(id, { sectionId, color });
             await this.refreshCategories();
             this.closeMoveCategoryModal();
-            showToast('Categoria movida!');
+            showToast('Tema movido!');
         } catch (error) {
             showToast(error.message);
         }
@@ -5180,30 +5207,133 @@ const App = {
     },
 
     renderCategorySectionSelect(selectedSectionId = '') {
-        if (!DOM.categorySectionSelect) return;
-        DOM.categorySectionSelect.innerHTML = '';
+        // For hidden input (keeps compatibility)
+        if (DOM.categorySectionSelect) {
+            DOM.categorySectionSelect.value = selectedSectionId || '';
+        }
 
-        const noneOpt = document.createElement('option');
-        noneOpt.value = '';
-        noneOpt.textContent = 'Sem seção';
-        DOM.categorySectionSelect.appendChild(noneOpt);
+        // Render custom dropdown for category modal
+        this.renderCustomSectionDropdown(
+            DOM.categorySectionDropdown,
+            DOM.categorySectionTrigger,
+            DOM.categorySectionMenu,
+            DOM.categorySectionSelect,
+            'Sem seção',
+            selectedSectionId
+        );
+
+        // Render custom dropdown for move category modal
+        this.renderCustomSectionDropdown(
+            DOM.moveCategorySectionDropdown,
+            DOM.moveCategorySectionTrigger,
+            DOM.moveCategorySectionMenu,
+            DOM.moveCategorySectionSelect,
+            'Sem seção',
+            selectedSectionId
+        );
+    },
+
+    renderCustomSectionDropdown(dropdown, trigger, menu, hiddenInput, placeholder, selectedValue = '') {
+        if (!dropdown || !trigger || !menu || !hiddenInput) return;
 
         const sections = Array.isArray(AppState.categorySections) ? [...AppState.categorySections] : [];
-        sections
-            .sort((a, b) => {
-                const pa = Number(a.position ?? 0);
-                const pb = Number(b.position ?? 0);
-                if (pa !== pb) return pa - pb;
-                return String(a.name || '').localeCompare(String(b.name || ''), 'pt-BR');
-            })
-            .forEach((s) => {
-                const opt = document.createElement('option');
-                opt.value = String(s.id || '');
-                opt.textContent = String(s.name || '');
-                DOM.categorySectionSelect.appendChild(opt);
-            });
+        sections.sort((a, b) => {
+            const pa = Number(a.position ?? 0);
+            const pb = Number(b.position ?? 0);
+            if (pa !== pb) return pa - pb;
+            return String(a.name || '').localeCompare(String(b.name || ''), 'pt-BR');
+        });
 
-        DOM.categorySectionSelect.value = selectedSectionId || '';
+        // Build menu options
+        let html = `
+            <div class="category-dropdown-option" data-value="" data-color="">
+                <span class="option-color no-category"><i class="fas fa-ban" style="font-size: 10px;"></i></span>
+                <span class="option-name">${Utils.escapeHtml(placeholder)}</span>
+            </div>
+        `;
+
+        sections.forEach(section => {
+            const catCount = AppState.categories.filter(c => c.sectionId === section.id).length;
+            html += `
+                <div class="category-dropdown-option" data-value="${section.id}" data-color="${Utils.sanitizeCssColor(section.color)}">
+                    <span class="option-color" style="background: ${Utils.sanitizeCssColor(section.color)}">
+                        <i class="fas fa-layer-group"></i>
+                    </span>
+                    <span class="option-name">${Utils.escapeHtml(section.name)}</span>
+                    ${catCount > 0 ? `<span class="option-count">${catCount}</span>` : ''}
+                </div>
+            `;
+        });
+
+        menu.innerHTML = html;
+
+        // Set hidden input value
+        hiddenInput.value = selectedValue || '';
+
+        // Update trigger display
+        this.updateSectionDropdownDisplay(trigger, selectedValue, placeholder);
+
+        // Mark selected
+        menu.querySelectorAll('.category-dropdown-option').forEach(opt => {
+            opt.classList.toggle('selected', opt.dataset.value === (selectedValue || ''));
+        });
+
+        // Remove old event listeners by cloning
+        const newTrigger = trigger.cloneNode(true);
+        trigger.parentNode.replaceChild(newTrigger, trigger);
+
+        // Re-assign the trigger reference
+        if (dropdown.id === 'categorySectionDropdown') {
+            DOM.categorySectionTrigger = newTrigger;
+        } else if (dropdown.id === 'moveCategorySectionDropdown') {
+            DOM.moveCategorySectionTrigger = newTrigger;
+        }
+
+        // Toggle dropdown
+        newTrigger.addEventListener('click', (e) => {
+            e.preventDefault();
+            e.stopPropagation();
+            const isOpen = dropdown.classList.contains('open');
+            // Close all other dropdowns
+            document.querySelectorAll('.category-dropdown.open').forEach(d => d.classList.remove('open'));
+            if (!isOpen) {
+                dropdown.classList.add('open');
+            }
+        });
+
+        // Handle option selection
+        menu.querySelectorAll('.category-dropdown-option').forEach(opt => {
+            opt.addEventListener('click', (e) => {
+                e.stopPropagation();
+                const value = opt.dataset.value;
+                hiddenInput.value = value;
+                this.updateSectionDropdownDisplay(newTrigger, value, placeholder);
+                dropdown.classList.remove('open');
+
+                // Mark selected
+                menu.querySelectorAll('.category-dropdown-option').forEach(o => o.classList.remove('selected'));
+                opt.classList.add('selected');
+            });
+        });
+    },
+
+    updateSectionDropdownDisplay(trigger, value, placeholder) {
+        const colorSpan = trigger.querySelector('.category-dropdown-color');
+        const textSpan = trigger.querySelector('.category-dropdown-text');
+
+        if (!value) {
+            colorSpan.style.background = 'var(--text-muted)';
+            textSpan.textContent = placeholder;
+        } else {
+            const section = AppState.categorySections.find(s => s.id === value);
+            if (section) {
+                colorSpan.style.background = Utils.sanitizeCssColor(section.color);
+                textSpan.textContent = section.name;
+            } else {
+                colorSpan.style.background = 'var(--text-muted)';
+                textSpan.textContent = placeholder;
+            }
+        }
     },
 
     renderCategorySelector() {
@@ -5575,7 +5705,7 @@ const App = {
         const name = DOM.categoryName.value.trim();
 
         if (!name) {
-            showToast('Digite um nome para a categoria');
+            showToast('Digite um nome para o tema');
             return;
         }
 
@@ -5583,9 +5713,18 @@ const App = {
             const sectionIdRaw = DOM.categorySectionSelect ? DOM.categorySectionSelect.value : '';
             const sectionId = sectionIdRaw ? sectionIdRaw : null;
 
+            // Get color from selected section
+            let color = '#25D366'; // default
+            if (sectionId) {
+                const section = AppState.categorySections.find(s => s.id === sectionId);
+                if (section && section.color) {
+                    color = section.color;
+                }
+            }
+
             await API.categories.create({
                 name,
-                color: Utils.sanitizeCssColor(AppState.selectedColorForCategory),
+                color,
                 sectionId
             });
 
@@ -5593,7 +5732,7 @@ const App = {
             closeModal(DOM.categoryModal);
             resetCategoryModal();
 
-            showToast('Categoria criada!');
+            showToast('Tema criado!');
         } catch (error) {
             showToast(error.message);
         }
@@ -5603,7 +5742,7 @@ const App = {
         const name = DOM.categoryName.value.trim();
 
         if (!name) {
-            showToast('Digite um nome para a categoria');
+            showToast('Digite um nome para o tema');
             return;
         }
 
@@ -5611,9 +5750,18 @@ const App = {
             const sectionIdRaw = DOM.categorySectionSelect ? DOM.categorySectionSelect.value : '';
             const sectionId = sectionIdRaw ? sectionIdRaw : null;
 
+            // Get color from selected section
+            let color = '#25D366'; // default
+            if (sectionId) {
+                const section = AppState.categorySections.find(s => s.id === sectionId);
+                if (section && section.color) {
+                    color = section.color;
+                }
+            }
+
             await API.categories.update(id, {
                 name,
-                color: Utils.sanitizeCssColor(AppState.selectedColorForCategory),
+                color,
                 sectionId
             });
 
@@ -5622,7 +5770,7 @@ const App = {
             closeModal(DOM.categoryModal);
             resetCategoryModal();
 
-            showToast('Categoria atualizada!');
+            showToast('Tema atualizado!');
         } catch (error) {
             showToast(error.message);
         }
@@ -6324,6 +6472,41 @@ const App = {
             });
         }
 
+        // New section color picker
+        if (DOM.newSectionColorBtn) {
+            DOM.newSectionColorBtn.addEventListener('click', (e) => {
+                e.stopPropagation();
+                DOM.newSectionColorPicker?.classList.toggle('open');
+            });
+        }
+        if (DOM.newSectionColorMenu) {
+            DOM.newSectionColorMenu.querySelectorAll('.color-option').forEach(opt => {
+                opt.addEventListener('click', (e) => {
+                    e.stopPropagation();
+                    const color = opt.dataset.color;
+                    if (DOM.newSectionColor) DOM.newSectionColor.value = color;
+                    if (DOM.newSectionColorBtn) DOM.newSectionColorBtn.style.background = color;
+                    DOM.newSectionColorPicker?.classList.remove('open');
+                    // Mark selected
+                    DOM.newSectionColorMenu.querySelectorAll('.color-option').forEach(o => o.classList.remove('selected'));
+                    opt.classList.add('selected');
+                });
+            });
+        }
+
+        // Edit section color picker
+        if (DOM.editSectionColorPicker) {
+            DOM.editSectionColorPicker.querySelectorAll('.color-option').forEach(opt => {
+                opt.addEventListener('click', () => {
+                    const color = opt.dataset.color;
+                    if (DOM.editSectionColor) DOM.editSectionColor.value = color;
+                    // Mark selected
+                    DOM.editSectionColorPicker.querySelectorAll('.color-option').forEach(o => o.classList.remove('selected'));
+                    opt.classList.add('selected');
+                });
+            });
+        }
+
         // Move category modal
         if (DOM.closeMoveCategoryModal) {
             DOM.closeMoveCategoryModal.addEventListener('click', () => this.closeMoveCategoryModal());
@@ -6653,6 +6836,10 @@ const App = {
             // Close custom category dropdowns
             if (!e.target.closest('.category-dropdown')) {
                 document.querySelectorAll('.category-dropdown.open').forEach(d => d.classList.remove('open'));
+            }
+            // Close section color pickers
+            if (!e.target.closest('.section-color-picker')) {
+                document.querySelectorAll('.section-color-picker.open').forEach(p => p.classList.remove('open'));
             }
         });
 

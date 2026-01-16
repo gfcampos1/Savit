@@ -793,28 +793,19 @@
                         <input type="text" id="categoryName" placeholder="Ex: Trabalho, Pessoal...">
                     </div>
                     <div class="form-group">
-                        <label for="categorySectionSelect">Seção</label>
-                        <select id="categorySectionSelect">
-                            <option value="">Sem seção</option>
-                        </select>
-                    </div>
-                    <div class="form-group">
-                        <label>Cor</label>
-                        <div class="color-picker" id="colorPicker">
-                            <div class="color-option" data-color="#25D366" style="background: #25D366;"></div>
-                            <div class="color-option" data-color="#128C7E" style="background: #128C7E;"></div>
-                            <div class="color-option" data-color="#075E54" style="background: #075E54;"></div>
-                            <div class="color-option" data-color="#34B7F1" style="background: #34B7F1;"></div>
-                            <div class="color-option" data-color="#9C27B0" style="background: #9C27B0;"></div>
-                            <div class="color-option" data-color="#E91E63" style="background: #E91E63;"></div>
-                            <div class="color-option" data-color="#FF5722" style="background: #FF5722;"></div>
-                            <div class="color-option" data-color="#FF9800" style="background: #FF9800;"></div>
-                            <div class="color-option" data-color="#FFC107" style="background: #FFC107;"></div>
-                            <div class="color-option" data-color="#4CAF50" style="background: #4CAF50;"></div>
-                            <div class="color-option" data-color="#607D8B" style="background: #607D8B;"></div>
-                            <div class="color-option" data-color="#795548" style="background: #795548;"></div>
+                        <label>Seção</label>
+                        <div class="category-dropdown" id="categorySectionDropdown">
+                            <button type="button" class="category-dropdown-trigger" id="categorySectionTrigger">
+                                <span class="category-dropdown-color"></span>
+                                <span class="category-dropdown-text">Sem seção</span>
+                                <i class="fas fa-chevron-down"></i>
+                            </button>
+                            <div class="category-dropdown-menu" id="categorySectionMenu">
+                                <!-- Options rendered by JS -->
+                            </div>
+                            <input type="hidden" id="categorySectionSelect" value="">
                         </div>
-                        <input type="color" id="customColor" class="custom-color-input">
+                        <p class="form-hint">A cor do tema será definida pela seção selecionada</p>
                     </div>
                 </div>
                 <div class="modal-footer">
@@ -834,11 +825,33 @@
                     </button>
                 </div>
                 <div class="modal-body">
-                    <div class="section-create-row">
-                        <input type="text" id="newSectionName" placeholder="Nova seção (ex: Estudos)">
-                        <button class="btn btn-primary" id="createSectionBtn">
-                            <i class="fas fa-plus"></i> Criar
-                        </button>
+                    <div class="section-create-form">
+                        <div class="section-create-row">
+                            <input type="text" id="newSectionName" placeholder="Nova seção (ex: Estudos)">
+                            <div class="section-color-picker" id="newSectionColorPicker">
+                                <button type="button" class="section-color-btn" id="newSectionColorBtn" style="background: #25D366;">
+                                    <i class="fas fa-palette"></i>
+                                </button>
+                                <div class="section-color-menu" id="newSectionColorMenu">
+                                    <div class="color-option" data-color="#25D366" style="background: #25D366;"></div>
+                                    <div class="color-option" data-color="#128C7E" style="background: #128C7E;"></div>
+                                    <div class="color-option" data-color="#075E54" style="background: #075E54;"></div>
+                                    <div class="color-option" data-color="#34B7F1" style="background: #34B7F1;"></div>
+                                    <div class="color-option" data-color="#9C27B0" style="background: #9C27B0;"></div>
+                                    <div class="color-option" data-color="#E91E63" style="background: #E91E63;"></div>
+                                    <div class="color-option" data-color="#FF5722" style="background: #FF5722;"></div>
+                                    <div class="color-option" data-color="#FF9800" style="background: #FF9800;"></div>
+                                    <div class="color-option" data-color="#FFC107" style="background: #FFC107;"></div>
+                                    <div class="color-option" data-color="#4CAF50" style="background: #4CAF50;"></div>
+                                    <div class="color-option" data-color="#607D8B" style="background: #607D8B;"></div>
+                                    <div class="color-option" data-color="#795548" style="background: #795548;"></div>
+                                </div>
+                                <input type="hidden" id="newSectionColor" value="#25D366">
+                            </div>
+                            <button class="btn btn-primary" id="createSectionBtn">
+                                <i class="fas fa-plus"></i> Criar
+                            </button>
+                        </div>
                     </div>
                     <div class="section-sort-row">
                         <span class="section-sort-label">Ordenação:</span>
@@ -859,21 +872,29 @@
         <div class="modal" id="moveCategoryModal">
             <div class="modal-content">
                 <div class="modal-header">
-                    <h3>Mover categoria</h3>
+                    <h3>Mover tema</h3>
                     <button class="close-modal" id="closeMoveCategoryModal">
                         <i class="fas fa-times"></i>
                     </button>
                 </div>
                 <div class="modal-body">
                     <div class="form-group">
-                        <label>Categoria</label>
+                        <label>Tema</label>
                         <div class="move-category-name" id="moveCategoryName">-</div>
                     </div>
                     <div class="form-group">
-                        <label for="moveCategorySectionSelect">Seção</label>
-                        <select id="moveCategorySectionSelect">
-                            <option value="">Sem seção</option>
-                        </select>
+                        <label>Seção</label>
+                        <div class="category-dropdown" id="moveCategorySectionDropdown">
+                            <button type="button" class="category-dropdown-trigger" id="moveCategorySectionTrigger">
+                                <span class="category-dropdown-color"></span>
+                                <span class="category-dropdown-text">Sem seção</span>
+                                <i class="fas fa-chevron-down"></i>
+                            </button>
+                            <div class="category-dropdown-menu" id="moveCategorySectionMenu">
+                                <!-- Options rendered by JS -->
+                            </div>
+                            <input type="hidden" id="moveCategorySectionSelect" value="">
+                        </div>
                     </div>
                 </div>
                 <div class="modal-footer">
@@ -883,11 +904,11 @@
             </div>
         </div>
 
-        <!-- Rename Section Modal -->
+        <!-- Edit Section Modal -->
         <div class="modal" id="renameSectionModal">
             <div class="modal-content">
                 <div class="modal-header">
-                    <h3>Renomear seção</h3>
+                    <h3>Editar seção</h3>
                     <button class="close-modal" id="closeRenameSectionModal">
                         <i class="fas fa-times"></i>
                     </button>
@@ -896,6 +917,24 @@
                     <div class="form-group">
                         <label for="renameSectionInput">Nome</label>
                         <input type="text" id="renameSectionInput" placeholder="Nome da seção">
+                    </div>
+                    <div class="form-group">
+                        <label>Cor</label>
+                        <div class="color-picker" id="editSectionColorPicker">
+                            <div class="color-option" data-color="#25D366" style="background: #25D366;"></div>
+                            <div class="color-option" data-color="#128C7E" style="background: #128C7E;"></div>
+                            <div class="color-option" data-color="#075E54" style="background: #075E54;"></div>
+                            <div class="color-option" data-color="#34B7F1" style="background: #34B7F1;"></div>
+                            <div class="color-option" data-color="#9C27B0" style="background: #9C27B0;"></div>
+                            <div class="color-option" data-color="#E91E63" style="background: #E91E63;"></div>
+                            <div class="color-option" data-color="#FF5722" style="background: #FF5722;"></div>
+                            <div class="color-option" data-color="#FF9800" style="background: #FF9800;"></div>
+                            <div class="color-option" data-color="#FFC107" style="background: #FFC107;"></div>
+                            <div class="color-option" data-color="#4CAF50" style="background: #4CAF50;"></div>
+                            <div class="color-option" data-color="#607D8B" style="background: #607D8B;"></div>
+                            <div class="color-option" data-color="#795548" style="background: #795548;"></div>
+                        </div>
+                        <input type="hidden" id="editSectionColor" value="#25D366">
                     </div>
                 </div>
                 <div class="modal-footer">

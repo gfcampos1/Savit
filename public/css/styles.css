@@ -2909,6 +2909,89 @@ body {
     background: var(--border-color);
 }
 
+/* Section color picker */
+.section-create-form {
+    margin-bottom: var(--spacing-md);
+}
+
+.section-create-row {
+    display: flex;
+    gap: var(--spacing-sm);
+    align-items: center;
+}
+
+.section-create-row input {
+    flex: 1;
+}
+
+.section-color-picker {
+    position: relative;
+}
+
+.section-color-btn {
+    width: 40px;
+    height: 40px;
+    border: none;
+    border-radius: var(--radius-md);
+    cursor: pointer;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    color: white;
+    font-size: var(--font-size-md);
+    transition: transform var(--transition-fast), box-shadow var(--transition-fast);
+}
+
+.section-color-btn:hover {
+    transform: scale(1.05);
+    box-shadow: var(--shadow-md);
+}
+
+.section-color-menu {
+    position: absolute;
+    top: 100%;
+    right: 0;
+    margin-top: 4px;
+    background: var(--chat-bg-light);
+    border: 1px solid var(--border-color);
+    border-radius: var(--radius-md);
+    padding: var(--spacing-sm);
+    display: none;
+    grid-template-columns: repeat(4, 1fr);
+    gap: 6px;
+    z-index: 100;
+    box-shadow: var(--shadow-lg);
+}
+
+.section-color-picker.open .section-color-menu {
+    display: grid;
+    animation: dropdownFadeIn 0.15s ease;
+}
+
+.section-color-menu .color-option {
+    width: 28px;
+    height: 28px;
+    border-radius: var(--radius-full);
+    cursor: pointer;
+    transition: transform var(--transition-fast);
+    border: 2px solid transparent;
+}
+
+.section-color-menu .color-option:hover {
+    transform: scale(1.15);
+}
+
+.section-color-menu .color-option.selected {
+    border-color: white;
+    box-shadow: 0 0 0 2px var(--teal-green);
+}
+
+.form-hint {
+    font-size: var(--font-size-sm);
+    color: var(--text-secondary);
+    margin-top: var(--spacing-xs);
+}
+
 /* =============================================
    Modals
    ============================================= */
@@ -3028,6 +3111,13 @@ body {
 
 [data-theme="light"] .section-grip {
     background: rgba(0, 0, 0, 0.05);
+}
+
+.section-color-dot {
+    width: 16px;
+    height: 16px;
+    border-radius: var(--radius-full);
+    flex-shrink: 0;
 }
 
 .section-name {
