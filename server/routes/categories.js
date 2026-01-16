@@ -140,6 +140,14 @@ router.put('/sections/:id', validateParams(IdParam), writeLimiter, validateBody(
             include: { _count: { select: { categories: true } } }
         });
 
+        // If color was updated, update all categories in this section to inherit the new color
+        if (color !== undefined) {
+            await prisma.category.updateMany({
+                where: { sectionId: req.params.id, userId: req.user.id },
+                data: { color: normalizeHexColor(color) }
+            });
+        }
+
         res.json({
             section: {
                 id: section.id,
@@ -300,19 +308,21 @@ router.post('/', writeLimiter, validateBody(CategoryCreateBody), async (req, res
         }
 
         let finalSectionId = null;
+        let finalColor = '#25D366'; // Default color
         if (sectionId) {
             const section = await requireSectionOwnedByUser(sectionId, req.user.id);
             if (!section) {
                 return res.status(400).json({ error: 'Seção inválida.' });
             }
             finalSectionId = section.id;
+            finalColor = section.color || '#25D366'; // Inherit color from section
         }
 
         const category = await prisma.category.create({
             data: {
                 name: encryptString(name),
                 nameHash,
-                color: normalizeHexColor(color),
+                color: normalizeHexColor(finalColor),
                 userId: req.user.id,
                 sectionId: finalSectionId
             }
@@ -364,15 +374,18 @@ router.put('/:id', validateParams(IdParam), writeLimiter, validateBody(CategoryU
         }
 
         let finalSectionId = undefined;
+        let inheritedColor = undefined;
         if (sectionId !== undefined) {
             if (sectionId === null) {
                 finalSectionId = null;
+                inheritedColor = '#25D366'; // Default color when removing from section
             } else {
                 const section = await requireSectionOwnedByUser(sectionId, req.user.id);
                 if (!section) {
                     return res.status(400).json({ error: 'Seção inválida.' });
                 }
                 finalSectionId = section.id;
+                inheritedColor = section.color || '#25D366'; // Inherit color from section
             }
         }
 
@@ -380,8 +393,9 @@ router.put('/:id', validateParams(IdParam), writeLimiter, validateBody(CategoryU
             where: { id: req.params.id },
             data: {
                 ...(name !== undefined ? { name: encryptString(name), nameHash: nextHash } : {}),
-                ...(color !== undefined ? { color: normalizeHexColor(color, existing.color || '#25D366') } : {}),
+                ...(inheritedColor !== undefined ? { color: normalizeHexColor(inheritedColor) } : {}),
                 ...(finalSectionId !== undefined ? { sectionId: finalSectionId } : {})
+            },
             },
             include: {
                 _count: {
