@@ -939,6 +939,9 @@ const Markdown = {
         // Bold
         html = html.replace(/\*\*([^\n*][^\n]*?)\*\*/g, '<strong>$1</strong>');
 
+        // Highlight (==text==)
+        html = html.replace(/==([^\n=][^\n]*?)==/g, '<mark>$1</mark>');
+
         // Italic (simple)
         html = html.replace(/(^|[^*])\*([^\n*][^\n]*?)\*(?!\*)/g, '$1<em>$2</em>');
 
@@ -2867,6 +2870,7 @@ function setupFormattingToolbar(toolbarEl, textareaEl) {
         setBtnActive('italic', italicActive);
 
         setBtnActive('code', isInsideInlineMark(value, cursor, '`'));
+        setBtnActive('highlight', isInsideInlineMark(value, cursor, '=='));
 
         // Block-ish states (current line)
         setBtnActive('quote', /^\s*>\s+/.test(line));
@@ -2938,6 +2942,9 @@ function setupFormattingToolbar(toolbarEl, textareaEl) {
                 }
                 break;
             }
+            case 'highlight':
+                toggleInlineMark('==');
+                break;
             case 'link':
                 await TextareaFormat.insertLink(textareaEl);
                 break;
@@ -3193,6 +3200,7 @@ function setupWysiwygToolbar(toolbarEl, editorEl) {
         setBtnActive('quote', !!closestTag('blockquote'));
         setBtnActive('h2', !!closestTag('h2'));
         setBtnActive('code', !!closestTag('pre, code'));
+        setBtnActive('highlight', !!closestTag('mark'));
         setBtnActive('details', !!closestTag('details'));
     };
 
@@ -3308,6 +3316,32 @@ function setupWysiwygToolbar(toolbarEl, editorEl) {
             case 'code':
                 toggleBlockWrapper('pre', '<pre>');
                 break;
+            case 'highlight': {
+                // Use hiliteColor command or wrap in <mark>
+                const markEl = closestTag('mark');
+                if (markEl) {
+                    unwrapElement(markEl);
+                } else {
+                    const sel = window.getSelection();
+                    if (sel && !sel.isCollapsed) {
+                        const range = sel.getRangeAt(0);
+                        const mark = document.createElement('mark');
+                        try {
+                            range.surroundContents(mark);
+                        } catch {
+                            // If selection spans multiple elements, extract and wrap
+                            const frag = range.extractContents();
+                            mark.appendChild(frag);
+                            range.insertNode(mark);
+                        }
+                        // Place cursor after mark
+                        placeCaretAfterNode(mark);
+                    }
+                }
+                RichText.enforceEmbedsAtomic(editorEl);
+                RichText.updateEmptyClass(editorEl);
+                break;
+            }
             case 'link': {
                 const url = await SystemDialog.prompt('Cole o link (https://...)', {
                     title: 'Inserir link',

@@ -1554,6 +1554,13 @@ body {
     text-underline-offset: 2px;
 }
 
+.message-text mark {
+    background: rgba(255, 235, 59, 0.5);
+    color: inherit;
+    padding: 0.1em 0.2em;
+    border-radius: 3px;
+}
+
 /* Message: Collapsible sections (details/summary) */
 .message-text details {
     margin: 0.5em 0;
@@ -1600,6 +1607,10 @@ body {
 
 [data-theme="light"] .message-text .details-content {
     border-left: 1px dashed rgba(0, 0, 0, 0.12);
+}
+
+[data-theme="light"] .message-text mark {
+    background: rgba(255, 235, 59, 0.6);
 }
 
 /* Formatting toolbar (Markdown helpers) */
@@ -2497,6 +2508,17 @@ body {
 .wysiwyg-editor pre code {
     padding: 0;
     background: transparent;
+}
+
+.wysiwyg-editor mark {
+    background: rgba(255, 235, 59, 0.5);
+    color: inherit;
+    padding: 0.1em 0.2em;
+    border-radius: 3px;
+}
+
+[data-theme="light"] .wysiwyg-editor mark {
+    background: rgba(255, 235, 59, 0.6);
 }
 
 /* WYSIWYG: Collapsible sections (details/summary) */
