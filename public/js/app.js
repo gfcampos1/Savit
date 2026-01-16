@@ -4755,7 +4755,11 @@ const App = {
 
         // Message click (edit)
         container.querySelectorAll('.message').forEach(message => {
-            message.addEventListener('click', () => {
+            message.addEventListener('click', (e) => {
+                // Don't open edit when clicking on collapsible sections (details/summary)
+                if (e.target.closest('details') || e.target.closest('summary')) {
+                    return;
+                }
                 this.openEditMessageModal(message.dataset.id);
             });
 
