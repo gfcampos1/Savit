@@ -858,4 +858,46 @@ router.post('/admin/backfill/encryption', auth, isAdmin, adminLimiter, async (re
     }
 });
 
+// Admin: sync category colors from sections
+router.post('/admin/sync-category-colors', auth, isAdmin, adminLimiter, async (req, res) => {
+    try {
+        // Get all sections with their colors
+        const sections = await prisma.categorySection.findMany({
+            select: { id: true, color: true }
+        });
+
+        let updatedCount = 0;
+        
+        // Update categories for each section
+        for (const section of sections) {
+            const result = await prisma.category.updateMany({
+                where: { sectionId: section.id },
+                data: { color: section.color }
+            });
+            updatedCount += result.count;
+        }
+
+        // Update categories without section to default color
+        const noSectionResult = await prisma.category.updateMany({
+            where: { sectionId: null },
+            data: { color: '#25D366' }
+        });
+        updatedCount += noSectionResult.count;
+
+        audit('admin.sync-category-colors', {
+            adminId: req.user.id,
+            sectionsCount: sections.length,
+            categoriesUpdated: updatedCount
+        });
+
+        return res.json({
+            message: 'Cores sincronizadas.',
+            output: `Seções processadas: ${sections.length}\nCategorias atualizadas: ${updatedCount}`
+        });
+    } catch (error) {
+        console.error('Sync category colors error:', error);
+        return res.status(500).json({ error: 'Falha ao sincronizar cores.' });
+    }
+});
+
 module.exports = router;

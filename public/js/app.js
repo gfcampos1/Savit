@@ -664,6 +664,8 @@ const DOM = {
     migrationsOutput: document.getElementById('migrationsOutput'),
     runBackfillBtn: document.getElementById('runBackfillBtn'),
     backfillOutput: document.getElementById('backfillOutput'),
+    syncCategoryColorsBtn: document.getElementById('syncCategoryColorsBtn'),
+    syncColorsOutput: document.getElementById('syncColorsOutput'),
 
     // Chat Page
     messagesContainer: document.getElementById('messagesContainer'),
@@ -4578,6 +4580,47 @@ const App = {
         }
     },
 
+    async syncCategoryColors() {
+        if (!AppState.user || AppState.user.role !== 'admin') {
+            showToast('Apenas administradores.');
+            return;
+        }
+
+        const ok = await SystemDialog.confirm('Sincronizar cores de todas as categorias com suas seções?', {
+            title: 'Confirmar ação',
+            okText: 'Sincronizar',
+            cancelText: 'Cancelar'
+        });
+        if (!ok) {
+            return;
+        }
+
+        try {
+            if (DOM.syncColorsOutput) {
+                DOM.syncColorsOutput.textContent = 'Executando...';
+            }
+
+            const data = await API.request('/auth/admin/sync-category-colors', {
+                method: 'POST',
+                body: {}
+            });
+
+            const output = data.output || '(sem saída)';
+            if (DOM.syncColorsOutput) {
+                DOM.syncColorsOutput.textContent = output;
+            }
+            showToast('Cores sincronizadas!');
+            // Reload categories to reflect changes
+            await this.loadCategories();
+        } catch (error) {
+            const msg = error?.message || 'Erro ao sincronizar cores';
+            showToast(msg);
+            if (DOM.syncColorsOutput) {
+                DOM.syncColorsOutput.textContent = `Erro: ${msg}`;
+            }
+        }
+    },
+
     async resetUserPassword(userId) {
         const ok = await SystemDialog.confirm('Resetar a senha deste usuário? Uma senha temporária será gerada e exibida uma única vez.', {
             title: 'Resetar senha',
@@ -6888,6 +6931,10 @@ const App = {
 
         if (DOM.runBackfillBtn) {
             DOM.runBackfillBtn.addEventListener('click', () => this.runBackfillEncryption());
+        }
+
+        if (DOM.syncCategoryColorsBtn) {
+            DOM.syncCategoryColorsBtn.addEventListener('click', () => this.syncCategoryColors());
         }
     }
 };
