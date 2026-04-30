@@ -564,8 +564,140 @@ function Kpi({ label, value, delta, up }) {
   );
 }
 
+// =============================================
+// N-03 — linear-cat-space (trabalho, densa, filtro Tasks/Notes)
+// =============================================
+function LinearCatSpace() {
+  const cat = { name: 'trabalho', color: LINEAR.accent, notes: 34, tasks: 8 };
+  const items = [
+    { id: 'SAV-128', text: 'Pensar num nome melhor pra feature de export.', priority: 'low', time: '09:42', isTask: false },
+    { id: 'SAV-127', text: 'Revisar PR do refresh token rotation', priority: 'high', time: '10:15', isTask: true, due: 'Hoje 16:00', status: 'todo' },
+    { id: 'SAV-126', text: 'Mandar resumo da reunião pro time', time: '08:14', isTask: true, due: 'Sex 1/5', status: 'todo' },
+    { id: 'SAV-122', text: 'Anotação sobre rate-limit consistency.', time: 'ontem', isTask: false },
+    { id: 'SAV-121', text: 'Notas da reunião com Pedro.', time: 'ontem', isTask: false },
+    { id: 'SAV-119', text: 'Implementar webhook de erros do Stripe', time: '2d', isTask: true, due: 'Próxima semana', status: 'todo' },
+    { id: 'SAV-117', text: 'Documentar o fluxo de migration v2', time: '3d', isTask: true, due: 'Sex 8/5', status: 'done' },
+    { id: 'SAV-116', text: '"Boa documentação é manutenção, não escrita."', time: '3d', isTask: false },
+  ];
+
+  return (
+    <LinearShell>
+      {/* Top bar with back + cat title */}
+      <div style={{
+        padding: '12px 16px',
+        borderBottom: `1px solid ${LINEAR.hair}`,
+        display: 'flex', alignItems: 'center', gap: 10,
+      }}>
+        <button style={{
+          width: 26, height: 26, borderRadius: 6,
+          background: LINEAR.surfHi,
+          border: `1px solid ${LINEAR.hair}`,
+          color: LINEAR.ink2,
+          display: 'flex', alignItems: 'center', justifyContent: 'center',
+        }}>
+          <svg width="12" height="12" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round"><path d="m15 18-6-6 6-6"/></svg>
+        </button>
+        <span style={{ width: 7, height: 7, borderRadius: 2, background: cat.color, marginLeft: 4 }}/>
+        <div style={{ fontSize: 14, fontWeight: 500, letterSpacing: '-0.005em' }}>{cat.name}</div>
+        <span className="mono" style={{ fontSize: 10.5, color: LINEAR.ink3, letterSpacing: '0.06em' }}>
+          {cat.notes + cat.tasks} ITENS
+        </span>
+        <div style={{ flex: 1 }}/>
+        <span className="mono" style={{ fontSize: 10, color: LINEAR.ink3, padding: '1px 6px', border: `1px solid ${LINEAR.hair}`, borderRadius: 3 }}>
+          C
+        </span>
+      </div>
+
+      {/* Filter strip — Tasks/Notes/All */}
+      <div style={{
+        padding: '8px 16px',
+        borderBottom: `1px solid ${LINEAR.hair}`,
+        display: 'flex', gap: 6, alignItems: 'center',
+        fontSize: 11.5,
+      }}>
+        <FilterChip>All <span className="mono" style={{ color: LINEAR.ink3, marginLeft: 4 }}>{cat.notes + cat.tasks}</span></FilterChip>
+        <FilterChip active>Tasks <span className="mono" style={{ color: LINEAR.accent, marginLeft: 4 }}>{cat.tasks}</span></FilterChip>
+        <FilterChip>Notes <span className="mono" style={{ color: LINEAR.ink3, marginLeft: 4 }}>{cat.notes}</span></FilterChip>
+        <div style={{ flex: 1 }}/>
+        <span className="mono" style={{ fontSize: 10, color: LINEAR.ink3 }}>↑↓ navigate</span>
+      </div>
+
+      <div style={{ flex: 1, overflow: 'auto' }}>
+        {items.map((it, i) => (
+          <div key={i} style={{
+            padding: '10px 16px',
+            borderBottom: `1px solid ${LINEAR.hair}`,
+            display: 'flex', gap: 10, alignItems: 'flex-start',
+            background: i === 1 ? 'rgba(124,139,245,0.04)' : 'transparent',
+            borderLeft: i === 1 ? `2px solid ${LINEAR.accent}` : '2px solid transparent',
+          }}>
+            <div style={{ width: 16, marginTop: 2, flexShrink: 0 }}>
+              {it.isTask ? (
+                it.status === 'done' ? (
+                  <div style={{
+                    width: 14, height: 14, borderRadius: 4,
+                    background: LINEAR.green, display: 'flex', alignItems: 'center', justifyContent: 'center',
+                  }}>
+                    <svg width="9" height="9" viewBox="0 0 12 12" fill="none"><path d="M2.5 6.5L5 9L9.5 3.5" stroke="#0a0c10" strokeWidth="2" strokeLinecap="round"/></svg>
+                  </div>
+                ) : (
+                  <div style={{ width: 14, height: 14, borderRadius: 4, border: `1.5px solid ${LINEAR.ink3}` }}/>
+                )
+              ) : (
+                <div style={{ width: 6, height: 6, borderRadius: 3, marginTop: 4, marginLeft: 4, background: cat.color }}/>
+              )}
+            </div>
+            <div style={{ flex: 1, minWidth: 0 }}>
+              <div style={{
+                fontSize: 13.5, lineHeight: 1.45,
+                color: it.status === 'done' ? LINEAR.ink3 : LINEAR.ink,
+                textDecoration: it.status === 'done' ? 'line-through' : 'none',
+              }}>{it.text}</div>
+              <div style={{ display: 'flex', alignItems: 'center', gap: 8, marginTop: 4, fontSize: 11.5 }}>
+                <span className="mono" style={{ color: LINEAR.ink3, fontSize: 11.5 }}>{it.id}</span>
+                {it.due && (
+                  <span style={{ color: it.priority === 'high' ? LINEAR.amber : LINEAR.ink2, fontSize: 11.5 }}>· {it.due}</span>
+                )}
+                {it.priority === 'high' && (
+                  <span className="mono" style={{ color: LINEAR.red, fontSize: 10, letterSpacing: '0.06em' }}>· P0</span>
+                )}
+                <div style={{ flex: 1 }}/>
+                <span className="mono" style={{ color: LINEAR.ink3, fontSize: 10.5 }}>{it.time}</span>
+              </div>
+            </div>
+          </div>
+        ))}
+      </div>
+
+      {/* Compact bottom bar — capture into this category */}
+      <div style={{
+        borderTop: `1px solid ${LINEAR.hair}`,
+        background: LINEAR.surf,
+        padding: '10px 12px',
+        display: 'flex', alignItems: 'center', gap: 8,
+      }}>
+        <span style={{ width: 7, height: 7, borderRadius: 2, background: cat.color }}/>
+        <div style={{ flex: 1, fontSize: 13, color: LINEAR.ink3 }}>
+          Capture em <span style={{ color: LINEAR.ink, fontWeight: 500 }}>trabalho</span>…
+        </div>
+        <span className="mono" style={{
+          fontSize: 11, color: LINEAR.ink3,
+          padding: '3px 6px', background: LINEAR.surfHi, borderRadius: 4,
+          border: `1px solid ${LINEAR.hairHi}`,
+        }}>⌘N</span>
+        <button style={{
+          padding: '6px 10px', borderRadius: 6,
+          background: LINEAR.accent, color: '#fff',
+          fontSize: 12, fontWeight: 500,
+        }}>Save</button>
+      </div>
+    </LinearShell>
+  );
+}
+
 Object.assign(window, {
   LinearFeed, LinearCommand, LinearDash,
   LinearBottomNav, LinearFeedWithNav,
+  LinearCatSpace,
   LINEAR,
 });

@@ -126,6 +126,35 @@ function App() {
         </DCSection>
 
         <DCSection
+          id="cat-space"
+          title="Categoria-como-espaço · 3 temas"
+          subtitle="Cada categoria vira um lugar com sua cor, contadores e (no Paper) banner editorial. Não é só uma tag — é um cômodo."
+        >
+          <DCArtboard id="paper-cat-space" label="A · Paper — Trabalho (banner editorial)" width={390} height={844}>
+            <Phone bg="#f6f1e8"><PaperCatSpace /></Phone>
+          </DCArtboard>
+          <DCArtboard id="playful-cat-space" label="B · Playful — Pessoal (glow + grid)" width={390} height={844}>
+            <Phone dark bg="#0e0a1a"><PlayfulCatSpace /></Phone>
+          </DCArtboard>
+          <DCArtboard id="linear-cat-space" label="C · Linear — trabalho (densa, filtro)" width={390} height={844}>
+            <Phone dark bg="#0a0c10"><LinearCatSpace /></Phone>
+          </DCArtboard>
+        </DCSection>
+
+        <DCSection
+          id="dash-mobile"
+          title="Dashboard mobile · Paper + Playful"
+          subtitle="Linear já existe (linear-dash). Aqui Paper como diário editorial, Playful como gráfico vibrante."
+        >
+          <DCArtboard id="paper-dash" label="A · Paper — dashboard (KPI serif + resumo)" width={390} height={844}>
+            <Phone bg="#f6f1e8"><PaperMobileDash /></Phone>
+          </DCArtboard>
+          <DCArtboard id="playful-dash" label="B · Playful — dashboard (KPI grid 2×2)" width={390} height={844}>
+            <Phone dark bg="#0e0a1a"><PlayfulMobileDash /></Phone>
+          </DCArtboard>
+        </DCSection>
+
+        <DCSection
           id="desktop"
           title="Desktop · reimaginação"
           subtitle="Coluna tripla: navegação, feed, painel de contexto. Direção: Linear/Tech (a mais densa)."

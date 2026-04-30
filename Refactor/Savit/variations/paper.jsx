@@ -1050,9 +1050,316 @@ function PaperFeedTyping() {
   );
 }
 
+// =============================================
+// N-03 — paper-cat-space ("Trabalho" aberta, banner editorial)
+// =============================================
+function PaperCatSpace() {
+  const cat = { name: 'Trabalho', color: '#c0563a', notes: 42, tasks: 8 };
+  const recent = 'Refresh token rotation: pensar nos edge cases de Redis e múltiplas instâncias antes de mergear.';
+  const items = [
+    { kind: 'task', time: '10:15', text: 'Revisar PR do refresh token rotation', when: 'Hoje, 16:00', done: false, urgent: true },
+    { kind: 'note', time: '09:42', text: 'Pensar num nome melhor pra feature de export. "Compartilhar" tá ambíguo.' },
+    { kind: 'task', time: '08:14', text: 'Mandar resumo da reunião pro time', when: 'Sex 1/5, manhã', done: false },
+    { kind: 'note', time: 'ontem', text: 'O Pedro deixou um TODO sobre rate-limit consistency. Verificar antes de publicar.' },
+    { kind: 'note', time: 'ontem', text: '"Atenção é o que mostra o que importa." — anotação livre.' },
+  ];
+
+  return (
+    <div style={{
+      width: '100%', height: '100%',
+      background: PAPER.bg,
+      color: PAPER.ink,
+      fontFamily: '"Geist", system-ui, sans-serif',
+      display: 'flex', flexDirection: 'column',
+    }}>
+      {/* Tinted header (10% color over Paper bg) */}
+      <div style={{
+        background: `linear-gradient(180deg, ${cat.color}1a 0%, ${cat.color}00 100%)`,
+        padding: '14px 20px 18px',
+        display: 'flex', flexDirection: 'column', gap: 12,
+        borderBottom: `1px solid ${PAPER.hair}`,
+      }}>
+        <div style={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between' }}>
+          <button style={{
+            width: 36, height: 36, borderRadius: 10,
+            background: 'rgba(29,26,20,0.04)',
+            display: 'flex', alignItems: 'center', justifyContent: 'center',
+          }}>
+            <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke={PAPER.ink} strokeWidth="1.7" strokeLinecap="round"><path d="m15 18-6-6 6-6"/></svg>
+          </button>
+          <div className="mono" style={{ fontSize: 10, color: PAPER.ink3, letterSpacing: '0.16em' }}>ESPAÇO</div>
+          <div style={{ display: 'flex', gap: 6 }}>
+            <IconBtnPaper>
+              <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke={PAPER.ink} strokeWidth="1.7" strokeLinecap="round"><circle cx="11" cy="11" r="7"/><path d="m20 20-3.5-3.5"/></svg>
+            </IconBtnPaper>
+            <IconBtnPaper>
+              <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke={PAPER.ink} strokeWidth="1.7" strokeLinecap="round"><circle cx="12" cy="5" r="1.4"/><circle cx="12" cy="12" r="1.4"/><circle cx="12" cy="19" r="1.4"/></svg>
+            </IconBtnPaper>
+          </div>
+        </div>
+
+        <div style={{ display: 'flex', alignItems: 'baseline', gap: 12 }}>
+          <span style={{
+            width: 14, height: 14, borderRadius: 4,
+            background: cat.color, marginTop: 6, flexShrink: 0,
+          }}/>
+          <div style={{
+            fontFamily: '"Instrument Serif", serif',
+            fontSize: 36, lineHeight: 1, letterSpacing: '-0.02em',
+            color: PAPER.ink,
+          }}>{cat.name}</div>
+        </div>
+
+        <div className="mono" style={{
+          display: 'flex', alignItems: 'center', gap: 10,
+          fontSize: 10.5, color: PAPER.ink3,
+          letterSpacing: '0.14em',
+          marginLeft: 26,
+        }}>
+          <span>{cat.notes} NOTAS</span>
+          <span style={{ color: PAPER.ink3 }}>·</span>
+          <span style={{ color: cat.color }}>{cat.tasks} TAREFAS</span>
+        </div>
+
+        {/* Editorial banner (Paper only) */}
+        <blockquote style={{
+          margin: '6px 0 0 26px',
+          padding: '10px 14px',
+          background: PAPER.card,
+          borderLeft: `3px solid ${cat.color}`,
+          borderRadius: '0 12px 12px 0',
+          fontFamily: '"Instrument Serif", serif',
+          fontStyle: 'italic',
+          fontSize: 17, lineHeight: 1.45,
+          color: PAPER.ink2,
+        }}>{recent}</blockquote>
+      </div>
+
+      <div style={{ flex: 1, overflow: 'auto', padding: '12px 20px 100px' }}>
+        {items.map((it, i) => {
+          if (it.kind === 'task') {
+            return (
+              <div key={i} style={{
+                background: PAPER.card,
+                border: `1px solid ${PAPER.hair}`,
+                borderRadius: 14,
+                padding: '14px 14px 12px',
+                marginBottom: 10,
+                display: 'flex', gap: 12,
+                boxShadow: PAPER.shadow,
+              }}>
+                <div style={{
+                  width: 20, height: 20, borderRadius: 6,
+                  border: `1.5px solid ${PAPER.ink}`,
+                  marginTop: 2, flexShrink: 0,
+                }}/>
+                <div style={{ flex: 1, minWidth: 0 }}>
+                  {it.urgent && (
+                    <div style={{ marginBottom: 6 }}>
+                      <span style={{
+                        display: 'inline-block', padding: '2px 8px',
+                        background: cat.color + '18', color: cat.color,
+                        fontFamily: '"JetBrains Mono", monospace',
+                        fontSize: 9.5, letterSpacing: '0.14em',
+                        borderRadius: 4, fontWeight: 600,
+                      }}>URGENTE</span>
+                    </div>
+                  )}
+                  <div style={{ fontSize: 14, lineHeight: 1.45 }}>{it.text}</div>
+                  <div style={{ display: 'flex', alignItems: 'center', gap: 10, marginTop: 6 }}>
+                    <span style={{ fontSize: 11.5, color: PAPER.ink2, display: 'inline-flex', alignItems: 'center', gap: 4 }}>
+                      <svg width="11" height="11" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2"><circle cx="12" cy="12" r="9"/><path d="M12 7v5l3 2"/></svg>
+                      {it.when}
+                    </span>
+                  </div>
+                </div>
+              </div>
+            );
+          }
+          return (
+            <div key={i} style={{
+              padding: '12px 0',
+              borderBottom: `1px dashed ${PAPER.hair}`,
+            }}>
+              <div style={{
+                fontFamily: '"Instrument Serif", serif',
+                fontSize: 19, lineHeight: 1.35,
+                color: PAPER.ink,
+              }}>{it.text}</div>
+              <div style={{ marginTop: 6 }}>
+                <PaperTime>{it.time}</PaperTime>
+              </div>
+            </div>
+          );
+        })}
+      </div>
+
+      {/* "+ Adicionar nesta categoria" pinned button */}
+      <button style={{
+        position: 'absolute', left: 20, right: 20, bottom: 20,
+        padding: '14px',
+        background: cat.color,
+        color: '#fff',
+        border: 'none', borderRadius: 14,
+        fontSize: 14, fontWeight: 600,
+        display: 'flex', alignItems: 'center', justifyContent: 'center', gap: 8,
+        boxShadow: `0 8px 24px -8px ${cat.color}66`,
+      }}>
+        <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2.4" strokeLinecap="round"><path d="M12 5v14M5 12h14"/></svg>
+        Adicionar em Trabalho
+      </button>
+    </div>
+  );
+}
+
+// =============================================
+// N-04 — paper-dash (KPIs serif, sparkline, resumo editorial)
+// =============================================
+function PaperMobileDash() {
+  const days = [3, 5, 2, 8, 6, 9, 4, 7, 11, 8, 5, 12, 9, 14, 10, 6, 8, 11, 7, 13, 9, 16, 12, 8, 11, 14, 10, 9, 7, 12];
+  const max = Math.max(...days);
+
+  return (
+    <div style={{
+      width: '100%', height: '100%',
+      background: PAPER.bg,
+      color: PAPER.ink,
+      fontFamily: '"Geist", system-ui, sans-serif',
+      display: 'flex', flexDirection: 'column',
+    }}>
+      <PaperHeader sub="QUI · 30 ABR · 30 DIAS" title="Dashboard" withHair />
+
+      <div style={{ flex: 1, overflow: 'auto', padding: '16px 20px 24px' }}>
+        {/* KPI column — big serif numbers */}
+        <div style={{ display: 'flex', flexDirection: 'column', gap: 18 }}>
+          {[
+            { label: 'CAPTURADAS', value: '128', delta: '+24% vs. mar', up: true },
+            { label: 'CONCLUÍDAS', value: '84', delta: '+12% vs. mar', up: true },
+            { label: 'PENDENTES', value: '14', delta: '−3 desde ontem' },
+            { label: 'STREAK', value: '12d', delta: 'recorde da conta', up: true },
+          ].map((k, i) => (
+            <div key={i} style={{
+              display: 'flex', alignItems: 'baseline', justifyContent: 'space-between',
+              paddingBottom: 14,
+              borderBottom: i < 3 ? `1px dashed ${PAPER.hair}` : 'none',
+            }}>
+              <div style={{ display: 'flex', flexDirection: 'column', gap: 4 }}>
+                <span className="mono" style={{ fontSize: 10.5, color: PAPER.ink3, letterSpacing: '0.16em' }}>
+                  {k.label}
+                </span>
+                <span style={{
+                  fontSize: 11.5, color: k.up ? '#3a8a6a' : PAPER.ink2,
+                }}>{k.delta}</span>
+              </div>
+              <div style={{
+                fontFamily: '"Instrument Serif", serif',
+                fontSize: 40, lineHeight: 1, letterSpacing: '-0.02em',
+                color: PAPER.ink,
+              }}>{k.value}</div>
+            </div>
+          ))}
+        </div>
+
+        {/* Sparkline activity */}
+        <div style={{
+          marginTop: 22,
+          padding: 18,
+          background: PAPER.card,
+          border: `1px solid ${PAPER.hair}`,
+          borderRadius: 16,
+          boxShadow: PAPER.shadow,
+        }}>
+          <div style={{ display: 'flex', alignItems: 'baseline', justifyContent: 'space-between', marginBottom: 14 }}>
+            <span className="mono" style={{ fontSize: 10.5, color: PAPER.ink3, letterSpacing: '0.16em' }}>
+              ATIVIDADE · 30 DIAS
+            </span>
+            <span className="mono" style={{ fontSize: 10.5, color: '#3a8a6a' }}>↑ +18%</span>
+          </div>
+          <div style={{ display: 'flex', alignItems: 'flex-end', gap: 2, height: 56 }}>
+            {days.map((v, i) => (
+              <div key={i} style={{
+                flex: 1,
+                height: `${(v / max) * 100}%`,
+                background: i >= 27 ? PAPER.accent : `${PAPER.ink}66`,
+                borderRadius: '2px 2px 0 0',
+                minHeight: 3,
+              }}/>
+            ))}
+          </div>
+          <div style={{
+            display: 'flex', justifyContent: 'space-between',
+            fontSize: 9.5, color: PAPER.ink3, marginTop: 6,
+            fontFamily: '"JetBrains Mono", monospace', letterSpacing: '0.08em',
+          }}>
+            <span>1 ABR</span><span>30 ABR</span>
+          </div>
+        </div>
+
+        {/* Top categories */}
+        <div style={{ marginTop: 18, padding: '0 4px' }}>
+          <div className="mono" style={{ fontSize: 10.5, color: PAPER.ink3, letterSpacing: '0.16em', marginBottom: 12 }}>
+            POR CATEGORIA
+          </div>
+          {[
+            { name: 'trabalho', count: 42, pct: 0.85, color: '#c0563a' },
+            { name: 'pessoal', count: 28, pct: 0.55, color: '#3a8a6a' },
+            { name: 'casa', count: 19, pct: 0.38, color: '#7a5cc7' },
+            { name: 'leitura', count: 14, pct: 0.28, color: '#e6b540' },
+          ].map((c, i) => (
+            <div key={i} style={{
+              display: 'flex', alignItems: 'center', gap: 10,
+              padding: '8px 0',
+              borderBottom: i < 3 ? `1px solid ${PAPER.hair}` : 'none',
+            }}>
+              <span style={{ width: 8, height: 8, borderRadius: 2, background: c.color }}/>
+              <div style={{ width: 80, fontSize: 13 }}>{c.name}</div>
+              <div style={{ flex: 1, height: 4, borderRadius: 2, background: PAPER.hair, overflow: 'hidden' }}>
+                <div style={{ width: `${c.pct * 100}%`, height: '100%', background: c.color }}/>
+              </div>
+              <span className="mono" style={{ fontSize: 11, color: PAPER.ink2, width: 28, textAlign: 'right' }}>{c.count}</span>
+            </div>
+          ))}
+        </div>
+
+        {/* Editorial weekly summary */}
+        <div style={{
+          marginTop: 22,
+          padding: '20px 18px',
+          background: PAPER.card,
+          border: `1px dashed ${PAPER.hair}`,
+          borderRadius: 16,
+          display: 'flex', flexDirection: 'column', gap: 10,
+        }}>
+          <span className="mono" style={{ fontSize: 10.5, color: PAPER.ink3, letterSpacing: '0.16em' }}>
+            RESUMO DA SEMANA
+          </span>
+          <div style={{
+            fontFamily: '"Instrument Serif", serif',
+            fontSize: 22, lineHeight: 1.4, letterSpacing: '-0.01em',
+          }}>
+            Você capturou <strong style={{ color: PAPER.accent, fontWeight: 400 }}>26 ideias</strong> essa semana — quase tudo de manhã, principalmente de <strong style={{ color: '#c0563a', fontWeight: 400 }}>trabalho</strong>. Seis viraram tarefa.
+          </div>
+          <div style={{ display: 'flex', flexWrap: 'wrap', gap: 6, marginTop: 4 }}>
+            {['+30% manhãs', '6 → tarefa', 'streak 12d'].map((t, i) => (
+              <span key={i} className="mono" style={{
+                padding: '3px 10px', background: PAPER.bg,
+                fontSize: 10, letterSpacing: '0.12em',
+                color: PAPER.ink2, borderRadius: 999,
+                border: `1px solid ${PAPER.hair}`,
+                textTransform: 'uppercase',
+              }}>{t}</span>
+            ))}
+          </div>
+        </div>
+      </div>
+    </div>
+  );
+}
+
 Object.assign(window, {
   PaperFeed, PaperFeedTyping, PaperCategories, PaperTasks,
   PaperBottomNav, PaperFeedWithNav,
   PaperFocus, PaperFocusPomodoro, PaperFocusEmpty,
+  PaperCatSpace, PaperMobileDash,
   PAPER,
 });

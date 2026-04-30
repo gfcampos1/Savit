@@ -613,8 +613,278 @@ function PlayfulCaptureEmpty() {
   );
 }
 
+// =============================================
+// N-03 — playful-cat-space (Pessoal, glow + grid 2 col)
+// =============================================
+function PlayfulCatSpace() {
+  const cat = { name: 'Pessoal', color: PLAYFUL.accent3, notes: 28, tasks: 2 };
+  const items = [
+    { kind: 'task', text: 'Ligar pro João', when: 'Hoje 18:30', urgent: false },
+    { kind: 'note', big: true, text: 'O café da Inhotim era melhor do que eu lembrava.' },
+    { kind: 'note', text: 'Aprender a fazer pão. Perguntar pra mãe a receita do trigo escuro.' },
+    { kind: 'note', text: 'Filme "Drive my car" — assistir essa semana.' },
+    { kind: 'task', text: 'Dentista', when: 'Qua 6/5 14h' },
+    { kind: 'note', text: 'Lembrança: o som da chuva no telhado de barro.' },
+  ];
+
+  return (
+    <PlayfulShell>
+      <div style={{
+        position: 'absolute', top: -160, left: '50%', width: 420, height: 420,
+        transform: 'translateX(-50%)',
+        background: `radial-gradient(circle, ${cat.color}55 0%, ${cat.color}00 65%)`,
+        pointerEvents: 'none',
+      }}/>
+
+      <div style={{ padding: '14px 18px 4px', display: 'flex', justifyContent: 'space-between', alignItems: 'center', position: 'relative' }}>
+        <button style={{
+          width: 36, height: 36, borderRadius: 12,
+          background: 'rgba(255,255,255,0.06)',
+          border: `1px solid ${PLAYFUL.hair}`,
+          color: PLAYFUL.ink2,
+        }}>
+          <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round"><path d="m15 18-6-6 6-6"/></svg>
+        </button>
+        <div className="mono" style={{ fontSize: 11, color: PLAYFUL.ink3, letterSpacing: '0.16em' }}>ESPAÇO</div>
+        <button style={{
+          width: 36, height: 36, borderRadius: 12,
+          background: 'rgba(255,255,255,0.06)',
+          border: `1px solid ${PLAYFUL.hair}`,
+          color: PLAYFUL.ink2,
+        }}>
+          <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round"><circle cx="12" cy="5" r="1.4"/><circle cx="12" cy="12" r="1.4"/><circle cx="12" cy="19" r="1.4"/></svg>
+        </button>
+      </div>
+
+      <div style={{ padding: '20px 18px 14px', textAlign: 'center', position: 'relative' }}>
+        <div style={{
+          width: 56, height: 56, borderRadius: 18,
+          background: cat.color,
+          margin: '0 auto 14px',
+          display: 'flex', alignItems: 'center', justifyContent: 'center',
+          fontSize: 22, color: '#0e0a1a',
+          boxShadow: `0 12px 32px -8px ${cat.color}88`,
+        }}>◐</div>
+        <div style={{ fontSize: 32, fontWeight: 600, letterSpacing: '-0.02em' }}>{cat.name}</div>
+        <div className="mono" style={{
+          marginTop: 6,
+          fontSize: 11, color: PLAYFUL.ink2, letterSpacing: '0.14em',
+          display: 'flex', alignItems: 'center', justifyContent: 'center', gap: 8,
+        }}>
+          <span>{cat.notes} NOTAS</span>
+          <span>·</span>
+          <span style={{ color: cat.color }}>{cat.tasks} TAREFAS</span>
+        </div>
+      </div>
+
+      <div style={{ flex: 1, overflow: 'auto', padding: '0 18px 100px', position: 'relative' }}>
+        <div style={{ display: 'grid', gridTemplateColumns: '1fr 1fr', gap: 10 }}>
+          {items.map((it, i) => {
+            if (it.kind === 'task') {
+              return (
+                <div key={i} style={{
+                  gridColumn: 'span 2',
+                  background: PLAYFUL.surf,
+                  border: `1px solid ${PLAYFUL.hair}`,
+                  borderRadius: 18,
+                  padding: 14,
+                  position: 'relative',
+                }}>
+                  <div style={{
+                    position: 'absolute', left: 0, top: 0, bottom: 0, width: 4,
+                    background: cat.color, borderRadius: '4px 0 0 4px',
+                  }}/>
+                  <div style={{ display: 'flex', alignItems: 'center', gap: 12 }}>
+                    <div style={{
+                      width: 20, height: 20, borderRadius: 6,
+                      border: `1.5px solid ${PLAYFUL.ink2}`, flexShrink: 0,
+                    }}/>
+                    <div style={{ flex: 1, minWidth: 0 }}>
+                      <div style={{ fontSize: 14, fontWeight: 500 }}>{it.text}</div>
+                      <div style={{ fontSize: 11, color: PLAYFUL.ink2, marginTop: 4 }}>{it.when}</div>
+                    </div>
+                  </div>
+                </div>
+              );
+            }
+            return (
+              <div key={i} style={{
+                gridColumn: it.big ? 'span 2' : 'span 1',
+                background: PLAYFUL.surf,
+                border: `1px solid ${PLAYFUL.hair}`,
+                borderRadius: 18,
+                padding: 14,
+                fontSize: it.big ? 16 : 13,
+                fontWeight: it.big ? 500 : 400,
+                lineHeight: 1.45,
+                letterSpacing: it.big ? '-0.01em' : 0,
+                position: 'relative',
+                overflow: 'hidden',
+              }}>
+                {it.big && (
+                  <div style={{
+                    position: 'absolute', top: -30, right: -30, width: 100, height: 100,
+                    background: `radial-gradient(circle, ${cat.color}33 0%, transparent 70%)`,
+                  }}/>
+                )}
+                <span style={{ position: 'relative' }}>{it.text}</span>
+              </div>
+            );
+          })}
+        </div>
+      </div>
+
+      <button style={{
+        position: 'absolute', left: 18, right: 18, bottom: 18,
+        padding: 14, borderRadius: 16,
+        background: cat.color,
+        color: '#0e0a1a',
+        fontSize: 14, fontWeight: 600,
+        border: 'none',
+        boxShadow: `0 12px 32px -8px ${cat.color}88`,
+        display: 'flex', alignItems: 'center', justifyContent: 'center', gap: 8,
+      }}>
+        <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2.6" strokeLinecap="round"><path d="M12 5v14M5 12h14"/></svg>
+        Adicionar em Pessoal
+      </button>
+    </PlayfulShell>
+  );
+}
+
+// =============================================
+// N-04 — playful-dash (KPI grid 2x2, bars com gradient)
+// =============================================
+function PlayfulMobileDash() {
+  const days = [3, 5, 2, 8, 6, 9, 4, 7, 11, 8, 5, 12, 9, 14, 10, 6, 8, 11, 7, 13, 9, 16, 12, 8, 11, 14, 10, 9, 7, 12];
+  const max = Math.max(...days);
+
+  return (
+    <PlayfulShell>
+      <div style={{ padding: '14px 18px 6px', display: 'flex', alignItems: 'center', justifyContent: 'space-between' }}>
+        <div className="mono" style={{ fontSize: 11, color: PLAYFUL.ink3, letterSpacing: '0.14em' }}>30 DIAS</div>
+        <button style={{
+          width: 36, height: 36, borderRadius: 12,
+          background: 'rgba(255,255,255,0.06)',
+          border: `1px solid ${PLAYFUL.hair}`,
+          color: PLAYFUL.ink2,
+        }}>
+          <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="1.7"><circle cx="12" cy="12" r="3"/><circle cx="19" cy="12" r="1"/><circle cx="5" cy="12" r="1"/></svg>
+        </button>
+      </div>
+
+      <div style={{ padding: '4px 18px 14px' }}>
+        <div style={{ fontSize: 30, fontWeight: 600, letterSpacing: '-0.02em' }}>Sua semana</div>
+      </div>
+
+      <div style={{ flex: 1, overflow: 'auto', padding: '0 18px 30px' }}>
+        <div style={{ display: 'grid', gridTemplateColumns: '1fr 1fr', gap: 10 }}>
+          {[
+            { label: 'CAPTURADAS', value: '128', delta: '+24%', color: PLAYFUL.accent2 },
+            { label: 'CONCLUÍDAS', value: '84', delta: '+12%', color: PLAYFUL.accent3 },
+            { label: 'PENDENTES', value: '14', delta: '−3', color: PLAYFUL.accent4 },
+            { label: 'STREAK', value: '12d', delta: 'recorde', color: PLAYFUL.accent },
+          ].map((k, i) => (
+            <div key={i} style={{
+              background: PLAYFUL.surf,
+              border: `1px solid ${PLAYFUL.hair}`,
+              borderRadius: 18,
+              padding: 16,
+              position: 'relative',
+              overflow: 'hidden',
+              minHeight: 120,
+            }}>
+              <div style={{
+                position: 'absolute', top: -30, right: -30, width: 110, height: 110,
+                background: `radial-gradient(circle, ${k.color}55 0%, transparent 70%)`,
+              }}/>
+              <div className="mono" style={{ fontSize: 9.5, color: PLAYFUL.ink3, letterSpacing: '0.16em', position: 'relative' }}>{k.label}</div>
+              <div style={{
+                marginTop: 8,
+                fontSize: 36, fontWeight: 700, letterSpacing: '-0.03em', lineHeight: 1,
+                background: `linear-gradient(135deg, ${k.color} 0%, ${PLAYFUL.ink} 100%)`,
+                WebkitBackgroundClip: 'text', backgroundClip: 'text',
+                color: 'transparent',
+                position: 'relative',
+              }}>{k.value}</div>
+              <div style={{
+                position: 'relative',
+                fontSize: 11, color: k.color, marginTop: 6, fontWeight: 500,
+              }}>{k.delta}</div>
+            </div>
+          ))}
+        </div>
+
+        <div style={{
+          marginTop: 12,
+          padding: 16,
+          background: PLAYFUL.surf,
+          border: `1px solid ${PLAYFUL.hair}`,
+          borderRadius: 18,
+        }}>
+          <div style={{ display: 'flex', alignItems: 'baseline', justifyContent: 'space-between', marginBottom: 12 }}>
+            <span style={{ fontSize: 13, fontWeight: 600 }}>Atividade</span>
+            <span className="mono" style={{ fontSize: 9.5, color: PLAYFUL.ink3, letterSpacing: '0.14em' }}>POR DIA</span>
+          </div>
+          <div style={{ display: 'flex', alignItems: 'flex-end', gap: 3, height: 70 }}>
+            {days.map((v, i) => (
+              <div key={i} style={{
+                flex: 1,
+                height: `${(v / max) * 100}%`,
+                background: i >= 27
+                  ? playfulGrad
+                  : i >= 20
+                  ? `linear-gradient(180deg, ${PLAYFUL.accent2}aa 0%, ${PLAYFUL.accent2}55 100%)`
+                  : 'rgba(255,255,255,0.08)',
+                borderRadius: '3px 3px 0 0',
+                minHeight: 3,
+              }}/>
+            ))}
+          </div>
+          <div style={{
+            display: 'flex', justifyContent: 'space-between',
+            fontSize: 9.5, color: PLAYFUL.ink3, marginTop: 6,
+            fontFamily: '"JetBrains Mono", monospace', letterSpacing: '0.08em',
+          }}>
+            <span>1 ABR</span><span>30 ABR</span>
+          </div>
+        </div>
+
+        <div style={{
+          marginTop: 12,
+          padding: 16,
+          background: PLAYFUL.surf,
+          border: `1px solid ${PLAYFUL.hair}`,
+          borderRadius: 18,
+        }}>
+          <div style={{ display: 'flex', alignItems: 'baseline', justifyContent: 'space-between', marginBottom: 12 }}>
+            <span style={{ fontSize: 13, fontWeight: 600 }}>Categorias</span>
+            <span className="mono" style={{ fontSize: 9.5, color: PLAYFUL.ink3, letterSpacing: '0.14em' }}>TOP 4</span>
+          </div>
+          {[
+            { name: 'trabalho', count: 42, pct: 0.85, color: PLAYFUL.accent },
+            { name: 'pessoal', count: 28, pct: 0.55, color: PLAYFUL.accent3 },
+            { name: 'casa', count: 19, pct: 0.38, color: PLAYFUL.accent2 },
+            { name: 'leitura', count: 14, pct: 0.28, color: PLAYFUL.accent4 },
+          ].map((c, i) => (
+            <div key={i} style={{ display: 'flex', alignItems: 'center', gap: 10, padding: '7px 0' }}>
+              <span style={{ width: 8, height: 8, borderRadius: 3, background: c.color, boxShadow: `0 0 8px ${c.color}88` }}/>
+              <div style={{ width: 70, fontSize: 12 }}>{c.name}</div>
+              <div style={{ flex: 1, height: 5, borderRadius: 3, background: 'rgba(255,255,255,0.05)', overflow: 'hidden' }}>
+                <div style={{ width: `${c.pct * 100}%`, height: '100%', background: `linear-gradient(90deg, ${c.color}88, ${c.color})` }}/>
+              </div>
+              <span className="mono" style={{ fontSize: 11, color: PLAYFUL.ink2, width: 24, textAlign: 'right' }}>{c.count}</span>
+            </div>
+          ))}
+        </div>
+      </div>
+    </PlayfulShell>
+  );
+}
+
 Object.assign(window, {
   PlayfulFeed, PlayfulCategories, PlayfulCapture, PlayfulCaptureEmpty,
   PlayfulBottomNav, PlayfulFeedWithNav,
+  PlayfulCatSpace, PlayfulMobileDash,
   PLAYFUL,
 });
+
