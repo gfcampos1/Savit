@@ -76,7 +76,91 @@ function PlayfulHeader() {
   );
 }
 
-function PlayfulFeed() {
+// =============================================
+// N-01 — Playful bottom nav (gradient FAB, glow)
+// =============================================
+function PlayfulBottomNav({ active = 'inbox' }) {
+  const navIcon = (id, isActive) => {
+    const stroke = isActive ? PLAYFUL.ink : PLAYFUL.ink3;
+    if (id === 'inbox') return <svg width="22" height="22" viewBox="0 0 24 24" fill="none" stroke={stroke} strokeWidth={isActive ? 2 : 1.7} strokeLinecap="round" strokeLinejoin="round"><path d="M22 12h-6l-2 3h-4l-2-3H2"/><path d="M5.45 5.11 2 12v6a2 2 0 0 0 2 2h16a2 2 0 0 0 2-2v-6l-3.45-6.89A2 2 0 0 0 16.76 4H7.24a2 2 0 0 0-1.79 1.11z"/></svg>;
+    if (id === 'today') return <svg width="22" height="22" viewBox="0 0 24 24" fill="none" stroke={stroke} strokeWidth={isActive ? 2 : 1.7} strokeLinecap="round"><circle cx="12" cy="12" r="9"/><path d="M12 7v5l3 2"/></svg>;
+    if (id === 'tasks') return <svg width="22" height="22" viewBox="0 0 24 24" fill="none" stroke={stroke} strokeWidth={isActive ? 2 : 1.7} strokeLinecap="round"><rect x="3" y="3" width="18" height="18" rx="3"/><path d="m8 12 3 3 5-6"/></svg>;
+    if (id === 'profile') return <svg width="22" height="22" viewBox="0 0 24 24" fill="none" stroke={stroke} strokeWidth={isActive ? 2 : 1.7} strokeLinecap="round"><circle cx="12" cy="8" r="4"/><path d="M4 21a8 8 0 0 1 16 0"/></svg>;
+    return null;
+  };
+
+  const items = [
+    { id: 'inbox',   label: 'Inbox' },
+    { id: 'today',   label: 'Hoje' },
+    null,
+    { id: 'tasks',   label: 'Tarefas' },
+    { id: 'profile', label: 'Perfil' },
+  ];
+
+  return (
+    <div style={{
+      position: 'absolute', left: 0, right: 0, bottom: 0,
+      paddingBottom: 'calc(env(safe-area-inset-bottom) + 16px)',
+      paddingTop: 8,
+      background: 'rgba(14,10,26,0.85)',
+      backdropFilter: 'blur(20px)',
+      WebkitBackdropFilter: 'blur(20px)',
+      borderTop: `1px solid ${PLAYFUL.hair}`,
+      display: 'flex', alignItems: 'flex-start', justifyContent: 'space-around',
+      height: 72,
+      zIndex: 10,
+    }}>
+      {items.map((it, i) => {
+        if (!it) {
+          return (
+            <div key={i} style={{ position: 'relative', width: 56, height: 56, marginTop: -12 }}>
+              <button style={{
+                width: 56, height: 56, borderRadius: 999,
+                background: playfulGrad, color: '#fff',
+                display: 'flex', alignItems: 'center', justifyContent: 'center',
+                boxShadow: `0 12px 32px -6px ${PLAYFUL.accent}88`,
+                border: `2px solid ${PLAYFUL.bg}`,
+              }}>
+                <svg width="22" height="22" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2.4" strokeLinecap="round"><path d="M12 5v14M5 12h14"/></svg>
+              </button>
+            </div>
+          );
+        }
+        const isActive = it.id === active;
+        return (
+          <div key={it.id} style={{
+            flex: 1,
+            display: 'flex', flexDirection: 'column', alignItems: 'center', gap: 4,
+            paddingTop: 4,
+            color: isActive ? PLAYFUL.ink : PLAYFUL.ink3,
+          }}>
+            {navIcon(it.id, isActive)}
+            <span className="mono" style={{
+              fontSize: 10, letterSpacing: '0.12em',
+              color: isActive ? PLAYFUL.ink : PLAYFUL.ink3,
+              textTransform: 'uppercase',
+              fontWeight: isActive ? 600 : 500,
+            }}>{it.label}</span>
+          </div>
+        );
+      })}
+    </div>
+  );
+}
+
+// PlayfulFeed body without the floating composer
+function PlayfulFeedWithNav() {
+  return (
+    <div style={{ width: '100%', height: '100%', position: 'relative' }}>
+      <div style={{ position: 'absolute', inset: '0 0 72px 0', overflow: 'hidden' }}>
+        <PlayfulFeed noComposer/>
+      </div>
+      <PlayfulBottomNav active="inbox"/>
+    </div>
+  );
+}
+
+function PlayfulFeed({ noComposer = false } = {}) {
   return (
     <PlayfulShell>
       <PlayfulHeader/>
@@ -186,7 +270,7 @@ function PlayfulFeed() {
         />
       </div>
 
-      <PlayfulComposer/>
+      {!noComposer && <PlayfulComposer/>}
     </PlayfulShell>
   );
 }
@@ -529,4 +613,8 @@ function PlayfulCaptureEmpty() {
   );
 }
 
-Object.assign(window, { PlayfulFeed, PlayfulCategories, PlayfulCapture, PlayfulCaptureEmpty, PLAYFUL });
+Object.assign(window, {
+  PlayfulFeed, PlayfulCategories, PlayfulCapture, PlayfulCaptureEmpty,
+  PlayfulBottomNav, PlayfulFeedWithNav,
+  PLAYFUL,
+});

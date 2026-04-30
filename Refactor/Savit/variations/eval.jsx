@@ -27,17 +27,28 @@ function EvalReview() {
       title: 'Faltando da SPEC',
       tone: 'bad',
       items: [
-        'Bottom nav mobile (5 itens, 3 temas) — Paper/Playful/Linear. Vai pra S1.',
-        'Modo foco do dia (#/focus, F3) — Paper, Pomodoro, empty. Vai pra S1.',
         'Categoria-como-espaço (#/category/:id, F4) — Paper, Playful, Linear. Vai pra S2.',
         'Dashboard mobile (Paper/Playful). Vai pra S2.',
         'Resumo editorial da semana como CARD do Inbox de segunda. Vai pra S3.',
         'Search aberto + empty + sem resultado. Vai pra S3.',
         'Toast (4 variantes), banner offline. Vão pra S3.',
+        'Empty states (feed, tasks, search). Vão pra S3.',
         'Long-press sheet, edit modal, color picker. Vão pra S4.',
         'MFA, sessões, export/import, onboarding, 404/erro. Vão pra S5.',
         'Skeletons, dialog, datepicker, tooltip. Vão pra S6.',
         'Tweaks panel está importado mas inerte — ligadura em S6.',
+      ],
+    },
+    {
+      title: 'S1 — adicionado (6 artboards)',
+      tone: 'good',
+      items: [
+        'N-01 paper-nav — bottom nav Paper com FAB ink central elevado, hairline top.',
+        'N-01 playful-nav — bottom nav com FAB gradient (purple→pink) e blur backdrop.',
+        'N-01 linear-nav — nav densa, accent FAB quadrado, indicador top do item ativo.',
+        'N-02 focus-paper — tela cheia, headline serif "Hoje você quer fechar 5 tarefas",  card único com pílula de categoria, ações ← Adiar | Concluir → e contador 2/5.',
+        'N-02 focus-pomodoro — anel SVG circular 4:32 / 5min em verde de descanso, copy "Respira fundo. Volta em pouco." em itálico — destaca o descanso, não a urgência.',
+        'N-02 focus-empty — "Nada pendente. Aproveita." em serif itálico, com 2 CTAs (capturar / sair) sem culpa.',
       ],
     },
     {
@@ -98,17 +109,17 @@ function EvalReview() {
     }}>
       <div style={{ display: 'flex', alignItems: 'baseline', justifyContent: 'space-between', gap: 24 }}>
         <div>
-          <div className="mono" style={{ fontSize: 11, opacity: 0.5, letterSpacing: '0.12em' }}>AVALIAÇÃO · 30 ABR · S0 APLICADO</div>
+          <div className="mono" style={{ fontSize: 11, opacity: 0.5, letterSpacing: '0.12em' }}>AVALIAÇÃO · 30 ABR · S0+S1 APLICADOS</div>
           <div style={{
             fontFamily: '"Instrument Serif", serif',
             fontSize: 44, lineHeight: 1.05, letterSpacing: '-0.02em',
             marginTop: 8,
           }}>
-            S0 fechado.<br/>S1–S6 em rota.
+            S0+S1 fechados.<br/>S2–S6 em rota.
           </div>
         </div>
         <div style={{ fontSize: 12, color: 'rgba(0,0,0,0.55)', maxWidth: 320, lineHeight: 1.55, textAlign: 'right' }}>
-          R-01..R-30 aplicados. Próximo bloco: bottom nav (3 temas) e modo foco — S1.
+          R-01..R-30 + bottom nav (3) + modo foco (3) prontos. Próximo: categoria-espaço e dashboards mobile (S2).
         </div>
       </div>
 
@@ -172,18 +183,19 @@ function EvalReview() {
             VEREDITO
           </div>
           <div style={{ fontFamily: '"Instrument Serif", serif', fontSize: 26, lineHeight: 1.3, letterSpacing: '-0.01em' }}>
-            S0 fechou os <span style={{ color: EVAL_GREEN }}>30 ajustes finos</span> dos artboards existentes.
-            Falta agora a <span style={{ color: EVAL_ACCENT }}>cobertura de telas novas</span>: nav, foco, categoria-espaço, dashboards mobile, estados, auth completo e tweaks.
+            S0 + S1 entregam a <span style={{ color: EVAL_GREEN }}>fundação visual completa</span>: ajustes finos + bottom nav (3 temas) + modo foco (3 estados).
+            Faltam agora as <span style={{ color: EVAL_ACCENT }}>telas verticais</span>: categoria-espaço, dashboards mobile, estados, auth completo.
           </div>
         </div>
         <div style={{ display: 'flex', flexDirection: 'column', gap: 6, minWidth: 160 }}>
           <ProgressLine label="S0 · Correções" pct={100} color={EVAL_GREEN}/>
-          <ProgressLine label="Mobile · Paper" pct={82} color={EVAL_ACCENT}/>
-          <ProgressLine label="Mobile · Playful" pct={70} color="#7c5cff"/>
-          <ProgressLine label="Mobile · Linear" pct={75} color="#7c8bf5"/>
+          <ProgressLine label="S1 · Nav + Foco" pct={100} color={EVAL_GREEN}/>
+          <ProgressLine label="Mobile · Paper" pct={88} color={EVAL_ACCENT}/>
+          <ProgressLine label="Mobile · Playful" pct={78} color="#7c5cff"/>
+          <ProgressLine label="Mobile · Linear" pct={82} color="#7c8bf5"/>
           <ProgressLine label="Desktop" pct={90} color={EVAL_GREEN}/>
           <ProgressLine label="Auth + Perfil" pct={78} color={EVAL_AMBER}/>
-          <ProgressLine label="Estados/empty" pct={12} color="#999"/>
+          <ProgressLine label="Estados/empty" pct={20} color="#999"/>
         </div>
       </div>
     </div>

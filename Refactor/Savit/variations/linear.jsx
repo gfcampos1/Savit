@@ -56,7 +56,94 @@ function LinearTopBar({ title, subtitle, right }) {
   );
 }
 
-function LinearFeed() {
+// =============================================
+// N-01 — Linear bottom nav (flat, accent FAB, dense)
+// =============================================
+function LinearBottomNav({ active = 'inbox' }) {
+  const navIcon = (id, isActive) => {
+    const stroke = isActive ? LINEAR.accent : LINEAR.ink2;
+    if (id === 'inbox') return <svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke={stroke} strokeWidth="1.7" strokeLinecap="round" strokeLinejoin="round"><path d="M22 12h-6l-2 3h-4l-2-3H2"/><path d="M5.45 5.11 2 12v6a2 2 0 0 0 2 2h16a2 2 0 0 0 2-2v-6l-3.45-6.89A2 2 0 0 0 16.76 4H7.24a2 2 0 0 0-1.79 1.11z"/></svg>;
+    if (id === 'today') return <svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke={stroke} strokeWidth="1.7" strokeLinecap="round"><circle cx="12" cy="12" r="9"/><path d="M12 7v5l3 2"/></svg>;
+    if (id === 'tasks') return <svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke={stroke} strokeWidth="1.7" strokeLinecap="round"><rect x="3" y="3" width="18" height="18" rx="3"/><path d="m8 12 3 3 5-6"/></svg>;
+    if (id === 'profile') return <svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke={stroke} strokeWidth="1.7" strokeLinecap="round"><circle cx="12" cy="8" r="4"/><path d="M4 21a8 8 0 0 1 16 0"/></svg>;
+    return null;
+  };
+
+  const items = [
+    { id: 'inbox',   label: 'Inbox', kbd: '1' },
+    { id: 'today',   label: 'Hoje',  kbd: '2' },
+    null,
+    { id: 'tasks',   label: 'Tarefas', kbd: '3' },
+    { id: 'profile', label: 'Perfil',  kbd: '4' },
+  ];
+
+  return (
+    <div style={{
+      position: 'absolute', left: 0, right: 0, bottom: 0,
+      paddingBottom: 'calc(env(safe-area-inset-bottom) + 12px)',
+      paddingTop: 6,
+      background: LINEAR.surf,
+      borderTop: `1px solid ${LINEAR.hair}`,
+      display: 'flex', alignItems: 'flex-start', justifyContent: 'space-around',
+      height: 64,
+      zIndex: 10,
+    }}>
+      {items.map((it, i) => {
+        if (!it) {
+          return (
+            <div key={i} style={{ position: 'relative', width: 40, height: 40, marginTop: -4 }}>
+              <button style={{
+                width: 40, height: 40, borderRadius: 8,
+                background: LINEAR.accent, color: '#fff',
+                display: 'flex', alignItems: 'center', justifyContent: 'center',
+                boxShadow: `0 6px 16px -4px ${LINEAR.accent}55`,
+              }}>
+                <svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2.4" strokeLinecap="round"><path d="M12 5v14M5 12h14"/></svg>
+              </button>
+            </div>
+          );
+        }
+        const isActive = it.id === active;
+        return (
+          <div key={it.id} style={{
+            flex: 1,
+            display: 'flex', flexDirection: 'column', alignItems: 'center', gap: 2,
+            padding: '4px 0',
+            position: 'relative',
+          }}>
+            {isActive && (
+              <span style={{
+                position: 'absolute', top: 0, left: '50%',
+                transform: 'translateX(-50%)',
+                width: 24, height: 2,
+                background: LINEAR.accent,
+              }}/>
+            )}
+            {navIcon(it.id, isActive)}
+            <span className="mono" style={{
+              fontSize: 9.5, letterSpacing: '0.10em',
+              color: isActive ? LINEAR.ink : LINEAR.ink3,
+              textTransform: 'uppercase',
+            }}>{it.label}</span>
+          </div>
+        );
+      })}
+    </div>
+  );
+}
+
+function LinearFeedWithNav() {
+  return (
+    <div style={{ width: '100%', height: '100%', position: 'relative' }}>
+      <div style={{ position: 'absolute', inset: '0 0 64px 0', overflow: 'hidden', display: 'flex', flexDirection: 'column' }}>
+        <LinearFeed noComposer/>
+      </div>
+      <LinearBottomNav active="inbox"/>
+    </div>
+  );
+}
+
+function LinearFeed({ noComposer = false } = {}) {
   const items = [
     { id: 'SAV-128', text: 'Pensar num nome melhor pra feature de export.', cat: 'work', priority: 'low', time: '09:42', isTask: false },
     { id: 'SAV-127', text: 'Revisar PR do refresh token rotation', cat: 'work', priority: 'high', time: '10:15', isTask: true, due: 'Hoje 16:00', status: 'todo' },
@@ -165,7 +252,7 @@ function LinearFeed() {
         ))}
       </div>
 
-      <LinearComposer/>
+      {!noComposer && <LinearComposer/>}
     </LinearShell>
   );
 }
@@ -477,4 +564,8 @@ function Kpi({ label, value, delta, up }) {
   );
 }
 
-Object.assign(window, { LinearFeed, LinearCommand, LinearDash, LINEAR });
+Object.assign(window, {
+  LinearFeed, LinearCommand, LinearDash,
+  LinearBottomNav, LinearFeedWithNav,
+  LINEAR,
+});

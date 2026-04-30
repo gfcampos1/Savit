@@ -79,7 +79,7 @@ function PaperTime({ children }) {
   );
 }
 
-function PaperFeed() {
+function PaperFeed({ noComposer = false } = {}) {
   const items = [
     { kind: 'day', label: 'Hoje · qui 30 abr' },
     { kind: 'note', cat: { name: 'Trabalho', color: '#c0563a' }, time: '09:42',
@@ -213,7 +213,7 @@ function PaperFeed() {
         })}
       </div>
 
-      <PaperComposer />
+      {!noComposer && <PaperComposer />}
     </div>
   );
 }
@@ -550,6 +550,408 @@ function PaperTasks() {
   );
 }
 
+// =============================================
+// N-01 — Paper bottom nav (5 items, central elevated FAB)
+// =============================================
+
+function PaperBottomNav({ active = 'inbox' }) {
+  const navIcon = (id, isActive) => {
+    const stroke = isActive ? PAPER.ink : PAPER.ink3;
+    const fill = isActive ? PAPER.ink : 'none';
+    const sw = isActive ? 0 : 1.7;
+    if (id === 'inbox') return isActive
+      ? <svg width="22" height="22" viewBox="0 0 24 24" fill={fill}><path d="M22 12h-6l-2 3h-4l-2-3H2v8a2 2 0 0 0 2 2h16a2 2 0 0 0 2-2v-8z"/><path d="M5.45 5.11 2 12v6a2 2 0 0 0 2 2h16a2 2 0 0 0 2-2v-6l-3.45-6.89A2 2 0 0 0 16.76 4H7.24a2 2 0 0 0-1.79 1.11z" fill="none" stroke={stroke} strokeWidth="1.5"/></svg>
+      : <svg width="22" height="22" viewBox="0 0 24 24" fill="none" stroke={stroke} strokeWidth={sw} strokeLinecap="round" strokeLinejoin="round"><path d="M22 12h-6l-2 3h-4l-2-3H2"/><path d="M5.45 5.11 2 12v6a2 2 0 0 0 2 2h16a2 2 0 0 0 2-2v-6l-3.45-6.89A2 2 0 0 0 16.76 4H7.24a2 2 0 0 0-1.79 1.11z"/></svg>;
+    if (id === 'today') return isActive
+      ? <svg width="22" height="22" viewBox="0 0 24 24" fill={fill}><circle cx="12" cy="12" r="9"/><path d="M12 7v5l3 2" stroke={PAPER.bg} strokeWidth="2" strokeLinecap="round" fill="none"/></svg>
+      : <svg width="22" height="22" viewBox="0 0 24 24" fill="none" stroke={stroke} strokeWidth={sw} strokeLinecap="round"><circle cx="12" cy="12" r="9"/><path d="M12 7v5l3 2"/></svg>;
+    if (id === 'tasks') return isActive
+      ? <svg width="22" height="22" viewBox="0 0 24 24" fill={fill}><rect x="3" y="3" width="18" height="18" rx="3"/><path d="m8 12 3 3 5-6" stroke={PAPER.bg} strokeWidth="2" strokeLinecap="round" fill="none"/></svg>
+      : <svg width="22" height="22" viewBox="0 0 24 24" fill="none" stroke={stroke} strokeWidth={sw} strokeLinecap="round"><rect x="3" y="3" width="18" height="18" rx="3"/><path d="m8 12 3 3 5-6"/></svg>;
+    if (id === 'profile') return isActive
+      ? <svg width="22" height="22" viewBox="0 0 24 24" fill={fill}><circle cx="12" cy="8" r="4"/><path d="M4 21a8 8 0 0 1 16 0"/></svg>
+      : <svg width="22" height="22" viewBox="0 0 24 24" fill="none" stroke={stroke} strokeWidth={sw} strokeLinecap="round"><circle cx="12" cy="8" r="4"/><path d="M4 21a8 8 0 0 1 16 0"/></svg>;
+    return null;
+  };
+
+  const items = [
+    { id: 'inbox',   label: 'Inbox' },
+    { id: 'today',   label: 'Hoje' },
+    null, // capture FAB
+    { id: 'tasks',   label: 'Tarefas' },
+    { id: 'profile', label: 'Perfil' },
+  ];
+
+  return (
+    <div style={{
+      position: 'absolute', left: 0, right: 0, bottom: 0,
+      paddingBottom: 'calc(env(safe-area-inset-bottom) + 16px)',
+      paddingTop: 8,
+      background: PAPER.card,
+      borderTop: `1px solid ${PAPER.hair}`,
+      display: 'flex', alignItems: 'flex-start', justifyContent: 'space-around',
+      height: 72,
+    }}>
+      {items.map((it, i) => {
+        if (!it) {
+          // Center capture FAB — elevated 12px above nav
+          return (
+            <div key={i} style={{
+              position: 'relative', width: 56, height: 56,
+              marginTop: -12,
+            }}>
+              <button style={{
+                width: 56, height: 56, borderRadius: 999,
+                background: PAPER.ink,
+                color: '#fff',
+                display: 'flex', alignItems: 'center', justifyContent: 'center',
+                boxShadow: '0 8px 24px -8px rgba(29,26,20,0.55), 0 1px 0 rgba(255,255,255,0.06) inset',
+                border: `2px solid ${PAPER.bg}`,
+              }}>
+                <svg width="22" height="22" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2.2" strokeLinecap="round"><path d="M12 5v14M5 12h14"/></svg>
+              </button>
+            </div>
+          );
+        }
+        const isActive = it.id === active;
+        return (
+          <div key={it.id} style={{
+            flex: 1,
+            display: 'flex', flexDirection: 'column', alignItems: 'center', gap: 4,
+            paddingTop: 4,
+          }}>
+            {navIcon(it.id, isActive)}
+            <span className="mono" style={{
+              fontSize: 10, letterSpacing: '0.12em',
+              color: isActive ? PAPER.ink : PAPER.ink3,
+              textTransform: 'uppercase',
+              fontWeight: isActive ? 600 : 500,
+            }}>{it.label}</span>
+          </div>
+        );
+      })}
+    </div>
+  );
+}
+
+// =============================================
+// N-02 — Paper Modo Foco (3 states: default, Pomodoro, empty)
+// =============================================
+
+function PaperFocusChrome({ counter, onClose }) {
+  return (
+    <div style={{
+      display: 'flex', alignItems: 'center', justifyContent: 'space-between',
+      padding: '14px 20px',
+    }}>
+      <button style={{
+        width: 36, height: 36, borderRadius: 999,
+        background: PAPER.card, border: `1px solid ${PAPER.hair}`,
+        display: 'flex', alignItems: 'center', justifyContent: 'center',
+      }}>
+        <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke={PAPER.ink} strokeWidth="1.7" strokeLinecap="round"><path d="M18 6 6 18M6 6l12 12"/></svg>
+      </button>
+      <div className="mono" style={{ fontSize: 11, color: PAPER.ink3, letterSpacing: '0.16em' }}>
+        FOCO
+      </div>
+      <span className="mono" style={{
+        fontSize: 11, color: PAPER.ink2, letterSpacing: '0.06em',
+        padding: '4px 10px', background: PAPER.card,
+        border: `1px solid ${PAPER.hair}`, borderRadius: 999,
+      }}>{counter}</span>
+    </div>
+  );
+}
+
+function PaperFocusActions({ doneFirst = false }) {
+  return (
+    <div style={{
+      padding: '0 20px 24px',
+      display: 'grid', gridTemplateColumns: '44px 1fr 44px',
+      gap: 10,
+    }}>
+      <button style={{
+        width: 44, height: 44, borderRadius: 999,
+        background: PAPER.card, border: `1px solid ${PAPER.hair}`,
+        display: 'flex', alignItems: 'center', justifyContent: 'center',
+        color: PAPER.ink2,
+      }}>
+        <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round"><path d="m15 18-6-6 6-6"/></svg>
+      </button>
+      <div style={{ display: 'flex', gap: 8 }}>
+        <button style={{
+          flex: 1, padding: '0 12px', height: 44,
+          background: 'transparent', color: PAPER.accent2,
+          border: `1px solid ${PAPER.hair}`, borderRadius: 12,
+          fontSize: 13, fontWeight: 500,
+          display: 'flex', alignItems: 'center', justifyContent: 'center', gap: 6,
+        }}>
+          <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round"><path d="M3 12a9 9 0 1 0 9-9"/><path d="M3 4v5h5"/></svg>
+          Adiar 1h
+        </button>
+        <button style={{
+          flex: 1.4, padding: '0 14px', height: 44,
+          background: '#3a8a6a', color: '#fff',
+          border: 'none', borderRadius: 12,
+          fontSize: 14, fontWeight: 600,
+          display: 'flex', alignItems: 'center', justifyContent: 'center', gap: 6,
+        }}>
+          <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2.4" strokeLinecap="round" strokeLinejoin="round"><path d="M20 6 9 17l-5-5"/></svg>
+          Concluir
+        </button>
+      </div>
+      <button style={{
+        width: 44, height: 44, borderRadius: 999,
+        background: PAPER.card, border: `1px solid ${PAPER.hair}`,
+        display: 'flex', alignItems: 'center', justifyContent: 'center',
+        color: PAPER.ink2,
+      }}>
+        <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round"><path d="m9 18 6-6-6-6"/></svg>
+      </button>
+    </div>
+  );
+}
+
+function PaperFocus() {
+  return (
+    <div style={{
+      width: '100%', height: '100%',
+      // bg-2: leve variação do bg
+      background: '#f0e9da',
+      color: PAPER.ink,
+      fontFamily: '"Geist", system-ui, sans-serif',
+      display: 'flex', flexDirection: 'column',
+    }}>
+      <PaperFocusChrome counter="2 / 5" />
+
+      <div style={{
+        flex: 1,
+        display: 'flex', flexDirection: 'column',
+        alignItems: 'center', justifyContent: 'center',
+        padding: '0 24px', gap: 28,
+      }}>
+        <div style={{
+          fontFamily: '"Instrument Serif", serif',
+          fontSize: 32, lineHeight: 1.18,
+          letterSpacing: '-0.02em',
+          color: PAPER.ink, textAlign: 'center', maxWidth: 18,
+          maxWidth: 280,
+        }}>
+          Hoje você quer fechar<br/>
+          <strong style={{ color: PAPER.accent, fontWeight: 400 }}>5 tarefas</strong>.
+        </div>
+
+        <div style={{
+          width: '100%', maxWidth: 340,
+          background: PAPER.card,
+          border: `1px solid ${PAPER.hair}`,
+          borderRadius: 18,
+          padding: 22,
+          boxShadow: PAPER.shadow,
+          display: 'flex', flexDirection: 'column', gap: 12,
+          transform: 'rotate(-0.6deg)',
+        }}>
+          <span style={{
+            display: 'inline-block', alignSelf: 'flex-start',
+            padding: '3px 10px', borderRadius: 999,
+            background: '#c0563a',
+            color: '#fff',
+            fontFamily: '"JetBrains Mono", monospace',
+            fontSize: 10, letterSpacing: '0.14em',
+          }}>TRABALHO</span>
+          <div style={{
+            fontFamily: '"Instrument Serif", serif',
+            fontSize: 22, lineHeight: 1.35,
+            color: PAPER.ink,
+          }}>
+            Revisar PR do refresh token rotation
+          </div>
+          <div className="mono" style={{
+            display: 'flex', alignItems: 'center', gap: 6,
+            fontSize: 11, color: PAPER.ink2, letterSpacing: '0.08em',
+          }}>
+            <svg width="11" height="11" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2"><circle cx="12" cy="12" r="9"/><path d="M12 7v5l3 2"/></svg>
+            HOJE · 16:00
+          </div>
+        </div>
+
+        <div className="mono" style={{
+          fontSize: 10, color: PAPER.ink3, letterSpacing: '0.18em',
+          textTransform: 'uppercase',
+        }}>
+          ← deslize · ou setas →
+        </div>
+      </div>
+
+      <PaperFocusActions/>
+    </div>
+  );
+}
+
+function PaperFocusPomodoro() {
+  // Render a circular SVG ring representing 4:32 left of a 5min break
+  const r = 86;
+  const C = 2 * Math.PI * r;
+  const pct = 0.92; // 4:32 of 5min remaining
+  return (
+    <div style={{
+      width: '100%', height: '100%',
+      background: '#f0e9da',
+      color: PAPER.ink,
+      fontFamily: '"Geist", system-ui, sans-serif',
+      display: 'flex', flexDirection: 'column',
+    }}>
+      <PaperFocusChrome counter="2 / 5" />
+
+      <div style={{
+        flex: 1,
+        display: 'flex', flexDirection: 'column',
+        alignItems: 'center', justifyContent: 'center',
+        padding: '0 24px', gap: 24, position: 'relative',
+      }}>
+        <div className="mono" style={{
+          fontSize: 11, letterSpacing: '0.18em',
+          color: '#3a8a6a',
+          padding: '4px 12px',
+          background: 'rgba(58,138,106,0.08)',
+          border: '1px solid rgba(58,138,106,0.20)',
+          borderRadius: 999,
+        }}>· DESCANSE</div>
+
+        <div style={{
+          fontFamily: '"Instrument Serif", serif',
+          fontSize: 22, lineHeight: 1.4, fontStyle: 'italic',
+          color: PAPER.ink2,
+          textAlign: 'center', maxWidth: 280,
+        }}>
+          Respira fundo.<br/>Volta em pouco.
+        </div>
+
+        <div style={{ position: 'relative', width: 220, height: 220 }}>
+          <svg width="220" height="220" viewBox="0 0 220 220" style={{ transform: 'rotate(-90deg)' }}>
+            <circle cx="110" cy="110" r={r} fill="none" stroke={PAPER.hair} strokeWidth="6"/>
+            <circle cx="110" cy="110" r={r} fill="none" stroke="#3a8a6a"
+              strokeWidth="6" strokeLinecap="round"
+              strokeDasharray={C} strokeDashoffset={C * (1 - pct)}/>
+          </svg>
+          <div style={{
+            position: 'absolute', inset: 0,
+            display: 'flex', flexDirection: 'column',
+            alignItems: 'center', justifyContent: 'center',
+          }}>
+            <div style={{
+              fontFamily: '"Instrument Serif", serif',
+              fontSize: 56, lineHeight: 1, letterSpacing: '-0.02em',
+              color: PAPER.ink,
+            }}>4:32</div>
+            <div className="mono" style={{
+              fontSize: 10, color: PAPER.ink3,
+              letterSpacing: '0.16em', marginTop: 6,
+            }}>de 5 min</div>
+          </div>
+        </div>
+
+        <div className="mono" style={{
+          fontSize: 10, color: PAPER.ink3, letterSpacing: '0.16em',
+        }}>
+          Próxima: revisar deploy
+        </div>
+      </div>
+
+      <div style={{
+        padding: '0 20px 24px',
+        display: 'flex', gap: 10, justifyContent: 'center',
+      }}>
+        <button style={{
+          padding: '12px 18px', borderRadius: 12,
+          background: PAPER.card, border: `1px solid ${PAPER.hair}`,
+          color: PAPER.ink, fontSize: 13, fontWeight: 500,
+          display: 'flex', alignItems: 'center', gap: 6,
+        }}>
+          Pular descanso
+        </button>
+        <button style={{
+          padding: '12px 18px', borderRadius: 12,
+          background: PAPER.ink, color: '#fff',
+          fontSize: 13, fontWeight: 600,
+          display: 'flex', alignItems: 'center', gap: 6,
+        }}>
+          Pausar
+        </button>
+      </div>
+    </div>
+  );
+}
+
+function PaperFocusEmpty() {
+  return (
+    <div style={{
+      width: '100%', height: '100%',
+      background: '#f0e9da',
+      color: PAPER.ink,
+      fontFamily: '"Geist", system-ui, sans-serif',
+      display: 'flex', flexDirection: 'column',
+    }}>
+      <PaperFocusChrome counter="0 / 0" />
+
+      <div style={{
+        flex: 1,
+        display: 'flex', flexDirection: 'column',
+        alignItems: 'center', justifyContent: 'center',
+        padding: '0 32px', gap: 18, textAlign: 'center',
+      }}>
+        <div style={{
+          width: 64, height: 64, borderRadius: 24,
+          background: PAPER.card, border: `1px solid ${PAPER.hair}`,
+          display: 'flex', alignItems: 'center', justifyContent: 'center',
+          color: PAPER.accent2,
+        }}>
+          <svg width="28" height="28" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="1.5" strokeLinecap="round"><circle cx="12" cy="12" r="9"/><path d="M9 12l2 2 4-4"/></svg>
+        </div>
+
+        <div style={{
+          fontFamily: '"Instrument Serif", serif',
+          fontSize: 32, lineHeight: 1.15, letterSpacing: '-0.02em',
+        }}>
+          Nada pendente.<br/>
+          <span style={{ fontStyle: 'italic', color: PAPER.accent }}>Aproveita.</span>
+        </div>
+        <div style={{
+          fontSize: 13, color: PAPER.ink2, lineHeight: 1.55, maxWidth: 280,
+        }}>
+          Sem tarefas pra hoje. Capture algo, revise sua semana ou só feche o app — tá tudo bem.
+        </div>
+      </div>
+
+      <div style={{ padding: '0 20px 24px', display: 'flex', gap: 10 }}>
+        <button style={{
+          flex: 1, padding: 14, borderRadius: 12,
+          background: PAPER.card, color: PAPER.ink,
+          border: `1px solid ${PAPER.hair}`,
+          fontSize: 13, fontWeight: 500,
+        }}>Capturar nova ideia</button>
+        <button style={{
+          flex: 1, padding: 14, borderRadius: 12,
+          background: PAPER.ink, color: '#fff',
+          fontSize: 13, fontWeight: 500,
+        }}>Sair</button>
+      </div>
+    </div>
+  );
+}
+
+// Wraps PaperFeed body (no floating composer) with the bottom nav
+function PaperFeedWithNav() {
+  return (
+    <div style={{ width: '100%', height: '100%', position: 'relative' }}>
+      <div style={{ position: 'absolute', inset: '0 0 72px 0', overflow: 'hidden' }}>
+        <PaperFeed noComposer/>
+      </div>
+      <PaperBottomNav active="inbox"/>
+    </div>
+  );
+}
+
 // R-02 — feed with composer in expanded "typing" state showing parser chips
 function PaperFeedTyping() {
   const items = [
@@ -648,4 +1050,9 @@ function PaperFeedTyping() {
   );
 }
 
-Object.assign(window, { PaperFeed, PaperFeedTyping, PaperCategories, PaperTasks, PAPER });
+Object.assign(window, {
+  PaperFeed, PaperFeedTyping, PaperCategories, PaperTasks,
+  PaperBottomNav, PaperFeedWithNav,
+  PaperFocus, PaperFocusPomodoro, PaperFocusEmpty,
+  PAPER,
+});

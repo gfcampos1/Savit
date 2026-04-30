@@ -94,6 +94,38 @@ function App() {
         </DCSection>
 
         <DCSection
+          id="bottom-nav"
+          title="Bottom navigation · 5 itens · 3 temas"
+          subtitle="Inbox · Hoje · [+ Capturar] · Tarefas · Perfil. FAB central elevado, segue o tema. Long-press abre command palette."
+        >
+          <DCArtboard id="paper-nav" label="A · Paper — feed + nav" width={390} height={844}>
+            <Phone bg="#f6f1e8"><PaperFeedWithNav /></Phone>
+          </DCArtboard>
+          <DCArtboard id="playful-nav" label="B · Playful — feed + nav" width={390} height={844}>
+            <Phone dark bg="#0e0a1a"><PlayfulFeedWithNav /></Phone>
+          </DCArtboard>
+          <DCArtboard id="linear-nav" label="C · Linear — feed + nav" width={390} height={844}>
+            <Phone dark bg="#0a0c10"><LinearFeedWithNav /></Phone>
+          </DCArtboard>
+        </DCSection>
+
+        <DCSection
+          id="focus"
+          title="Modo foco do dia"
+          subtitle="Tela cheia. Uma tarefa por vez. Pomodoro opcional destaca o descanso, não a urgência. Empty state convida a desligar."
+        >
+          <DCArtboard id="focus-paper" label="Foco — padrão (Paper)" width={390} height={844}>
+            <Phone bg="#f0e9da"><PaperFocus /></Phone>
+          </DCArtboard>
+          <DCArtboard id="focus-pomodoro" label="Foco — Pomodoro (descanso)" width={390} height={844}>
+            <Phone bg="#f0e9da"><PaperFocusPomodoro /></Phone>
+          </DCArtboard>
+          <DCArtboard id="focus-empty" label="Foco — vazio" width={390} height={844}>
+            <Phone bg="#f0e9da"><PaperFocusEmpty /></Phone>
+          </DCArtboard>
+        </DCSection>
+
+        <DCSection
           id="desktop"
           title="Desktop · reimaginação"
           subtitle="Coluna tripla: navegação, feed, painel de contexto. Direção: Linear/Tech (a mais densa)."
