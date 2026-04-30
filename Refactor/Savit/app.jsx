@@ -59,6 +59,9 @@ function App() {
           <DCArtboard id="paper-feed" label="A · Paper — feed" width={390} height={844}>
             <Phone bg="#f6f1e8"><PaperFeed /></Phone>
           </DCArtboard>
+          <DCArtboard id="paper-feed-typing" label="A · Paper — feed (typing + chips)" width={390} height={844}>
+            <Phone bg="#f6f1e8"><PaperFeedTyping /></Phone>
+          </DCArtboard>
           <DCArtboard id="paper-cat" label="A · Paper — categorias" width={390} height={844}>
             <Phone bg="#f6f1e8"><PaperCategories /></Phone>
           </DCArtboard>
@@ -74,6 +77,9 @@ function App() {
           </DCArtboard>
           <DCArtboard id="playful-task" label="B · Playful — capture/tarefa" width={390} height={844}>
             <Phone dark bg="#0e0a1a"><PlayfulCapture /></Phone>
+          </DCArtboard>
+          <DCArtboard id="playful-task-empty" label="B · Playful — capture (placeholder)" width={390} height={844}>
+            <Phone dark bg="#0e0a1a"><PlayfulCaptureEmpty /></Phone>
           </DCArtboard>
 
           <DCArtboard id="linear-feed" label="C · Linear — feed" width={390} height={844}>
@@ -137,7 +143,7 @@ function Brief() {
   return (
     <div style={{
       width: '100%', height: '100%',
-      background: '#fafaf7',
+      background: '#f6f1e8',
       padding: 48,
       display: 'flex', flexDirection: 'column', gap: 18,
       fontFamily: '"Geist", system-ui, sans-serif',
@@ -184,7 +190,7 @@ function Ideas() {
   return (
     <div style={{
       width: '100%', height: '100%',
-      background: '#fafaf7',
+      background: '#f6f1e8',
       padding: 48,
       fontFamily: '"Geist", system-ui, sans-serif',
       color: '#1a1a1a',

@@ -81,10 +81,12 @@ function PlayfulFeed() {
     <PlayfulShell>
       <PlayfulHeader/>
 
-      {/* Story-like category pills */}
+      {/* Story-like category pills (R-12 — fade right edge) */}
       <div style={{
         padding: '4px 18px 14px',
         display: 'flex', gap: 10, overflow: 'auto',
+        WebkitMaskImage: 'linear-gradient(to right, black 86%, transparent 100%)',
+        maskImage: 'linear-gradient(to right, black 86%, transparent 100%)',
       }}>
         {[
           { name: 'Tudo', color: null, active: true, count: 28 },
@@ -138,11 +140,13 @@ function PlayfulFeed() {
             <div style={{
               padding: '6px 12px', borderRadius: 999,
               background: 'rgba(255,255,255,0.2)',
+              border: '1px solid rgba(255,255,255,0.18)',
               fontSize: 12, fontWeight: 500,
             }}>Revisar PR</div>
             <div style={{
               padding: '6px 12px', borderRadius: 999,
               background: 'rgba(255,255,255,0.2)',
+              border: '1px solid rgba(255,255,255,0.18)',
               fontSize: 12, fontWeight: 500,
             }}>Ligar João</div>
           </div>
@@ -199,8 +203,8 @@ function PlayfulCard({ color, cat, time, text, big = false }) {
     }}>
       {color && (
         <div style={{
-          position: 'absolute', left: 0, top: 16, bottom: 16, width: 3,
-          background: color, borderRadius: '0 3px 3px 0',
+          position: 'absolute', left: 0, top: 0, bottom: 0, width: 4,
+          background: color, borderRadius: '4px 0 0 4px',
         }}/>
       )}
       <div style={{
@@ -246,7 +250,7 @@ function PlayfulComposer() {
         background: 'rgba(255,255,255,0.06)',
         display: 'flex', alignItems: 'center', justifyContent: 'center',
       }}>
-        <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke={PLAYFUL.ink2} strokeWidth="1.7"><rect x="9" y="2" width="6" height="12" rx="3"/><path d="M5 10v2a7 7 0 0 0 14 0v-2M12 19v3"/></svg>
+        <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke={PLAYFUL.ink2} strokeWidth="2" strokeLinecap="round"><rect x="9" y="2" width="6" height="12" rx="3"/><path d="M5 10v2a7 7 0 0 0 14 0v-2M12 19v3"/></svg>
       </button>
       <button style={{
         width: 40, height: 40, borderRadius: 14,
@@ -254,7 +258,7 @@ function PlayfulComposer() {
         display: 'flex', alignItems: 'center', justifyContent: 'center',
         boxShadow: `0 8px 24px -6px ${PLAYFUL.accent}55`,
       }}>
-        <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="#fff" strokeWidth="2.2" strokeLinecap="round"><path d="M5 12h14M13 6l6 6-6 6"/></svg>
+        <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="#fff" strokeWidth="2" strokeLinecap="round"><path d="M5 12h14M13 6l6 6-6 6"/></svg>
       </button>
     </div>
   );
@@ -300,7 +304,10 @@ function PlayfulCategories() {
                 width: 32, height: 32, borderRadius: 10,
                 background: c.color,
                 display: 'flex', alignItems: 'center', justifyContent: 'center',
-                fontSize: 14, fontWeight: 600, color: '#fff',
+                fontSize: 14, fontWeight: 600,
+                // R-15 — switch glyph color when bg is light (amber/coral) for contrast
+                color: ['#ffb84a', '#ff8a5b'].includes(c.color) ? '#1a0f04' : '#fff',
+                textShadow: ['#ffb84a', '#ff8a5b'].includes(c.color) ? 'none' : '0 1px 2px rgba(0,0,0,0.18)',
               }}>{c.emoji}</div>
               <div style={{ fontSize: 15, fontWeight: 500, marginTop: 10 }}>{c.name}</div>
               <div style={{ display: 'flex', alignItems: 'baseline', gap: 6, marginTop: 4 }}>
@@ -318,9 +325,11 @@ function PlayfulCategories() {
             border: `1.5px dashed ${PLAYFUL.hair}`,
             borderRadius: 18,
             minHeight: 130,
+            padding: 14,
             display: 'flex', flexDirection: 'column',
-            alignItems: 'center', justifyContent: 'center', gap: 6,
+            alignItems: 'center', justifyContent: 'center', gap: 8,
             color: PLAYFUL.ink2,
+            textAlign: 'center',
           }}>
             <div style={{
               width: 32, height: 32, borderRadius: 10,
@@ -329,7 +338,10 @@ function PlayfulCategories() {
             }}>
               <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round"><path d="M12 5v14M5 12h14"/></svg>
             </div>
-            <div style={{ fontSize: 12 }}>Novo espaço</div>
+            <div style={{ fontSize: 13, fontWeight: 500, color: PLAYFUL.ink }}>Novo espaço</div>
+            <div style={{ fontSize: 11, color: PLAYFUL.ink3, lineHeight: 1.4, maxWidth: 130 }}>
+              crie um novo espaço da sua vida
+            </div>
           </div>
         </div>
       </div>
@@ -438,4 +450,83 @@ function FieldRow({ icon, label, value, valueColor, last }) {
   );
 }
 
-Object.assign(window, { PlayfulFeed, PlayfulCategories, PlayfulCapture, PLAYFUL });
+// R-17 — Capture screen with visible placeholder (empty state)
+function PlayfulCaptureEmpty() {
+  return (
+    <PlayfulShell>
+      <div style={{ padding: '12px 18px', display: 'flex', justifyContent: 'space-between', alignItems: 'center' }}>
+        <button style={{
+          width: 36, height: 36, borderRadius: 12,
+          background: 'rgba(255,255,255,0.06)',
+          border: `1px solid ${PLAYFUL.hair}`,
+          color: PLAYFUL.ink2,
+        }}>
+          <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round"><path d="m15 18-6-6 6-6"/></svg>
+        </button>
+        <div className="mono" style={{ fontSize: 11, color: PLAYFUL.ink2, letterSpacing: '0.14em' }}>NOVA CAPTURA</div>
+        <div style={{ width: 36 }}/>
+      </div>
+
+      <div style={{ flex: 1, padding: '20px 18px', display: 'flex', flexDirection: 'column', gap: 18 }}>
+        <div style={{
+          fontSize: 26, fontWeight: 500, lineHeight: 1.3, letterSpacing: '-0.015em',
+          color: PLAYFUL.ink3,
+          minHeight: 90,
+          display: 'flex', alignItems: 'flex-start',
+        }}>
+          Sobre o que é?
+          <span style={{
+            display: 'inline-block', width: 1.5, height: 30,
+            background: PLAYFUL.accent, marginLeft: 4, marginTop: 4,
+          }}/>
+        </div>
+
+        <div>
+          <div className="mono" style={{ fontSize: 10, color: PLAYFUL.ink3, letterSpacing: '0.14em', marginBottom: 8 }}>
+            ATALHOS
+          </div>
+          <div style={{ display: 'flex', flexWrap: 'wrap', gap: 8 }}>
+            {['Hoje à noite', 'Amanhã 9h', 'Sex 17h', 'Próxima segunda', 'Sem prazo'].map((s, i) => (
+              <div key={i} style={{
+                padding: '8px 12px', borderRadius: 999,
+                background: 'rgba(255,255,255,0.04)',
+                border: `1px solid ${PLAYFUL.hair}`,
+                fontSize: 12, color: PLAYFUL.ink2,
+              }}>{s}</div>
+            ))}
+          </div>
+        </div>
+
+        <div style={{ flex: 1 }}/>
+
+        <div style={{
+          padding: '12px 14px',
+          background: 'rgba(255,255,255,0.04)',
+          border: `1px dashed ${PLAYFUL.hair}`,
+          borderRadius: 14,
+          fontSize: 12, color: PLAYFUL.ink3, lineHeight: 1.55,
+        }}>
+          Use linguagem natural: <span style={{ color: PLAYFUL.accent3 }}>amanhã 9h</span>,{' '}
+          <span style={{ color: PLAYFUL.accent }}>#trabalho</span>, <span style={{ color: PLAYFUL.accent4 }}>!!!</span> pra prioridade.
+        </div>
+      </div>
+
+      <div style={{ padding: '12px 18px 22px', display: 'flex', gap: 10 }}>
+        <button style={{
+          flex: 1, padding: 14, borderRadius: 16,
+          background: 'rgba(255,255,255,0.06)',
+          color: PLAYFUL.ink, fontSize: 14, fontWeight: 500,
+          border: `1px solid ${PLAYFUL.hair}`,
+        }}>Cancelar</button>
+        <button style={{
+          flex: 2, padding: 14, borderRadius: 16,
+          background: 'rgba(255,255,255,0.06)',
+          color: PLAYFUL.ink3, fontSize: 14, fontWeight: 600,
+          border: `1px solid ${PLAYFUL.hair}`,
+        }}>Salvar</button>
+      </div>
+    </PlayfulShell>
+  );
+}
+
+Object.assign(window, { PlayfulFeed, PlayfulCategories, PlayfulCapture, PlayfulCaptureEmpty, PLAYFUL });

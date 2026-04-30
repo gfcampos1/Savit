@@ -37,7 +37,13 @@ function AuthLogin() {
 
       <div style={{ display: 'flex', flexDirection: 'column', gap: 14 }}>
         <Field label="EMAIL" value="bia@savit.app"/>
-        <Field label="SENHA" value="••••••••••" right={<span style={{ fontSize: 11, color: P2.accent }}>Esqueci</span>}/>
+        <Field label="SENHA" value="••••••••••" right={
+          <span style={{
+            fontSize: 11, color: P2.accent,
+            borderBottom: `1px dashed ${P2.accent}`,
+            paddingBottom: 1,
+          }}>Esqueci</span>
+        }/>
         <button style={{
           marginTop: 8, padding: '14px', borderRadius: 12,
           background: P2.ink, color: '#fff',
@@ -91,8 +97,8 @@ function AuthRegister() {
           <Strength on color={P2.accent}/>
           <Strength on color={P2.accent}/>
           <Strength on color={P2.accent2}/>
-          <Strength color={P2.hair}/>
-          <Strength color={P2.hair}/>
+          <Strength color="rgba(29,26,20,0.18)"/>
+          <Strength color="rgba(29,26,20,0.18)"/>
         </div>
         <div style={{ fontSize: 11, color: P2.ink2, marginTop: -4 }}>
           Forte. Mínimo 10 caracteres com letras e números.
@@ -161,7 +167,7 @@ function ProfileScreen() {
           width: 80, height: 80, borderRadius: 24,
           background: P2.ink, color: P2.bg,
           display: 'flex', alignItems: 'center', justifyContent: 'center',
-          fontFamily: '"Instrument Serif", serif', fontSize: 38,
+          fontFamily: '"Instrument Serif", serif', fontSize: 46, fontWeight: 500,
           margin: '0 auto',
         }}>B</div>
         <div style={{ fontSize: 22, fontWeight: 500, marginTop: 14, letterSpacing: '-0.01em' }}>Beatriz Souza</div>
@@ -183,7 +189,7 @@ function ProfileScreen() {
           { n: '84', l: 'TAREFAS' },
           { n: '12d', l: 'STREAK' },
         ].map((s, i) => (
-          <div key={i} style={{ textAlign: 'center' }}>
+          <div key={i} style={{ textAlign: 'center', padding: '0 8px' }}>
             <div style={{ fontFamily: '"Instrument Serif", serif', fontSize: 28, lineHeight: 1, letterSpacing: '-0.02em' }}>{s.n}</div>
             <div className="mono" style={{ fontSize: 9, color: P2.ink3, letterSpacing: '0.14em', marginTop: 4 }}>{s.l}</div>
           </div>
@@ -212,9 +218,9 @@ function ProfileScreen() {
         <button style={{
           marginTop: 16, padding: '12px', borderRadius: 12,
           width: '100%',
-          background: 'transparent', color: P2.ink2,
+          background: 'transparent', color: '#c0563a',
           fontSize: 13, fontWeight: 500,
-          border: `1px solid ${P2.hair}`,
+          border: '1px solid rgba(192,86,58,0.35)',
         }}>Sair</button>
       </div>
     </div>

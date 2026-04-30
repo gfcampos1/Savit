@@ -27,7 +27,7 @@ function DesktopSidebar({ page }) {
   const items = [
     { id: 'home', icon: 'home', label: 'Inbox', count: 28 },
     { id: 'today', icon: 'today', label: 'Hoje', count: 4 },
-    { id: 'tasks', icon: 'task', label: 'Tarefas', count: 5 },
+    { id: 'tasks', icon: 'task', label: 'Tarefas', count: 8 },
     { id: 'dash', icon: 'chart', label: 'Dashboard' },
   ];
   const cats = [
@@ -57,7 +57,7 @@ function DesktopSidebar({ page }) {
         <div style={{ fontSize: 13, fontWeight: 600 }}>Savit</div>
         <div style={{ flex: 1 }}/>
         <span className="mono" style={{
-          fontSize: 9, color: D.ink3, padding: '1px 5px',
+          fontSize: 10, color: D.ink3, padding: '1px 5px',
           border: `1px solid ${D.hair}`, borderRadius: 3,
         }}>v2</span>
       </div>
@@ -313,6 +313,21 @@ function DesktopDetail() {
         <RelatedRow text="Notas da reunião com Pedro" cat="trabalho" color={D.accent}/>
       </div>
 
+      <div style={{
+        margin: '0 18px',
+        height: 1, background: D.hair,
+      }}/>
+
+      {/* R-24 — Atividade / log */}
+      <div style={{ padding: 18, fontSize: 12 }}>
+        <div className="mono" style={{ fontSize: 10, color: D.ink3, letterSpacing: '0.12em', marginBottom: 10 }}>
+          ATIVIDADE
+        </div>
+        <ActivityRow time="11:02" text="Editado" by="você"/>
+        <ActivityRow time="10:42" text="Categoria definida" by="você" detail="trabalho" color={D.accent}/>
+        <ActivityRow time="10:15" text="Capturado" by="você" first/>
+      </div>
+
       <div style={{ flex: 1 }}/>
 
       <div style={{
@@ -336,6 +351,33 @@ function DesktopDetail() {
         }}>···</button>
       </div>
     </aside>
+  );
+}
+
+function ActivityRow({ time, text, by, detail, color, first }) {
+  return (
+    <div style={{
+      display: 'flex', gap: 10,
+      paddingBottom: first ? 0 : 8,
+      paddingTop: first ? 0 : 0,
+      borderBottom: first ? 'none' : `1px dashed ${D.hair}`,
+      marginBottom: first ? 0 : 8,
+    }}>
+      <span className="mono" style={{ fontSize: 10.5, color: D.ink3, minWidth: 36, paddingTop: 2 }}>{time}</span>
+      <div style={{ flex: 1, lineHeight: 1.5 }}>
+        <span style={{ color: D.ink, fontSize: 12 }}>{text}</span>
+        <span style={{ color: D.ink3, fontSize: 11.5 }}> · {by}</span>
+        {detail && (
+          <span style={{
+            display: 'inline-flex', alignItems: 'center', gap: 4,
+            marginLeft: 6, fontSize: 11.5, color: D.ink2,
+          }}>
+            <span style={{ width: 6, height: 6, borderRadius: 2, background: color }}/>
+            {detail}
+          </span>
+        )}
+      </div>
+    </div>
   );
 }
 
@@ -403,7 +445,7 @@ function DesktopTasks() {
     <DesktopChrome page="tasks">
       <DesktopHeader
         title="Tarefas"
-        sub="5 PENDENTES · 1 CONCLUÍDA · STREAK 12 DIAS"
+        sub="8 PENDENTES · 1 CONCLUÍDA · STREAK 12 DIAS"
         right={
           <div style={{ display: 'flex', gap: 6, alignItems: 'center' }}>
             <div style={{

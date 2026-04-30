@@ -13,11 +13,12 @@ const PAPER = {
   shadow: '0 1px 0 rgba(29,26,20,0.04), 0 12px 24px -16px rgba(29,26,20,0.18)',
 };
 
-function PaperHeader({ title, sub, action }) {
+function PaperHeader({ title, sub, action, withHair = false }) {
   return (
     <div style={{
       padding: '14px 20px 10px',
       display: 'flex', alignItems: 'flex-end', justifyContent: 'space-between', gap: 12,
+      borderBottom: withHair ? `1px solid ${PAPER.hair}` : 'none',
     }}>
       <div>
         <div style={{
@@ -42,7 +43,7 @@ function PaperTabs({ tabs, active }) {
       display: 'flex', gap: 0,
       padding: '0 20px',
       borderBottom: `1px solid ${PAPER.hair}`,
-      marginTop: 8,
+      marginTop: 0,
     }}>
       {tabs.map(t => (
         <div key={t.id} style={{
@@ -73,7 +74,7 @@ function PaperTabs({ tabs, active }) {
 function PaperTime({ children }) {
   return (
     <span className="mono" style={{
-      fontSize: 10, color: PAPER.ink3, letterSpacing: '0.05em',
+      fontSize: 11.5, color: PAPER.ink3, letterSpacing: '0.05em',
     }}>{children}</span>
   );
 }
@@ -108,6 +109,7 @@ function PaperFeed() {
       <PaperHeader
         sub="QUI · 30 ABR"
         title="Hoje"
+        withHair
         action={
           <div style={{ display: 'flex', gap: 6 }}>
             <IconBtnPaper>
@@ -125,7 +127,7 @@ function PaperFeed() {
         tabs={[
           { id: 'all', label: 'Tudo', count: 28 },
           { id: 'tasks', label: 'Tarefas', count: 4 },
-          { id: 'cats', label: 'Categorias' },
+          { id: 'cats', label: 'Categorias', count: 6 },
         ]}
       />
 
@@ -177,7 +179,7 @@ function PaperFeed() {
                   }}>{it.text}</div>
                   <div style={{ display: 'flex', alignItems: 'center', gap: 10, marginTop: 6 }}>
                     {it.cat && <CategoryChipPaper {...it.cat} />}
-                    <span style={{ display: 'flex', alignItems: 'center', gap: 4, fontSize: 11, color: PAPER.ink2 }}>
+                    <span style={{ display: 'flex', alignItems: 'center', gap: 4, fontSize: 11.5, color: PAPER.ink2 }}>
                       <svg width="11" height="11" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2"><circle cx="12" cy="12" r="9"/><path d="M12 7v5l3 2"/></svg>
                       {it.when}
                     </span>
@@ -241,39 +243,104 @@ function CategoryChipPaper({ name, color }) {
   );
 }
 
-function PaperComposer() {
+// R-01 / R-02 — composer with optional chips preview row + typing state
+function PaperComposerChip({ icon, color, children, onRemove }) {
+  return (
+    <span style={{
+      display: 'inline-flex', alignItems: 'center', gap: 6,
+      padding: '4px 8px 4px 10px',
+      background: PAPER.bg,
+      border: `1px solid ${PAPER.hair}`,
+      borderRadius: 999,
+      fontSize: 11.5,
+      color: PAPER.ink,
+      fontFamily: '"JetBrains Mono", monospace',
+      letterSpacing: '0.04em',
+    }}>
+      {color && <span style={{ width: 7, height: 7, borderRadius: 2, background: color }}/>}
+      {icon === 'task' && (
+        <span style={{ fontSize: 10, color: PAPER.accent, fontWeight: 600 }}>TAREFA</span>
+      )}
+      <span>{children}</span>
+      {onRemove && (
+        <span style={{
+          color: PAPER.ink3, fontSize: 12, cursor: 'pointer',
+          marginLeft: 2, paddingLeft: 4, borderLeft: `1px solid ${PAPER.hair}`,
+          paddingRight: 2,
+        }}>×</span>
+      )}
+    </span>
+  );
+}
+
+function PaperComposer({ chips, value, expanded }) {
   return (
     <div style={{
       position: 'absolute', left: 12, right: 12, bottom: 12,
       background: PAPER.card,
       border: `1px solid ${PAPER.hair}`,
       borderRadius: 18,
-      padding: '10px 12px 10px 16px',
-      display: 'flex', alignItems: 'center', gap: 10,
+      padding: chips ? '10px 12px 10px 12px' : '10px 12px 10px 16px',
+      display: 'flex', flexDirection: 'column', gap: chips ? 8 : 0,
       boxShadow: '0 6px 24px -8px rgba(29,26,20,0.18), 0 1px 0 rgba(29,26,20,0.04)',
     }}>
-      <div style={{
-        flex: 1, display: 'flex', alignItems: 'center', gap: 10,
-        fontSize: 14, color: PAPER.ink3,
-      }}>
-        <span style={{ fontFamily: '"Instrument Serif", serif', fontSize: 18, color: PAPER.ink2 }}>"</span>
-        Anote uma ideia…
-      </div>
-      <div style={{ display: 'flex', gap: 4 }}>
-        <button style={{
-          width: 32, height: 32, borderRadius: 10,
-          background: 'transparent',
-          display: 'flex', alignItems: 'center', justifyContent: 'center',
+      {chips && chips.length > 0 && (
+        <div style={{
+          display: 'flex', flexWrap: 'wrap', gap: 6,
+          paddingLeft: 4,
         }}>
-          <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke={PAPER.ink2} strokeWidth="1.7" strokeLinecap="round" strokeLinejoin="round"><path d="M21 11.5a8.38 8.38 0 0 1-.9 3.8 8.5 8.5 0 0 1-7.6 4.7 8.38 8.38 0 0 1-3.8-.9L3 21l1.9-5.7a8.38 8.38 0 0 1-.9-3.8 8.5 8.5 0 0 1 4.7-7.6 8.38 8.38 0 0 1 3.8-.9h.5a8.48 8.48 0 0 1 8 8v.5z"/></svg>
-        </button>
-        <button style={{
-          width: 32, height: 32, borderRadius: 10,
-          background: PAPER.accent,
-          display: 'flex', alignItems: 'center', justifyContent: 'center',
+          {chips.map((c, i) => (
+            <PaperComposerChip key={i} icon={c.icon} color={c.color} onRemove={c.removable}>{c.label}</PaperComposerChip>
+          ))}
+        </div>
+      )}
+      <div style={{ display: 'flex', alignItems: expanded ? 'flex-start' : 'center', gap: 10 }}>
+        <div style={{
+          flex: 1, display: 'flex', alignItems: 'flex-start', gap: 10,
+          fontSize: 14, color: value ? PAPER.ink : PAPER.ink3,
+          minHeight: expanded ? 64 : 'auto',
+          padding: expanded ? '6px 4px' : '0 4px',
+          lineHeight: 1.4,
         }}>
-          <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="#fff" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round"><path d="M5 12h14M13 6l6 6-6 6"/></svg>
-        </button>
+          {!value && (
+            <span style={{ fontFamily: '"Instrument Serif", serif', fontSize: 18, color: PAPER.ink2 }}>"</span>
+          )}
+          <span style={{ flex: 1 }}>
+            {value || 'Anote uma ideia…'}
+            {expanded && (
+              <span style={{
+                display: 'inline-block', width: 1.5, height: 16,
+                background: PAPER.accent, marginLeft: 2, verticalAlign: 'middle',
+                animation: 'none',
+              }}/>
+            )}
+          </span>
+        </div>
+        <div style={{ display: 'flex', gap: 4, alignItems: 'center', alignSelf: expanded ? 'flex-end' : 'center' }}>
+          {expanded && (
+            <span className="mono" style={{
+              fontSize: 10, color: PAPER.ink3, letterSpacing: '0.08em',
+              padding: '3px 6px', background: PAPER.bg, border: `1px solid ${PAPER.hair}`,
+              borderRadius: 6,
+            }}>⌘↵ enviar</span>
+          )}
+          {!expanded && (
+            <button style={{
+              width: 32, height: 32, borderRadius: 10,
+              background: 'transparent',
+              display: 'flex', alignItems: 'center', justifyContent: 'center',
+            }}>
+              <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke={PAPER.ink2} strokeWidth="1.7" strokeLinecap="round" strokeLinejoin="round"><path d="M21 11.5a8.38 8.38 0 0 1-.9 3.8 8.5 8.5 0 0 1-7.6 4.7 8.38 8.38 0 0 1-3.8-.9L3 21l1.9-5.7a8.38 8.38 0 0 1-.9-3.8 8.5 8.5 0 0 1 4.7-7.6 8.38 8.38 0 0 1 3.8-.9h.5a8.48 8.48 0 0 1 8 8v.5z"/></svg>
+            </button>
+          )}
+          <button style={{
+            width: 32, height: 32, borderRadius: 10,
+            background: PAPER.accent,
+            display: 'flex', alignItems: 'center', justifyContent: 'center',
+          }}>
+            <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="#fff" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round"><path d="M5 12h14M13 6l6 6-6 6"/></svg>
+          </button>
+        </div>
       </div>
     </div>
   );
@@ -332,8 +399,17 @@ function PaperCategories() {
             <div style={{ flex: 1, minWidth: 0 }}>
               <div style={{ display: 'flex', alignItems: 'baseline', justifyContent: 'space-between', gap: 8 }}>
                 <div style={{ fontSize: 16, fontWeight: 500 }}>{c.name}</div>
-                <div className="mono" style={{ fontSize: 10, color: PAPER.ink3, letterSpacing: '0.06em' }}>
-                  {c.count} · {c.tasks > 0 ? `${c.tasks} tarefas` : '—'}
+                <div style={{ display: 'flex', flexDirection: 'column', alignItems: 'flex-end', gap: 1 }}>
+                  <div className="mono" style={{ fontSize: 11, color: PAPER.ink3, letterSpacing: '0.04em', lineHeight: 1 }}>
+                    {c.count}
+                  </div>
+                  {c.tasks > 0 && (
+                    <div className="mono" style={{
+                      fontSize: 10, color: c.color, letterSpacing: '0.08em', lineHeight: 1,
+                    }}>
+                      · {c.tasks} {c.tasks === 1 ? 'tarefa' : 'tarefas'}
+                    </div>
+                  )}
                 </div>
               </div>
               <div style={{
@@ -392,7 +468,7 @@ function PaperTasks() {
           color: PAPER.accent,
           display: 'flex', alignItems: 'center', justifyContent: 'center',
           fontFamily: '"Instrument Serif", serif',
-          fontSize: 24, fontWeight: 500,
+          fontSize: 28, fontWeight: 400,
         }}>2</div>
         <div style={{ flex: 1 }}>
           <div style={{ fontSize: 13, fontWeight: 500 }}>Foco do dia</div>
@@ -439,23 +515,30 @@ function PaperTasks() {
                   )}
                 </div>
                 <div style={{ flex: 1, minWidth: 0 }}>
+                  {t.urgent && (
+                    <div style={{ marginBottom: 6 }}>
+                      <span style={{
+                        display: 'inline-block',
+                        padding: '2px 8px',
+                        background: PAPER.accent + '18',
+                        color: PAPER.accent,
+                        fontFamily: '"JetBrains Mono", monospace',
+                        fontSize: 9.5,
+                        letterSpacing: '0.14em',
+                        borderRadius: 4,
+                        fontWeight: 600,
+                      }}>URGENTE</span>
+                    </div>
+                  )}
                   <div style={{
                     fontSize: 14, lineHeight: 1.45,
                     textDecoration: t.done ? 'line-through' : 'none',
                   }}>
                     {t.text}
-                    {t.urgent && (
-                      <span style={{
-                        marginLeft: 8, fontSize: 10,
-                        color: PAPER.accent,
-                        fontFamily: '"JetBrains Mono", monospace',
-                        letterSpacing: '0.08em',
-                      }}>· URGENTE</span>
-                    )}
                   </div>
                   <div style={{ display: 'flex', alignItems: 'center', gap: 10, marginTop: 5 }}>
                     <CategoryChipPaper {...t.cat}/>
-                    <span style={{ fontSize: 11, color: PAPER.ink2 }}>{t.time}</span>
+                    <span style={{ fontSize: 11.5, color: PAPER.ink2 }}>{t.time}</span>
                   </div>
                 </div>
               </div>
@@ -467,4 +550,102 @@ function PaperTasks() {
   );
 }
 
-Object.assign(window, { PaperFeed, PaperCategories, PaperTasks, PAPER });
+// R-02 — feed with composer in expanded "typing" state showing parser chips
+function PaperFeedTyping() {
+  const items = [
+    { kind: 'day', label: 'Hoje · qui 30 abr' },
+    { kind: 'note', cat: { name: 'Trabalho', color: '#c0563a' }, time: '09:42',
+      text: 'Pensar num nome melhor pra feature de export. "Compartilhar" tá ambíguo.' },
+    { kind: 'task', cat: { name: 'Trabalho', color: '#c0563a' }, time: '10:15',
+      text: 'Revisar PR do refresh token rotation', when: 'Hoje, 16:00', done: false },
+  ];
+  return (
+    <div style={{
+      width: '100%', height: '100%',
+      background: PAPER.bg,
+      color: PAPER.ink,
+      fontFamily: '"Geist", system-ui, sans-serif',
+      display: 'flex', flexDirection: 'column',
+      position: 'relative',
+    }}>
+      <PaperHeader sub="QUI · 30 ABR" title="Hoje" withHair />
+      <PaperTabs
+        active="all"
+        tabs={[
+          { id: 'all', label: 'Tudo', count: 28 },
+          { id: 'tasks', label: 'Tarefas', count: 4 },
+          { id: 'cats', label: 'Categorias', count: 6 },
+        ]}
+      />
+
+      <div style={{ flex: 1, overflow: 'hidden', padding: '12px 20px 220px' }}>
+        {items.map((it, i) => {
+          if (it.kind === 'day') {
+            return (
+              <div key={i} style={{ display: 'flex', alignItems: 'center', gap: 10, padding: '12px 0 10px' }}>
+                <div className="mono" style={{ fontSize: 10, color: PAPER.ink3, letterSpacing: '0.14em' }}>
+                  {it.label.toUpperCase()}
+                </div>
+                <div style={{ flex: 1, height: 1, background: PAPER.hair }}/>
+              </div>
+            );
+          }
+          if (it.kind === 'task') {
+            return (
+              <div key={i} style={{
+                background: PAPER.card,
+                border: `1px solid ${PAPER.hair}`,
+                borderRadius: 14,
+                padding: '14px 14px 12px',
+                marginBottom: 10,
+                display: 'flex', gap: 12,
+                boxShadow: PAPER.shadow,
+                opacity: 0.7,
+              }}>
+                <div style={{
+                  width: 20, height: 20, borderRadius: 6,
+                  border: `1.5px solid ${PAPER.ink}`, marginTop: 2, flexShrink: 0,
+                }}/>
+                <div style={{ flex: 1, minWidth: 0 }}>
+                  <div style={{ fontSize: 14, lineHeight: 1.45 }}>{it.text}</div>
+                  <div style={{ display: 'flex', alignItems: 'center', gap: 10, marginTop: 6 }}>
+                    <CategoryChipPaper {...it.cat}/>
+                    <span style={{ fontSize: 11.5, color: PAPER.ink2 }}>{it.when}</span>
+                  </div>
+                </div>
+              </div>
+            );
+          }
+          return (
+            <div key={i} style={{
+              padding: '10px 0 12px', borderBottom: `1px dashed ${PAPER.hair}`,
+              opacity: 0.7,
+            }}>
+              <div style={{
+                fontFamily: '"Instrument Serif", serif',
+                fontSize: 19, lineHeight: 1.35,
+                color: PAPER.ink,
+              }}>{it.text}</div>
+              <div style={{ display: 'flex', alignItems: 'center', gap: 10, marginTop: 6 }}>
+                <CategoryChipPaper {...it.cat}/>
+                <PaperTime>{it.time}</PaperTime>
+              </div>
+            </div>
+          );
+        })}
+      </div>
+
+      <PaperComposer
+        expanded
+        value={'amanhã 9h #trabalho lembrar do PR'}
+        chips={[
+          { icon: 'task', label: 'Tarefa', removable: true },
+          { label: 'Sex 1/5 09:00', removable: true },
+          { color: '#c0563a', label: 'trabalho', removable: true },
+        ]}
+      />
+    </div>
+  );
+}
+
+Object.assign(window, { PaperFeed, PaperFeedTyping, PaperCategories, PaperTasks, PAPER });

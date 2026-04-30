@@ -1,7 +1,7 @@
 // Evaluation — what's built vs. what's still missing per SPEC.md
 
 const EVAL_INK = '#1a1a1a';
-const EVAL_BG = '#fafaf7';
+const EVAL_BG = '#f6f1e8';
 const EVAL_ACCENT = '#c0563a';
 const EVAL_GREEN = '#3a8a6a';
 const EVAL_AMBER = '#e6b540';
@@ -18,46 +18,64 @@ function EvalReview() {
         'Desktop em 3 colunas com painel de detalhe à direita resolve a densidade.',
         'Auth limpo, sem gradiente WhatsApp. Itálico no accent funciona.',
         'Cards de tarefa com checkbox 20px + cor da categoria seguem a spec §1.6.',
+        'S0 — fundos Paper unificados em #f6f1e8 (Brief, Ideas, Eval).',
+        'S0 — chips de preview no Paper composer (paper-feed-typing) tornam F1 visível.',
+        'S0 — heatmap Linear agora é determinístico (sem Math.random a cada reload).',
       ],
     },
     {
       title: 'Faltando da SPEC',
       tone: 'bad',
       items: [
-        'Bottom nav mobile (5 itens) — só existe composer flutuante. Spec §3.11 pede tab bar com botão central elevado.',
-        'Modo foco do dia (#/focus, F3) — apenas o cartão "Iniciar" em Tarefas. Falta a tela cheia com tarefa-por-tarefa.',
-        'Dashboard mobile (Paper/Playful) não existe — só Linear tem.',
-        'Categoria-como-espaço (#/category/:id, F4) com banner editorial — não está mocado.',
-        'Toast de feedback (bug §13) e estado offline (§17) — sem visual.',
-        'Resumo editorial da semana como CARD do feed de segunda — só existe no dashboard desktop.',
-        'Estado vazio do feed e do filtro — não foram desenhados.',
-        'Tweaks panel está importado mas inerte — sem opções de tema/density/accent.',
+        'Bottom nav mobile (5 itens, 3 temas) — Paper/Playful/Linear. Vai pra S1.',
+        'Modo foco do dia (#/focus, F3) — Paper, Pomodoro, empty. Vai pra S1.',
+        'Categoria-como-espaço (#/category/:id, F4) — Paper, Playful, Linear. Vai pra S2.',
+        'Dashboard mobile (Paper/Playful). Vai pra S2.',
+        'Resumo editorial da semana como CARD do Inbox de segunda. Vai pra S3.',
+        'Search aberto + empty + sem resultado. Vai pra S3.',
+        'Toast (4 variantes), banner offline. Vão pra S3.',
+        'Long-press sheet, edit modal, color picker. Vão pra S4.',
+        'MFA, sessões, export/import, onboarding, 404/erro. Vão pra S5.',
+        'Skeletons, dialog, datepicker, tooltip. Vão pra S6.',
+        'Tweaks panel está importado mas inerte — ligadura em S6.',
       ],
     },
     {
-      title: 'Problemas de design a corrigir',
-      tone: 'warn',
+      title: 'S0 — corrigido',
+      tone: 'good',
       items: [
-        'Paper composer: só placeholder. Falta mostrar chips de preview (parser natural) acima do input — F1 é a feature-âncora.',
-        'Playful: gradiente do "foco do dia" pode invadir o contraste; em mobile real o card de gradiente roxo+rosa pode brigar com a navegação.',
-        'Linear feed: density está perfeita pra desktop mas no frame de 390px parece apertada — considere aumentar fonte pra 13.5px.',
-        'Auth: o "B" no avatar do perfil tem 38px de Instrument Serif — fica fininho. Subir pro 44–48 ou trocar pra 500 weight.',
-        'Categorias Paper: contador "42 · 8 tarefas" em mono é ilegível em 10px com letter-spacing 0.06em. Subir pra 11 ou separar visualmente.',
-        'Brief e Ideas usam tons levemente diferentes do Paper (#fafaf7 vs #f6f1e8) — alinhar.',
-        'Sem variação de auth/perfil para Linear ou Playful — só Paper. Decidir se é proposital (auth sempre Paper) ou desenhar as 3.',
-        'Falta uma tela de Erro/404, e empty state global. Se não pretende mocar, declare como out-of-scope no Brief.',
+        'R-01/R-02 — Composer Paper agora mostra chips de preview (artboard paper-feed-typing).',
+        'R-03 — Tab "Categorias" ganhou contador (6).',
+        'R-04 — Hairline entre header e tabs no Paper feed.',
+        'R-05 — Metadata padronizada em 11.5px (notas e tarefas).',
+        'R-06/R-07 — Contador de categorias agora em duas linhas mono (count + tasks).',
+        'R-09 — Foco do dia "2" subiu pra 28px peso 400.',
+        'R-10 — URGENTE virou pílula em linha de cima (não inline).',
+        'R-11..R-14 — Playful: pílulas com border, scroll fade, barra full-height 4px, ícones stroke 2.',
+        'R-15/R-16 — Emoji em fundo amarelo/coral troca pra glyph escuro; "Novo espaço" ganhou copy.',
+        'R-17 — Novo artboard playful-task-empty com placeholder visível.',
+        'R-18..R-20 — Linear feed 13.5px, ⌘↵ no composer, swatch da categoria no smart preview.',
+        'R-21 — Heatmap determinístico (array hardcoded 7×24).',
+        'R-22 — Badge v2 da sidebar subiu pra 10px.',
+        'R-23 — Counters de Tarefas consistentes (8 pendentes em ambos sidebar e header).',
+        'R-24 — Painel de detalhe ganhou seção ATIVIDADE (Capturado/Editado).',
+        'R-25 — Link "Esqueci" sublinhado tracejado.',
+        'R-26 — Segmentos off da barra de força com mais contraste (rgba 0.18).',
+        'R-28 — Avatar B do Perfil agora 46px peso 500.',
+        'R-29 — Stats strip do Perfil com padding interno por coluna.',
+        'R-30 — "Sair" agora em danger color com border accent translúcido.',
       ],
     },
     {
-      title: 'Próximos passos sugeridos',
+      title: 'Próximos passos (S1–S6)',
       tone: 'next',
       items: [
-        '1. Adicionar bottom nav mobile (Paper, Playful, Linear) — uma versão por tema.',
-        '2. Mocar tela #/focus em Paper (alta prioridade — feature mais nova).',
-        '3. Estado vazio do feed + estado de filtro vazio + busca sem resultado.',
-        '4. Card "Resumo da semana" para o topo do Inbox de segunda.',
-        '5. Página de categoria-espaço (Paper) com banner editorial.',
-        '6. Ligar Tweaks: tema (Paper/Playful/Linear), accent color (Paper), density (comfortable/compact).',
+        'S1 — Bottom nav (3 temas) + Modo foco (3 estados: padrão, Pomodoro, empty).',
+        'S2 — Categoria-espaço (3 temas) + Dashboard mobile (Paper/Playful).',
+        'S3 — Resumo segunda + Search + Estados vazios + Toast + Offline.',
+        'S4 — Long-press sheet + Edit modal + Color picker.',
+        'S5 — Auth Linear/Playful + MFA + Sessões + Export/Import + 404 + Onboarding.',
+        'S6 — Tweaks panel funcional + Skeletons + Dialog + Datepicker + Tooltip.',
       ],
     },
   ];
@@ -80,17 +98,17 @@ function EvalReview() {
     }}>
       <div style={{ display: 'flex', alignItems: 'baseline', justifyContent: 'space-between', gap: 24 }}>
         <div>
-          <div className="mono" style={{ fontSize: 11, opacity: 0.5, letterSpacing: '0.12em' }}>AVALIAÇÃO · 30 ABR</div>
+          <div className="mono" style={{ fontSize: 11, opacity: 0.5, letterSpacing: '0.12em' }}>AVALIAÇÃO · 30 ABR · S0 APLICADO</div>
           <div style={{
             fontFamily: '"Instrument Serif", serif',
             fontSize: 44, lineHeight: 1.05, letterSpacing: '-0.02em',
             marginTop: 8,
           }}>
-            O que está pronto,<br/>e o que ainda falta.
+            S0 fechado.<br/>S1–S6 em rota.
           </div>
         </div>
         <div style={{ fontSize: 12, color: 'rgba(0,0,0,0.55)', maxWidth: 320, lineHeight: 1.55, textAlign: 'right' }}>
-          Comparando o canvas atual com a SPEC.md (S0–S5). Foco em gaps de design, não de implementação.
+          R-01..R-30 aplicados. Próximo bloco: bottom nav (3 temas) e modo foco — S1.
         </div>
       </div>
 
@@ -154,17 +172,18 @@ function EvalReview() {
             VEREDITO
           </div>
           <div style={{ fontFamily: '"Instrument Serif", serif', fontSize: 26, lineHeight: 1.3, letterSpacing: '-0.01em' }}>
-            A direção visual está <span style={{ color: EVAL_GREEN }}>pronta</span> — três personalidades distintas e coerentes.
-            O que falta agora é <span style={{ color: EVAL_ACCENT }}>cobertura de telas</span>: bottom nav, foco do dia, empty states e o card de resumo no feed.
+            S0 fechou os <span style={{ color: EVAL_GREEN }}>30 ajustes finos</span> dos artboards existentes.
+            Falta agora a <span style={{ color: EVAL_ACCENT }}>cobertura de telas novas</span>: nav, foco, categoria-espaço, dashboards mobile, estados, auth completo e tweaks.
           </div>
         </div>
         <div style={{ display: 'flex', flexDirection: 'column', gap: 6, minWidth: 160 }}>
-          <ProgressLine label="Mobile · Paper" pct={75} color={EVAL_ACCENT}/>
-          <ProgressLine label="Mobile · Playful" pct={60} color="#7c5cff"/>
-          <ProgressLine label="Mobile · Linear" pct={70} color="#7c8bf5"/>
-          <ProgressLine label="Desktop" pct={85} color={EVAL_GREEN}/>
-          <ProgressLine label="Auth + Perfil" pct={70} color={EVAL_AMBER}/>
-          <ProgressLine label="Estados/empty" pct={10} color="#999"/>
+          <ProgressLine label="S0 · Correções" pct={100} color={EVAL_GREEN}/>
+          <ProgressLine label="Mobile · Paper" pct={82} color={EVAL_ACCENT}/>
+          <ProgressLine label="Mobile · Playful" pct={70} color="#7c5cff"/>
+          <ProgressLine label="Mobile · Linear" pct={75} color="#7c8bf5"/>
+          <ProgressLine label="Desktop" pct={90} color={EVAL_GREEN}/>
+          <ProgressLine label="Auth + Perfil" pct={78} color={EVAL_AMBER}/>
+          <ProgressLine label="Estados/empty" pct={12} color="#999"/>
         </div>
       </div>
     </div>

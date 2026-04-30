@@ -24,7 +24,7 @@ function LinearShell({ children }) {
       background: LINEAR.bg,
       color: LINEAR.ink,
       fontFamily: '"Geist", system-ui, sans-serif',
-      fontSize: 13,
+      fontSize: 13.5,
       display: 'flex', flexDirection: 'column',
       position: 'relative',
     }}>{children}</div>
@@ -137,12 +137,12 @@ function LinearFeed() {
 
             <div style={{ flex: 1, minWidth: 0 }}>
               <div style={{
-                fontSize: 13, lineHeight: 1.45,
+                fontSize: 13.5, lineHeight: 1.45,
                 color: it.status === 'done' ? LINEAR.ink3 : LINEAR.ink,
                 textDecoration: it.status === 'done' ? 'line-through' : 'none',
               }}>{it.text}</div>
-              <div style={{ display: 'flex', alignItems: 'center', gap: 8, marginTop: 4, fontSize: 11 }}>
-                <span className="mono" style={{ color: LINEAR.ink3 }}>{it.id}</span>
+              <div style={{ display: 'flex', alignItems: 'center', gap: 8, marginTop: 4, fontSize: 11.5 }}>
+                <span className="mono" style={{ color: LINEAR.ink3, fontSize: 11.5 }}>{it.id}</span>
                 {it.cat && (
                   <span style={{ display: 'flex', alignItems: 'center', gap: 4, color: LINEAR.ink2 }}>
                     <span style={{ width: 6, height: 6, borderRadius: 2, background: catColor[it.cat] }}/>
@@ -150,7 +150,7 @@ function LinearFeed() {
                   </span>
                 )}
                 {it.due && (
-                  <span style={{ color: it.priority === 'high' ? LINEAR.amber : LINEAR.ink2, fontSize: 11 }}>
+                  <span style={{ color: it.priority === 'high' ? LINEAR.amber : LINEAR.ink2, fontSize: 11.5 }}>
                     · {it.due}
                   </span>
                 )}
@@ -158,7 +158,7 @@ function LinearFeed() {
                   <span className="mono" style={{ color: LINEAR.red, fontSize: 10, letterSpacing: '0.06em' }}>· P0</span>
                 )}
                 <div style={{ flex: 1 }}/>
-                <span className="mono" style={{ color: LINEAR.ink3, fontSize: 10 }}>{it.time}</span>
+                <span className="mono" style={{ color: LINEAR.ink3, fontSize: 10.5 }}>{it.time}</span>
               </div>
             </div>
           </div>
@@ -209,6 +209,11 @@ function LinearComposer() {
       <div style={{ flex: 1, fontSize: 13, color: LINEAR.ink3 }}>
         Type to capture. Use <span className="mono" style={{ color: LINEAR.accent }}>#trabalho</span>, <span className="mono" style={{ color: LINEAR.amber }}>amanhã 9h</span>…
       </div>
+      <span className="mono" style={{
+        fontSize: 11, color: LINEAR.ink3,
+        padding: '3px 6px', background: LINEAR.surfHi, borderRadius: 4,
+        border: `1px solid ${LINEAR.hairHi}`,
+      }}>⌘↵</span>
       <button style={{
         padding: '6px 10px', borderRadius: 6,
         background: LINEAR.accent, color: '#fff',
@@ -264,7 +269,9 @@ function LinearCommand() {
             color: LINEAR.ink,
           }}>
             <svg width="10" height="10" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2"><circle cx="12" cy="12" r="9"/><path d="M12 7v5l3 2"/></svg>
-            Tarefa · Sex 1/5, 09:00 · trabalho
+            Tarefa · Sex 1/5, 09:00 ·
+            <span style={{ width: 6, height: 6, borderRadius: 2, background: LINEAR.accent, marginLeft: 1 }}/>
+            trabalho
           </span>
         </div>
 
@@ -415,22 +422,39 @@ function LinearDash() {
             <div className="mono" style={{ fontSize: 10, color: LINEAR.ink3, letterSpacing: '0.08em' }}>HOUR × DAY</div>
           </div>
           <div style={{ display: 'flex', flexDirection: 'column', gap: 3 }}>
-            {Array.from({ length: 7 }).map((_, r) => (
-              <div key={r} style={{ display: 'flex', gap: 3 }}>
-                <div style={{ width: 22, fontSize: 10, color: LINEAR.ink3 }} className="mono">
-                  {['SEG','TER','QUA','QUI','SEX','SÁB','DOM'][r]}
-                </div>
-                {Array.from({ length: 24 }).map((__, c) => {
-                  const v = Math.max(0, Math.sin((r + c * 0.4) * 0.7) * 0.5 + Math.random() * 0.4);
-                  return (
+            {(() => {
+              // R-21 — deterministic heatmap, hand-tuned to look like a workday pattern
+              // (mornings warm, late nights cooler; weekends calmer)
+              const HEAT = [
+                // 0  1  2  3  4  5  6  7  8  9  10 11 12 13 14 15 16 17 18 19 20 21 22 23
+                [0, 0, 0, 0, 0, 0, 0, 1, 2, 3, 3, 2, 2, 3, 3, 2, 2, 2, 1, 1, 1, 1, 0, 0], // SEG
+                [0, 0, 0, 0, 0, 0, 0, 1, 2, 3, 4, 3, 2, 3, 4, 3, 2, 2, 1, 1, 0, 1, 0, 0], // TER
+                [0, 0, 0, 0, 0, 0, 0, 1, 2, 4, 4, 3, 2, 3, 4, 3, 2, 2, 1, 1, 1, 1, 0, 0], // QUA
+                [0, 0, 0, 0, 0, 0, 0, 1, 3, 3, 4, 3, 3, 4, 3, 3, 2, 2, 2, 1, 1, 1, 0, 0], // QUI
+                [0, 0, 0, 0, 0, 0, 0, 1, 2, 3, 3, 3, 2, 2, 2, 2, 2, 1, 1, 1, 0, 0, 0, 0], // SEX
+                [0, 0, 0, 0, 0, 0, 0, 0, 1, 1, 2, 2, 1, 1, 1, 1, 1, 1, 0, 1, 1, 0, 0, 0], // SÁB
+                [0, 0, 0, 0, 0, 0, 0, 0, 0, 1, 1, 1, 0, 0, 1, 1, 1, 0, 0, 1, 1, 0, 0, 0], // DOM
+              ];
+              const dows = ['SEG','TER','QUA','QUI','SEX','SÁB','DOM'];
+              const tone = (v) => v >= 4 ? LINEAR.accent
+                : v === 3 ? LINEAR.accentDim
+                : v === 2 ? LINEAR.surfHi
+                : v === 1 ? 'rgba(255,255,255,0.06)'
+                : 'rgba(255,255,255,0.025)';
+              return HEAT.map((row, r) => (
+                <div key={r} style={{ display: 'flex', gap: 3 }}>
+                  <div style={{ width: 22, fontSize: 10, color: LINEAR.ink3 }} className="mono">
+                    {dows[r]}
+                  </div>
+                  {row.map((v, c) => (
                     <div key={c} style={{
                       flex: 1, height: 14, borderRadius: 2,
-                      background: v > 0.7 ? LINEAR.accent : v > 0.45 ? LINEAR.accentDim : v > 0.2 ? LINEAR.surfHi : 'rgba(255,255,255,0.025)',
+                      background: tone(v),
                     }}/>
-                  );
-                })}
-              </div>
-            ))}
+                  ))}
+                </div>
+              ));
+            })()}
           </div>
         </div>
       </div>
