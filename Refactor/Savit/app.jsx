@@ -155,6 +155,37 @@ function App() {
         </DCSection>
 
         <DCSection
+          id="states"
+          title="Estados, busca e resumo"
+          subtitle="O que torna o app fácil de usar quando dá errado: vazios convidativos, busca clara, resumo dispensável, toast e offline."
+        >
+          <DCArtboard id="paper-feed-monday" label="Paper — Inbox segunda (resumo no topo)" width={390} height={844}>
+            <Phone bg="#f6f1e8"><PaperFeedMonday /></Phone>
+          </DCArtboard>
+          <DCArtboard id="playful-feed-monday" label="Playful — Inbox segunda (gradient)" width={390} height={844}>
+            <Phone dark bg="#0e0a1a"><PlayfulFeedMonday /></Phone>
+          </DCArtboard>
+          <DCArtboard id="paper-search" label="Paper — busca aberta (3 grupos)" width={390} height={844}>
+            <Phone bg="#f6f1e8"><PaperSearch /></Phone>
+          </DCArtboard>
+          <DCArtboard id="paper-search-empty" label="Paper — busca sem resultado" width={390} height={844}>
+            <Phone bg="#f6f1e8"><PaperSearchEmpty /></Phone>
+          </DCArtboard>
+          <DCArtboard id="paper-empty-feed" label="Paper — feed vazio (primeira ideia)" width={390} height={844}>
+            <Phone bg="#f6f1e8"><PaperEmptyFeed /></Phone>
+          </DCArtboard>
+          <DCArtboard id="paper-empty-tasks" label="Paper — tarefas vazias com filtro ativo" width={390} height={844}>
+            <Phone bg="#f6f1e8"><PaperEmptyTasks /></Phone>
+          </DCArtboard>
+          <DCArtboard id="paper-toast" label="Paper — toast (4 variantes)" width={390} height={400}>
+            <Phone bg="#f6f1e8"><PaperToastShowcase /></Phone>
+          </DCArtboard>
+          <DCArtboard id="paper-offline" label="Paper — offline / online banner" width={390} height={300}>
+            <Phone bg="#f6f1e8"><PaperOffline /></Phone>
+          </DCArtboard>
+        </DCSection>
+
+        <DCSection
           id="desktop"
           title="Desktop · reimaginação"
           subtitle="Coluna tripla: navegação, feed, painel de contexto. Direção: Linear/Tech (a mais densa)."

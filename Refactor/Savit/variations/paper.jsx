@@ -1356,10 +1356,707 @@ function PaperMobileDash() {
   );
 }
 
+// =============================================
+// N-05 — paper-feed-monday (Inbox segunda com card de resumo no topo)
+// =============================================
+function PaperWeeklySummaryCard({ dismissable = true }) {
+  return (
+    <div style={{
+      background: PAPER.card,
+      border: `1px dashed ${PAPER.hair}`,
+      borderRadius: 16,
+      padding: '16px 18px',
+      marginBottom: 14,
+      position: 'relative',
+      display: 'flex', flexDirection: 'column', gap: 10,
+    }}>
+      <div style={{ display: 'flex', alignItems: 'center', gap: 8 }}>
+        <span style={{
+          width: 6, height: 6, borderRadius: 3,
+          background: PAPER.accent2,
+        }}/>
+        <span className="mono" style={{
+          fontSize: 10, color: PAPER.ink3, letterSpacing: '0.16em',
+        }}>RESUMO DA SEMANA · SEG 5/5</span>
+        {dismissable && (
+          <>
+            <div style={{ flex: 1 }}/>
+            <span style={{
+              color: PAPER.ink3, fontSize: 14, fontWeight: 400,
+              cursor: 'pointer',
+            }}>×</span>
+          </>
+        )}
+      </div>
+      <div style={{
+        fontFamily: '"Instrument Serif", serif',
+        fontSize: 20, lineHeight: 1.4, letterSpacing: '-0.005em',
+        color: PAPER.ink,
+      }}>
+        Você capturou <strong style={{ color: PAPER.accent, fontWeight: 400 }}>26 ideias</strong> essa semana — quase tudo de manhã, principalmente de <strong style={{ color: '#c0563a', fontWeight: 400 }}>trabalho</strong>. Seis viraram tarefa.
+      </div>
+      <div style={{ display: 'flex', flexWrap: 'wrap', gap: 6 }}>
+        {['+30% manhãs', '6 → tarefa', 'streak 12d'].map((t, i) => (
+          <span key={i} className="mono" style={{
+            padding: '3px 10px', background: PAPER.bg,
+            fontSize: 10, letterSpacing: '0.12em',
+            color: PAPER.ink2, borderRadius: 999,
+            border: `1px solid ${PAPER.hair}`,
+            textTransform: 'uppercase',
+          }}>{t}</span>
+        ))}
+      </div>
+    </div>
+  );
+}
+
+function PaperFeedMonday() {
+  const items = [
+    { kind: 'note', cat: { name: 'Trabalho', color: '#c0563a' }, time: '07:42',
+      text: 'Começo da semana — relembrar dos OKRs antes da daily.' },
+    { kind: 'task', cat: { name: 'Trabalho', color: '#c0563a' }, time: '08:10',
+      text: 'Revisar PRs em aberto', when: 'Hoje, 11:00', done: false },
+    { kind: 'note', cat: { name: 'Pessoal', color: '#3a8a6a' }, time: '08:30',
+      text: 'O fim de semana foi devagar do jeito certo. Anotação pra lembrar.' },
+  ];
+
+  return (
+    <div style={{
+      width: '100%', height: '100%',
+      background: PAPER.bg,
+      color: PAPER.ink,
+      fontFamily: '"Geist", system-ui, sans-serif',
+      display: 'flex', flexDirection: 'column',
+      position: 'relative',
+    }}>
+      <PaperHeader sub="SEG · 5 MAI" title="Inbox" withHair />
+      <PaperTabs
+        active="all"
+        tabs={[
+          { id: 'all', label: 'Tudo', count: 4 },
+          { id: 'tasks', label: 'Tarefas', count: 1 },
+          { id: 'cats', label: 'Categorias', count: 6 },
+        ]}
+      />
+
+      <div style={{ flex: 1, overflow: 'auto', padding: '14px 20px 100px' }}>
+        <PaperWeeklySummaryCard/>
+
+        <div style={{ display: 'flex', alignItems: 'center', gap: 10, padding: '6px 0 10px' }}>
+          <div className="mono" style={{ fontSize: 10, color: PAPER.ink3, letterSpacing: '0.14em' }}>
+            HOJE · SEG 5 MAI
+          </div>
+          <div style={{ flex: 1, height: 1, background: PAPER.hair }}/>
+        </div>
+
+        {items.map((it, i) => {
+          if (it.kind === 'task') {
+            return (
+              <div key={i} style={{
+                background: PAPER.card,
+                border: `1px solid ${PAPER.hair}`,
+                borderRadius: 14,
+                padding: '14px 14px 12px',
+                marginBottom: 10,
+                display: 'flex', gap: 12,
+                boxShadow: PAPER.shadow,
+              }}>
+                <div style={{
+                  width: 20, height: 20, borderRadius: 6,
+                  border: `1.5px solid ${PAPER.ink}`,
+                  marginTop: 2, flexShrink: 0,
+                }}/>
+                <div style={{ flex: 1, minWidth: 0 }}>
+                  <div style={{ fontSize: 14, lineHeight: 1.45 }}>{it.text}</div>
+                  <div style={{ display: 'flex', alignItems: 'center', gap: 10, marginTop: 6 }}>
+                    <CategoryChipPaper {...it.cat}/>
+                    <span style={{ fontSize: 11.5, color: PAPER.ink2 }}>{it.when}</span>
+                  </div>
+                </div>
+              </div>
+            );
+          }
+          return (
+            <div key={i} style={{
+              padding: '10px 0 12px',
+              borderBottom: `1px dashed ${PAPER.hair}`,
+            }}>
+              <div style={{
+                fontFamily: '"Instrument Serif", serif',
+                fontSize: 19, lineHeight: 1.35,
+              }}>{it.text}</div>
+              <div style={{ display: 'flex', alignItems: 'center', gap: 10, marginTop: 6 }}>
+                <CategoryChipPaper {...it.cat}/>
+                <PaperTime>{it.time}</PaperTime>
+              </div>
+            </div>
+          );
+        })}
+      </div>
+
+      <PaperComposer/>
+    </div>
+  );
+}
+
+// =============================================
+// N-06 — paper-search (busca com 3 grupos) e paper-search-empty
+// =============================================
+function PaperSearchHeader({ query }) {
+  return (
+    <div style={{
+      padding: '14px 20px 12px',
+      borderBottom: `1px solid ${PAPER.hair}`,
+      display: 'flex', alignItems: 'center', gap: 10,
+    }}>
+      <button style={{
+        width: 36, height: 36, borderRadius: 10,
+        background: 'rgba(29,26,20,0.04)',
+        display: 'flex', alignItems: 'center', justifyContent: 'center',
+      }}>
+        <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke={PAPER.ink} strokeWidth="1.7" strokeLinecap="round"><path d="m15 18-6-6 6-6"/></svg>
+      </button>
+      <div style={{
+        flex: 1,
+        display: 'flex', alignItems: 'center', gap: 8,
+        background: PAPER.card,
+        border: `1px solid ${PAPER.hair}`,
+        borderRadius: 12,
+        padding: '8px 12px',
+        fontSize: 14,
+      }}>
+        <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke={PAPER.ink2} strokeWidth="1.7"><circle cx="11" cy="11" r="7"/><path d="m20 20-3.5-3.5"/></svg>
+        <span style={{ color: PAPER.ink, flex: 1, minWidth: 0 }}>{query}</span>
+        <span style={{
+          display: 'inline-block', width: 1.5, height: 16,
+          background: PAPER.accent, marginLeft: 2,
+        }}/>
+        <span style={{
+          color: PAPER.ink3, fontSize: 12, marginLeft: 4,
+          padding: '0 6px',
+        }}>×</span>
+      </div>
+    </div>
+  );
+}
+
+function PaperSearch() {
+  const groups = [
+    {
+      label: 'Tarefas', count: 2, items: [
+        { text: 'Confirmar reunião com cliente amanhã 10h', when: 'Amanhã, 10:00', cat: { name: 'Trabalho', color: '#c0563a' } },
+        { text: 'Comprar pão amanhã de manhã', when: 'Amanhã, manhã', cat: { name: 'Casa', color: '#7a5cc7' } },
+      ]
+    },
+    {
+      label: 'Notas', count: 3, items: [
+        { text: 'Lembrar de mandar mensagem pro João amanhã.', time: 'há 2h', cat: { name: 'Pessoal', color: '#3a8a6a' } },
+        { text: '"Amanhã" em italiano é "domani" — coisa bonita.', time: '4d', cat: { name: 'Leitura', color: '#e6b540' } },
+        { text: 'Ler um capítulo do livro novo amanhã antes de dormir.', time: '6d', cat: { name: 'Leitura', color: '#e6b540' } },
+      ]
+    },
+    {
+      label: 'Categorias', count: 0, items: []
+    },
+  ];
+
+  return (
+    <div style={{
+      width: '100%', height: '100%',
+      background: PAPER.bg,
+      color: PAPER.ink,
+      fontFamily: '"Geist", system-ui, sans-serif',
+      display: 'flex', flexDirection: 'column',
+    }}>
+      <PaperSearchHeader query="amanhã"/>
+
+      <div style={{
+        padding: '10px 20px',
+        borderBottom: `1px solid ${PAPER.hair}`,
+        display: 'flex', alignItems: 'center', gap: 10,
+      }}>
+        <span className="mono" style={{ fontSize: 10, color: PAPER.ink3, letterSpacing: '0.14em' }}>
+          5 RESULTADOS
+        </span>
+        <div style={{ flex: 1 }}/>
+        <span className="mono" style={{ fontSize: 10, color: PAPER.ink3, letterSpacing: '0.10em' }}>
+          ↑↓ NAVEGAR
+        </span>
+      </div>
+
+      <div style={{ flex: 1, overflow: 'auto', padding: '10px 20px 30px' }}>
+        {groups.map((g, gi) => (
+          <div key={gi} style={{ marginBottom: 18 }}>
+            <div style={{
+              display: 'flex', alignItems: 'baseline', gap: 8,
+              padding: '8px 0 6px',
+            }}>
+              <span className="mono" style={{
+                fontSize: 10, color: PAPER.ink3, letterSpacing: '0.16em',
+              }}>{g.label.toUpperCase()}</span>
+              <span className="mono" style={{
+                fontSize: 10, color: PAPER.accent, letterSpacing: '0.1em',
+              }}>{g.count}</span>
+              <div style={{ flex: 1, height: 1, background: PAPER.hair }}/>
+            </div>
+            {g.items.length === 0 ? (
+              <div style={{
+                fontSize: 13, color: PAPER.ink3,
+                fontStyle: 'italic', padding: '4px 0',
+              }}>nenhum espaço com "amanhã"</div>
+            ) : g.items.map((it, i) => {
+              if (it.when) {
+                return (
+                  <div key={i} style={{
+                    background: PAPER.card,
+                    border: `1px solid ${PAPER.hair}`,
+                    borderRadius: 12,
+                    padding: '10px 12px',
+                    marginBottom: 8,
+                    display: 'flex', gap: 10,
+                  }}>
+                    <div style={{
+                      width: 18, height: 18, borderRadius: 5,
+                      border: `1.5px solid ${PAPER.ink}`,
+                      marginTop: 2, flexShrink: 0,
+                    }}/>
+                    <div style={{ flex: 1, minWidth: 0 }}>
+                      <div style={{ fontSize: 13.5, lineHeight: 1.4 }}>
+                        {highlightWord(it.text, 'amanhã', PAPER.accent)}
+                      </div>
+                      <div style={{ display: 'flex', alignItems: 'center', gap: 8, marginTop: 4 }}>
+                        <CategoryChipPaper {...it.cat}/>
+                        <span style={{ fontSize: 11, color: PAPER.ink2 }}>{it.when}</span>
+                      </div>
+                    </div>
+                  </div>
+                );
+              }
+              return (
+                <div key={i} style={{
+                  padding: '10px 0',
+                  borderBottom: i < g.items.length - 1 ? `1px dashed ${PAPER.hair}` : 'none',
+                }}>
+                  <div style={{
+                    fontFamily: '"Instrument Serif", serif',
+                    fontSize: 17, lineHeight: 1.35,
+                  }}>
+                    {highlightWord(it.text, 'amanhã', PAPER.accent, true)}
+                  </div>
+                  <div style={{ display: 'flex', alignItems: 'center', gap: 8, marginTop: 4 }}>
+                    <CategoryChipPaper {...it.cat}/>
+                    <PaperTime>{it.time}</PaperTime>
+                  </div>
+                </div>
+              );
+            })}
+          </div>
+        ))}
+      </div>
+    </div>
+  );
+}
+
+function highlightWord(text, word, color, serif = false) {
+  const re = new RegExp('(' + word.replace(/[.*+?^${}()|[\]\\]/g, '\\$&') + ')', 'gi');
+  const parts = text.split(re);
+  return parts.map((p, i) => {
+    if (p.toLowerCase() === word.toLowerCase()) {
+      return <mark key={i} style={{
+        background: color + '22', color, padding: '0 2px',
+        borderRadius: 3, fontStyle: serif ? 'italic' : 'inherit',
+      }}>{p}</mark>;
+    }
+    return <span key={i}>{p}</span>;
+  });
+}
+
+function PaperSearchEmpty() {
+  return (
+    <div style={{
+      width: '100%', height: '100%',
+      background: PAPER.bg,
+      color: PAPER.ink,
+      fontFamily: '"Geist", system-ui, sans-serif',
+      display: 'flex', flexDirection: 'column',
+    }}>
+      <PaperSearchHeader query="banana"/>
+
+      <div style={{
+        flex: 1, display: 'flex', flexDirection: 'column',
+        alignItems: 'center', justifyContent: 'center',
+        padding: '0 32px', gap: 18, textAlign: 'center',
+      }}>
+        <div style={{
+          width: 56, height: 56, borderRadius: 16,
+          background: PAPER.card, border: `1px dashed ${PAPER.hair}`,
+          display: 'flex', alignItems: 'center', justifyContent: 'center',
+          color: PAPER.ink3,
+        }}>
+          <svg width="22" height="22" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="1.5" strokeLinecap="round"><circle cx="11" cy="11" r="7"/><path d="m20 20-3.5-3.5"/></svg>
+        </div>
+        <div style={{
+          fontFamily: '"Instrument Serif", serif',
+          fontSize: 26, lineHeight: 1.25, letterSpacing: '-0.01em',
+        }}>
+          Nada com <em style={{ fontStyle: 'italic', color: PAPER.accent }}>"banana"</em><br/>
+          por aqui.
+        </div>
+        <div style={{ fontSize: 13, color: PAPER.ink2, lineHeight: 1.55, maxWidth: 280 }}>
+          Tenta um termo mais curto, sem acento ou abre uma categoria pra navegar.
+        </div>
+        <div style={{ display: 'flex', gap: 8, marginTop: 6 }}>
+          <button style={{
+            padding: '10px 16px', borderRadius: 999,
+            background: PAPER.card, color: PAPER.ink,
+            border: `1px solid ${PAPER.hair}`,
+            fontSize: 13, fontWeight: 500,
+          }}>Limpar busca</button>
+          <button style={{
+            padding: '10px 16px', borderRadius: 999,
+            background: PAPER.ink, color: '#fff',
+            fontSize: 13, fontWeight: 500,
+          }}>Capturar "banana"</button>
+        </div>
+      </div>
+    </div>
+  );
+}
+
+// =============================================
+// N-12 — paper-empty-feed e paper-empty-tasks
+// =============================================
+function PaperEmptyFeed() {
+  return (
+    <div style={{
+      width: '100%', height: '100%',
+      background: PAPER.bg,
+      color: PAPER.ink,
+      fontFamily: '"Geist", system-ui, sans-serif',
+      display: 'flex', flexDirection: 'column',
+      position: 'relative',
+    }}>
+      <PaperHeader sub="QUI · 30 ABR" title="Hoje" withHair/>
+      <PaperTabs
+        active="all"
+        tabs={[
+          { id: 'all', label: 'Tudo', count: 0 },
+          { id: 'tasks', label: 'Tarefas', count: 0 },
+          { id: 'cats', label: 'Categorias', count: 0 },
+        ]}
+      />
+
+      <div style={{
+        flex: 1, display: 'flex', flexDirection: 'column',
+        alignItems: 'center', justifyContent: 'center',
+        padding: '0 32px 100px', gap: 18, textAlign: 'center',
+      }}>
+        <div style={{
+          width: 80, height: 80, borderRadius: 24,
+          background: PAPER.card, border: `1px dashed ${PAPER.hair}`,
+          display: 'flex', alignItems: 'center', justifyContent: 'center',
+          color: PAPER.accent,
+        }}>
+          <svg width="32" height="32" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="1.4" strokeLinecap="round"><path d="M12 3v18M5 8h14M5 14h14"/></svg>
+        </div>
+        <div style={{
+          fontFamily: '"Instrument Serif", serif',
+          fontSize: 32, lineHeight: 1.18, letterSpacing: '-0.02em',
+          maxWidth: 280,
+        }}>
+          Sua primeira ideia<br/>
+          <span style={{ fontStyle: 'italic', color: PAPER.accent }}>mora aqui.</span>
+        </div>
+        <div style={{ fontSize: 13, color: PAPER.ink2, lineHeight: 1.55, maxWidth: 280 }}>
+          Capture qualquer pensamento — vira nota ou tarefa, do jeito que você quiser.
+        </div>
+        <button style={{
+          padding: '14px 24px', borderRadius: 14,
+          background: PAPER.ink, color: '#fff',
+          fontSize: 14, fontWeight: 600,
+          marginTop: 6,
+          boxShadow: '0 8px 24px -8px rgba(29,26,20,0.55)',
+          display: 'inline-flex', alignItems: 'center', gap: 8,
+        }}>
+          <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2.4" strokeLinecap="round"><path d="M12 5v14M5 12h14"/></svg>
+          Capturar
+        </button>
+        <div className="mono" style={{
+          fontSize: 10, color: PAPER.ink3, letterSpacing: '0.16em', marginTop: 4,
+        }}>
+          OU TOQUE NO + LÁ EMBAIXO
+        </div>
+      </div>
+
+      <PaperComposer/>
+    </div>
+  );
+}
+
+function PaperEmptyTasks() {
+  return (
+    <div style={{
+      width: '100%', height: '100%',
+      background: PAPER.bg,
+      color: PAPER.ink,
+      fontFamily: '"Geist", system-ui, sans-serif',
+      display: 'flex', flexDirection: 'column',
+    }}>
+      <PaperHeader sub="0 PENDENTES · FILTRO ATIVO" title="Tarefas"/>
+
+      {/* Active filter chip */}
+      <div style={{
+        padding: '0 20px 10px',
+        display: 'flex', gap: 8, alignItems: 'center',
+        flexWrap: 'wrap',
+      }}>
+        <span className="mono" style={{ fontSize: 10, color: PAPER.ink3, letterSpacing: '0.14em' }}>FILTRO:</span>
+        <span style={{
+          display: 'inline-flex', alignItems: 'center', gap: 6,
+          padding: '4px 10px',
+          background: PAPER.accent + '18',
+          color: PAPER.accent,
+          borderRadius: 999,
+          fontSize: 12,
+          fontFamily: '"JetBrains Mono", monospace',
+          letterSpacing: '0.04em',
+        }}>
+          <span style={{ width: 6, height: 6, borderRadius: 2, background: PAPER.accent }}/>
+          trabalho
+          <span style={{ marginLeft: 2, paddingLeft: 6, borderLeft: `1px solid ${PAPER.accent}55`, fontSize: 14 }}>×</span>
+        </span>
+      </div>
+
+      <div style={{
+        flex: 1, display: 'flex', flexDirection: 'column',
+        alignItems: 'center', justifyContent: 'center',
+        padding: '0 32px', gap: 16, textAlign: 'center',
+      }}>
+        <div style={{
+          width: 60, height: 60, borderRadius: 18,
+          background: PAPER.card, border: `1px solid ${PAPER.hair}`,
+          display: 'flex', alignItems: 'center', justifyContent: 'center',
+          color: PAPER.accent2,
+        }}>
+          <svg width="26" height="26" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="1.5" strokeLinecap="round"><path d="M9 11l3 3L22 4"/><path d="M21 12v7a2 2 0 0 1-2 2H5a2 2 0 0 1-2-2V5a2 2 0 0 1 2-2h11"/></svg>
+        </div>
+        <div style={{
+          fontFamily: '"Instrument Serif", serif',
+          fontSize: 28, lineHeight: 1.2, letterSpacing: '-0.02em',
+        }}>
+          Nenhuma tarefa<br/>
+          <span style={{ fontStyle: 'italic', color: PAPER.accent2 }}>por aqui.</span>
+        </div>
+        <div style={{ fontSize: 13, color: PAPER.ink2, lineHeight: 1.55, maxWidth: 260 }}>
+          Suas tarefas de "trabalho" estão todas concluídas — ou você nunca colocou nenhuma.
+        </div>
+        <button style={{
+          padding: '12px 22px', borderRadius: 12,
+          background: PAPER.card, color: PAPER.ink,
+          border: `1px solid ${PAPER.hair}`,
+          fontSize: 13, fontWeight: 500,
+          marginTop: 6,
+        }}>Limpar filtro</button>
+      </div>
+    </div>
+  );
+}
+
+// =============================================
+// N-10 — paper-toast (4 variantes empilhadas, 390×400 pra mostrar todas)
+// =============================================
+function PaperToastShowcase() {
+  return (
+    <div style={{
+      width: '100%', height: '100%',
+      background: PAPER.bg,
+      fontFamily: '"Geist", system-ui, sans-serif',
+      padding: '24px 16px',
+      display: 'flex', flexDirection: 'column', gap: 12,
+      justifyContent: 'flex-end',
+    }}>
+      <div className="mono" style={{
+        fontSize: 10, color: PAPER.ink3, letterSpacing: '0.14em',
+        textAlign: 'center', marginBottom: 4,
+      }}>4 VARIANTES · BOTTOM-CENTER MOBILE</div>
+
+      {/* Success with undo action */}
+      <PaperToast
+        type="success"
+        text="Tarefa criada"
+        action="DESFAZER"
+        timer={5}
+      />
+
+      {/* Info simple */}
+      <PaperToast
+        type="info"
+        text="Categoria atualizada"
+        timer={3}
+      />
+
+      {/* Danger with retry */}
+      <PaperToast
+        type="danger"
+        text="Erro de rede ao salvar"
+        action="TENTAR DE NOVO"
+      />
+
+      {/* Update sticky */}
+      <PaperToast
+        type="update"
+        text="Nova versão"
+        action="RECARREGAR"
+        sticky
+      />
+    </div>
+  );
+}
+
+function PaperToast({ type, text, action, timer, sticky }) {
+  const tone = {
+    success: { dot: '#3a8a6a', label: 'CONCLUÍDO' },
+    info:    { dot: PAPER.ink, label: 'INFO' },
+    danger:  { dot: PAPER.accent, label: 'ERRO' },
+    update:  { dot: PAPER.accent2, label: 'ATUALIZAÇÃO' },
+  }[type];
+
+  return (
+    <div style={{
+      background: PAPER.ink,
+      color: PAPER.bg,
+      borderRadius: 14,
+      padding: '12px 14px 12px 16px',
+      display: 'flex', alignItems: 'center', gap: 12,
+      boxShadow: '0 12px 32px -12px rgba(29,26,20,0.55), 0 1px 0 rgba(255,255,255,0.06) inset',
+      position: 'relative',
+      overflow: 'hidden',
+    }}>
+      <span style={{
+        width: 8, height: 8, borderRadius: 4,
+        background: tone.dot, flexShrink: 0,
+      }}/>
+      <div style={{ flex: 1, minWidth: 0 }}>
+        <div style={{ fontSize: 13.5, lineHeight: 1.3, fontWeight: 500 }}>
+          {text}
+        </div>
+        {sticky && (
+          <div className="mono" style={{
+            fontSize: 9.5, color: 'rgba(253,250,243,0.55)',
+            letterSpacing: '0.14em', marginTop: 2,
+          }}>{tone.label} DISPONÍVEL</div>
+        )}
+      </div>
+      {action && (
+        <button style={{
+          padding: '4px 10px', borderRadius: 8,
+          background: 'rgba(253,250,243,0.10)',
+          color: tone.dot,
+          fontFamily: '"JetBrains Mono", monospace',
+          fontSize: 10, fontWeight: 600,
+          letterSpacing: '0.12em',
+        }}>{action}</button>
+      )}
+      <span style={{
+        color: 'rgba(253,250,243,0.5)', fontSize: 16,
+        cursor: 'pointer', paddingLeft: 4,
+      }}>×</span>
+      {/* Progress bar bottom for timed */}
+      {timer && (
+        <div style={{
+          position: 'absolute', left: 0, bottom: 0, height: 2,
+          width: '60%',
+          background: tone.dot,
+          opacity: 0.6,
+        }}/>
+      )}
+    </div>
+  );
+}
+
+// =============================================
+// N-11 — paper-offline (sticky banner)
+// =============================================
+function PaperOffline() {
+  return (
+    <div style={{
+      width: '100%', height: '100%',
+      background: PAPER.bg,
+      fontFamily: '"Geist", system-ui, sans-serif',
+      padding: '0',
+      display: 'flex', flexDirection: 'column', gap: 12,
+    }}>
+      <div className="mono" style={{
+        fontSize: 10, color: PAPER.ink3, letterSpacing: '0.14em',
+        textAlign: 'center', padding: '20px 0 4px',
+      }}>2 ESTADOS · OFFLINE / DE VOLTA</div>
+
+      {/* Offline banner — amber, sticky top */}
+      <div style={{ padding: '0 12px' }}>
+        <div style={{
+          background: '#e6b54012',
+          border: '1px solid #e6b54044',
+          borderRadius: 12,
+          padding: '10px 14px',
+          display: 'flex', alignItems: 'center', gap: 10,
+        }}>
+          <span style={{
+            width: 8, height: 8, borderRadius: 4, background: '#e6b540',
+            boxShadow: '0 0 0 4px #e6b54022',
+            flexShrink: 0,
+          }}/>
+          <span className="mono" style={{
+            fontSize: 11, letterSpacing: '0.12em',
+            color: PAPER.ink, textTransform: 'uppercase',
+          }}>· sem conexão ·</span>
+          <span style={{ fontSize: 12, color: PAPER.ink2, flex: 1, minWidth: 0 }}>
+            Suas alterações estão salvas localmente
+          </span>
+        </div>
+      </div>
+
+      {/* Back online — green, brief */}
+      <div style={{ padding: '0 12px' }}>
+        <div style={{
+          background: '#3a8a6a12',
+          border: '1px solid #3a8a6a44',
+          borderRadius: 12,
+          padding: '10px 14px',
+          display: 'flex', alignItems: 'center', gap: 10,
+        }}>
+          <span style={{
+            width: 8, height: 8, borderRadius: 4, background: '#3a8a6a',
+            flexShrink: 0,
+          }}/>
+          <span className="mono" style={{
+            fontSize: 11, letterSpacing: '0.12em',
+            color: PAPER.ink, textTransform: 'uppercase',
+          }}>· de volta online ✓</span>
+          <span style={{ fontSize: 12, color: PAPER.ink2, flex: 1, minWidth: 0 }}>
+            Sincronizando 3 alterações
+          </span>
+        </div>
+      </div>
+
+      <div className="mono" style={{
+        fontSize: 9.5, color: PAPER.ink3, letterSpacing: '0.16em',
+        padding: '12px 24px', textAlign: 'center', lineHeight: 1.7,
+      }}>
+        AMBER (#e6b540) ENQUANTO OFFLINE.<br/>
+        VERDE (#3a8a6a) POR 2s AO VOLTAR, AÍ DESAPARECE.
+      </div>
+    </div>
+  );
+}
+
 Object.assign(window, {
   PaperFeed, PaperFeedTyping, PaperCategories, PaperTasks,
   PaperBottomNav, PaperFeedWithNav,
   PaperFocus, PaperFocusPomodoro, PaperFocusEmpty,
   PaperCatSpace, PaperMobileDash,
+  PaperFeedMonday, PaperWeeklySummaryCard,
+  PaperSearch, PaperSearchEmpty,
+  PaperEmptyFeed, PaperEmptyTasks,
+  PaperToastShowcase, PaperOffline,
   PAPER,
 });

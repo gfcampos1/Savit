@@ -27,29 +27,26 @@ function EvalReview() {
       title: 'Faltando da SPEC',
       tone: 'bad',
       items: [
-        'Resumo editorial da semana como CARD do Inbox de segunda. Vai pra S3.',
-        'Search aberto + empty + sem resultado. Vai pra S3.',
-        'Toast (4 variantes), banner offline. Vão pra S3.',
-        'Empty states (feed, tasks, search). Vão pra S3.',
-        'Long-press sheet, edit modal, color picker. Vão pra S4.',
-        'MFA, sessões, export/import, onboarding, 404/erro. Vão pra S5.',
-        'Skeletons, dialog, datepicker, tooltip. Vão pra S6.',
+        'Long-press sheet, edit modal redesenhado, color picker. Vão pra S4.',
+        'MFA, auth Linear/Playful, sessões ativas, export/import, onboarding, 404/erro. Vão pra S5.',
+        'Skeletons, dialog confirm, datepicker, tooltip. Vão pra S6.',
         'Tweaks panel está importado mas inerte — ligadura em S6.',
       ],
     },
     {
-      title: 'S1 + S2 — adicionado (11 artboards)',
+      title: 'S1–S3 — adicionado (19 artboards)',
       tone: 'good',
       items: [
-        'S1 · paper-nav / playful-nav / linear-nav — bottom nav (5 itens, FAB central) por tema.',
-        'S1 · focus-paper — tela cheia, headline serif, card girado -0.6deg, contador 2/5.',
-        'S1 · focus-pomodoro — anel SVG 4:32/5min em verde, copy de descanso (anti-urgência).',
-        'S1 · focus-empty — "Nada pendente. Aproveita." sem culpa, 2 CTAs.',
-        'S2 · paper-cat-space — Trabalho com header tinted (cor da cat 10% sobre Paper), banner editorial em itálico serif 17px, lista mista task+nota, FAB "Adicionar em Trabalho".',
-        'S2 · playful-cat-space — Pessoal com glow radial gigante atrás do header, grid 2 col mosaico (uma nota grande ocupa 2 cols, outras 1 col), avatar 56px com box-shadow accent.',
-        'S2 · linear-cat-space — trabalho denso, top bar com swatch+nome+ITENS, filter chip "Tasks 8 active / Notes 34 / All", lista 8 itens com IDs SAV-NNN, bottom bar capture com ⌘N.',
-        'S2 · paper-dash — dashboard mobile como diário: 4 KPIs com numerais Instrument Serif 40px e dashed dividers; sparkline 30 dias; categorias com bars; resumo editorial em serif 22px com tags mono ("+30% manhãs", "6 → tarefa", "streak 12d").',
-        'S2 · playful-dash — KPI grid 2×2 com glow radial por card e número em gradient text fill, atividade com bars gradient (último terço em rosa→roxo), categorias com box-shadow do swatch.',
+        'S1 · 6 artboards: paper-nav / playful-nav / linear-nav + focus (default, pomodoro, empty).',
+        'S2 · 5 artboards: paper-cat-space / playful-cat-space / linear-cat-space + paper-dash / playful-dash.',
+        'S3 · paper-feed-monday — card "Resumo da semana" (dashed, dispensável com ×) como primeiro item do feed na segunda.',
+        'S3 · playful-feed-monday — mesma ideia em featured card com gradient pink→purple, tags em pílulas com border.',
+        'S3 · paper-search — busca "amanhã" com 3 grupos (Tarefas 2, Notas 3, Categorias 0). Highlight da palavra em cada resultado.',
+        'S3 · paper-search-empty — "Nada com banana por aqui." em serif itálico, 2 CTAs (limpar / capturar).',
+        'S3 · paper-empty-feed — "Sua primeira ideia mora aqui." com CTA "Capturar" e dica do FAB.',
+        'S3 · paper-empty-tasks — "Nenhuma tarefa por aqui." com filtro ativo visível, CTA "Limpar filtro".',
+        'S3 · paper-toast — 4 variantes empilhadas (success+undo, info, danger+retry, update sticky).',
+        'S3 · paper-offline — 2 estados: amber sticky offline, verde brief de "de volta online".',
       ],
     },
     {
@@ -110,13 +107,13 @@ function EvalReview() {
     }}>
       <div style={{ display: 'flex', alignItems: 'baseline', justifyContent: 'space-between', gap: 24 }}>
         <div>
-          <div className="mono" style={{ fontSize: 11, opacity: 0.5, letterSpacing: '0.12em' }}>AVALIAÇÃO · 30 ABR · S0–S2</div>
+          <div className="mono" style={{ fontSize: 11, opacity: 0.5, letterSpacing: '0.12em' }}>AVALIAÇÃO · 30 ABR · S0–S3</div>
           <div style={{
             fontFamily: '"Instrument Serif", serif',
             fontSize: 44, lineHeight: 1.05, letterSpacing: '-0.02em',
             marginTop: 8,
           }}>
-            S0–S2 fechados.<br/>S3–S6 restantes.
+            S0–S3 fechados.<br/>S4–S6 restantes.
           </div>
         </div>
         <div style={{ fontSize: 12, color: 'rgba(0,0,0,0.55)', maxWidth: 320, lineHeight: 1.55, textAlign: 'right' }}>
@@ -184,20 +181,21 @@ function EvalReview() {
             VEREDITO
           </div>
           <div style={{ fontFamily: '"Instrument Serif", serif', fontSize: 26, lineHeight: 1.3, letterSpacing: '-0.01em' }}>
-            S0–S2 entregam a <span style={{ color: EVAL_GREEN }}>cobertura vertical da app</span>: feed, nav, tarefas, foco, categoria-espaço e dashboard, em três personalidades coerentes.
-            Falta a <span style={{ color: EVAL_ACCENT }}>cobertura de estados</span> e o auth/perfil completos.
+            S0–S3 cobrem <span style={{ color: EVAL_GREEN }}>fluxo + estados + microcopy</span>. App tem direção visual, navegação, foco, espaços, dashboards, busca, vazios, toast, offline e o resumo editorial.
+            Falta agora <span style={{ color: EVAL_ACCENT }}>edição + auth completo + componentes utilitários</span>.
           </div>
         </div>
         <div style={{ display: 'flex', flexDirection: 'column', gap: 6, minWidth: 160 }}>
           <ProgressLine label="S0 · Correções" pct={100} color={EVAL_GREEN}/>
           <ProgressLine label="S1 · Nav+Foco" pct={100} color={EVAL_GREEN}/>
           <ProgressLine label="S2 · Espaço+Dash" pct={100} color={EVAL_GREEN}/>
-          <ProgressLine label="Mobile · Paper" pct={94} color={EVAL_ACCENT}/>
-          <ProgressLine label="Mobile · Playful" pct={86} color="#7c5cff"/>
+          <ProgressLine label="S3 · Estados" pct={100} color={EVAL_GREEN}/>
+          <ProgressLine label="Mobile · Paper" pct={98} color={EVAL_ACCENT}/>
+          <ProgressLine label="Mobile · Playful" pct={92} color="#7c5cff"/>
           <ProgressLine label="Mobile · Linear" pct={88} color="#7c8bf5"/>
           <ProgressLine label="Desktop" pct={90} color={EVAL_GREEN}/>
           <ProgressLine label="Auth + Perfil" pct={78} color={EVAL_AMBER}/>
-          <ProgressLine label="Estados/empty" pct={20} color="#999"/>
+          <ProgressLine label="Estados/empty" pct={92} color={EVAL_GREEN}/>
         </div>
       </div>
     </div>

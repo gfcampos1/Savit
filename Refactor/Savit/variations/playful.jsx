@@ -881,10 +881,123 @@ function PlayfulMobileDash() {
   );
 }
 
+// =============================================
+// N-05 — playful-feed-monday (Inbox segunda com card gradient)
+// =============================================
+function PlayfulFeedMonday() {
+  return (
+    <PlayfulShell>
+      <PlayfulHeader/>
+
+      {/* Story-like category pills */}
+      <div style={{
+        padding: '4px 18px 14px',
+        display: 'flex', gap: 10, overflow: 'auto',
+        WebkitMaskImage: 'linear-gradient(to right, black 86%, transparent 100%)',
+        maskImage: 'linear-gradient(to right, black 86%, transparent 100%)',
+      }}>
+        {[
+          { name: 'Tudo', color: null, active: true, count: 4 },
+          { name: 'Trabalho', color: PLAYFUL.accent, count: 2 },
+          { name: 'Pessoal', color: PLAYFUL.accent3, count: 1 },
+          { name: 'Casa', color: PLAYFUL.accent2, count: 1 },
+        ].map((c, i) => (
+          <div key={i} style={{
+            padding: '8px 14px', borderRadius: 999,
+            background: c.active ? '#fff' : 'rgba(255,255,255,0.06)',
+            border: c.active ? 'none' : `1px solid ${PLAYFUL.hair}`,
+            color: c.active ? '#1a1130' : PLAYFUL.ink,
+            display: 'flex', alignItems: 'center', gap: 8,
+            fontSize: 13, fontWeight: 500, flexShrink: 0,
+          }}>
+            {c.color && <span style={{ width: 8, height: 8, borderRadius: 4, background: c.color }}/>}
+            {c.name}
+            <span style={{
+              fontSize: 10, opacity: 0.6,
+              fontFamily: '"JetBrains Mono", monospace',
+            }}>{c.count}</span>
+          </div>
+        ))}
+      </div>
+
+      {/* Weekly summary featured card with gradient */}
+      <div style={{ padding: '0 18px 14px' }}>
+        <div style={{
+          background: playfulGrad,
+          borderRadius: 22, padding: 18,
+          position: 'relative', overflow: 'hidden',
+        }}>
+          <div style={{
+            position: 'absolute', top: -40, right: -40, width: 160, height: 160,
+            background: 'radial-gradient(circle, rgba(255,255,255,0.25) 0%, transparent 70%)',
+          }}/>
+          <div style={{
+            display: 'flex', alignItems: 'center', gap: 8, marginBottom: 8,
+            position: 'relative',
+          }}>
+            <span style={{
+              fontSize: 11, letterSpacing: '0.14em',
+              fontFamily: '"JetBrains Mono", monospace',
+              color: '#fff', opacity: 0.85,
+            }}>RESUMO DA SEMANA · SEG 5/5</span>
+            <div style={{ flex: 1 }}/>
+            <span style={{ color: '#fff', opacity: 0.7, fontSize: 16 }}>×</span>
+          </div>
+          <div style={{
+            fontSize: 22, fontWeight: 600, lineHeight: 1.3, letterSpacing: '-0.01em',
+            position: 'relative',
+          }}>
+            Você capturou <span style={{ fontStyle: 'italic' }}>26 ideias</span> essa semana — quase tudo de manhã, principalmente de trabalho. Seis viraram tarefa.
+          </div>
+          <div style={{ display: 'flex', gap: 6, marginTop: 14, flexWrap: 'wrap' }}>
+            {['+30% manhãs', '6 → tarefa', 'streak 12d'].map((t, i) => (
+              <div key={i} style={{
+                padding: '4px 10px', borderRadius: 999,
+                background: 'rgba(255,255,255,0.18)',
+                border: '1px solid rgba(255,255,255,0.18)',
+                fontSize: 11, fontWeight: 500,
+                fontFamily: '"JetBrains Mono", monospace',
+                letterSpacing: '0.06em',
+              }}>{t}</div>
+            ))}
+          </div>
+        </div>
+      </div>
+
+      {/* Today section */}
+      <div style={{ flex: 1, overflow: 'auto', padding: '0 18px 120px' }}>
+        <div style={{
+          fontSize: 11, color: PLAYFUL.ink3, letterSpacing: '0.12em',
+          marginBottom: 10, fontFamily: '"JetBrains Mono", monospace',
+        }}>
+          HOJE · SEG 5 MAI
+        </div>
+
+        <PlayfulCard
+          color={PLAYFUL.accent}
+          cat="Trabalho"
+          time="08:10"
+          text="Começo da semana — relembrar dos OKRs antes da daily."
+        />
+        <PlayfulCard
+          color={PLAYFUL.accent3}
+          cat="Pessoal"
+          time="08:30"
+          text="O fim de semana foi devagar do jeito certo. Anotação pra lembrar."
+          big
+        />
+      </div>
+
+      <PlayfulComposer/>
+    </PlayfulShell>
+  );
+}
+
 Object.assign(window, {
   PlayfulFeed, PlayfulCategories, PlayfulCapture, PlayfulCaptureEmpty,
   PlayfulBottomNav, PlayfulFeedWithNav,
   PlayfulCatSpace, PlayfulMobileDash,
+  PlayfulFeedMonday,
   PLAYFUL,
 });
 
