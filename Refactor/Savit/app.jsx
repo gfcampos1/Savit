@@ -231,6 +231,53 @@ function App() {
           <DCArtboard id="profile" label="Perfil" width={390} height={844}>
             <Phone bg="#f6f1e8"><ProfileScreen /></Phone>
           </DCArtboard>
+          <DCArtboard id="auth-mfa" label="Auth — MFA (6 dígitos)" width={390} height={844}>
+            <Phone bg="#f6f1e8"><AuthMFA /></Phone>
+          </DCArtboard>
+          <DCArtboard id="auth-login-linear" label="Auth — login Linear" width={390} height={844}>
+            <Phone dark bg="#0a0c10"><AuthLoginLinear /></Phone>
+          </DCArtboard>
+          <DCArtboard id="auth-login-playful" label="Auth — login Playful" width={390} height={844}>
+            <Phone dark bg="#0e0a1a"><AuthLoginPlayful /></Phone>
+          </DCArtboard>
+          <DCArtboard id="profile-sessions" label="Perfil — sessões ativas" width={390} height={844}>
+            <Phone bg="#f6f1e8"><ProfileSessions /></Phone>
+          </DCArtboard>
+          <DCArtboard id="profile-export" label="Perfil — exportar JSON" width={390} height={844}>
+            <Phone bg="#f6f1e8"><ProfileExport /></Phone>
+          </DCArtboard>
+          <DCArtboard id="profile-import" label="Perfil — importar JSON" width={390} height={844}>
+            <Phone bg="#f6f1e8"><ProfileImport /></Phone>
+          </DCArtboard>
+        </DCSection>
+
+        <DCSection
+          id="errors"
+          title="404 e erro"
+          subtitle="Quando o app falha, ele ainda fala bonito. Sem dramatizar, sem se desculpar demais."
+        >
+          <DCArtboard id="paper-404" label="Paper — 404" width={390} height={844}>
+            <Phone bg="#f6f1e8"><Paper404 /></Phone>
+          </DCArtboard>
+          <DCArtboard id="paper-error" label="Paper — erro 500" width={390} height={844}>
+            <Phone bg="#f6f1e8"><PaperError500 /></Phone>
+          </DCArtboard>
+        </DCSection>
+
+        <DCSection
+          id="onboarding"
+          title="Onboarding · 3 telas"
+          subtitle="Tour rápido pra mostrar o que o Savit faz de diferente. Pulável a qualquer momento."
+        >
+          <DCArtboard id="onboarding-1" label="1 · Captura instantânea" width={390} height={844}>
+            <Phone bg="#f6f1e8"><Onboarding1 /></Phone>
+          </DCArtboard>
+          <DCArtboard id="onboarding-2" label="2 · Categorias = espaços" width={390} height={844}>
+            <Phone bg="#f6f1e8"><Onboarding2 /></Phone>
+          </DCArtboard>
+          <DCArtboard id="onboarding-3" label="3 · Linguagem natural" width={390} height={844}>
+            <Phone bg="#f6f1e8"><Onboarding3 /></Phone>
+          </DCArtboard>
         </DCSection>
 
         <DCSection

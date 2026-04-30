@@ -27,21 +27,28 @@ function EvalReview() {
       title: 'Faltando da SPEC',
       tone: 'bad',
       items: [
-        'MFA, auth Linear/Playful, sessões ativas, export/import, onboarding, 404/erro. Vão pra S5.',
-        'Skeletons, dialog confirm, share-target landing. Vão pra S6.',
+        'Skeletons (linha, grid, kanban), dialog confirm, datepicker standalone, tooltip. Vão pra S6.',
+        'Share-target landing — sticky "vindo de Safari". S6.',
         'Tweaks panel está importado mas inerte — ligadura em S6.',
       ],
     },
     {
-      title: 'S1–S4 — adicionado (24 artboards)',
+      title: 'S1–S5 — adicionado (35 artboards)',
       tone: 'good',
       items: [
-        'S1 · 6 artboards: paper-nav / playful-nav / linear-nav + focus (default, pomodoro, empty).',
+        'S1 · 6 artboards: nav (3 temas) + focus (default, pomodoro, empty).',
         'S2 · 5 artboards: cat-space (3 temas) + dash mobile (Paper, Playful).',
         'S3 · 8 artboards: feed-monday × 2 + search × 2 + empty × 2 + toast + offline.',
-        'S4 · paper-context-sheet — long-press abre bottom-sheet com 7 ações (Editar, Mudar categoria/prazo, Copiar, Compartilhar, Arquivar, Excluir danger). Backdrop 0.40 sobre feed borrado, drag handle 40×4, preview do item selecionado no topo.',
-        'S4 · paper-edit — bottom-sheet de edição com Cancelar / EDITAR / Salvar accent. Segmented control Nota|Tarefa, campo de texto com cursor, categoria com pílulas inline (selecionada com bg/border accent), atalhos rápidos de prazo (Hoje selecionado), e mini-calendário com nav mês ← Abril 2026 →, grid 6 linhas com hoje circulado e selecionado preenchido, hora 16:00 + lembrete 15min.',
-        'S4 · paper-color-picker — preview vivo da categoria (avatar 56px + nome + contador), grid 6×2 das 12 cores, selecionada com scale 1.10, ring outline 2px (bg + ink) e selo de check ink no canto.',
+        'S4 · 3 artboards: context-sheet, edit modal redesenhado, color picker.',
+        'S5 · auth-mfa — bottom-sheet sobre login borrado com 6 inputs OTP, contador de reenvio mono, botão disabled enquanto incompleto.',
+        'S5 · auth-login-linear — fundo dark blue-gray, fonte Geist em vez de Instrument Serif, fields como blocos surf com mono "EMAIL/PASSWORD", botão Entrar com kbd ↵, copy "atalhos · ⌘K · texto natural · sem cliques".',
+        'S5 · auth-login-playful — glow blobs ambiente, avatar gradient com sombra accent, headline "Bem-vinda de volta ✦" com gradient text fill (rose→amber), fields blur surface.',
+        'S5 · profile-sessions — 4 dispositivos com badge ATUAL (verde) e SUSPEITA (danger). Um deles em estado revealed com bg vermelho "Encerrar". CTA outline danger "Encerrar todas as outras".',
+        'S5 · profile-export — checklist de conteúdo (Notas/Tarefas/Categorias selecionadas, Imagens opt-out), tamanho estimado 340 KB, CTA "Baixar savit-2026-04-30.json".',
+        'S5 · profile-import — dropzone tracejada accent, validação live "✓ 128 NOTAS · 84 TAREFAS · 6 CATEGORIAS DETECTADAS", aviso de fusão de categorias, CTA "Importar 218 itens".',
+        'S5 · paper-404 — "404" gigante em serif accent + "Esta página fugiu." em itálico. Código de referência mono no rodapé.',
+        'S5 · paper-error (500) — "Algo deu errado. Já fomos avisados." Bloco mono com log do request 503 + retry. Botão "Tentar de novo" + "Continuar offline".',
+        'S5 · onboarding-1/2/3 — 3 telas progressivas: captura (mock card girado -1deg com chips do parser), categorias-como-cores (grid 6 com 3 selecionadas), linguagem natural (4 exemplos in/out com setas accent). Step dots indicando progresso.',
       ],
     },
     {
@@ -102,13 +109,13 @@ function EvalReview() {
     }}>
       <div style={{ display: 'flex', alignItems: 'baseline', justifyContent: 'space-between', gap: 24 }}>
         <div>
-          <div className="mono" style={{ fontSize: 11, opacity: 0.5, letterSpacing: '0.12em' }}>AVALIAÇÃO · 30 ABR · S0–S4</div>
+          <div className="mono" style={{ fontSize: 11, opacity: 0.5, letterSpacing: '0.12em' }}>AVALIAÇÃO · 30 ABR · S0–S5</div>
           <div style={{
             fontFamily: '"Instrument Serif", serif',
             fontSize: 44, lineHeight: 1.05, letterSpacing: '-0.02em',
             marginTop: 8,
           }}>
-            S0–S4 fechados.<br/>S5–S6 restantes.
+            S0–S5 fechados.<br/>Falta só S6.
           </div>
         </div>
         <div style={{ fontSize: 12, color: 'rgba(0,0,0,0.55)', maxWidth: 320, lineHeight: 1.55, textAlign: 'right' }}>
@@ -176,8 +183,8 @@ function EvalReview() {
             VEREDITO
           </div>
           <div style={{ fontFamily: '"Instrument Serif", serif', fontSize: 26, lineHeight: 1.3, letterSpacing: '-0.01em' }}>
-            S0–S4 cobrem <span style={{ color: EVAL_GREEN }}>app inteira no fluxo principal</span>: feed, nav, foco, espaços, dash, estados, edição e cor.
-            Falta agora <span style={{ color: EVAL_ACCENT }}>auth completo + componentes utilitários + tweaks</span>.
+            S0–S5 entregam <span style={{ color: EVAL_GREEN }}>app + auth + perfil + erros + onboarding</span>. Toda a jornada do usuário tem mock.
+            Falta apenas <span style={{ color: EVAL_ACCENT }}>S6: componentes utilitários + tweaks panel funcional</span>.
           </div>
         </div>
         <div style={{ display: 'flex', flexDirection: 'column', gap: 6, minWidth: 160 }}>
@@ -186,11 +193,12 @@ function EvalReview() {
           <ProgressLine label="S2 · Espaço+Dash" pct={100} color={EVAL_GREEN}/>
           <ProgressLine label="S3 · Estados" pct={100} color={EVAL_GREEN}/>
           <ProgressLine label="S4 · Edição+Picker" pct={100} color={EVAL_GREEN}/>
+          <ProgressLine label="S5 · Auth+Erros" pct={100} color={EVAL_GREEN}/>
           <ProgressLine label="Mobile · Paper" pct={100} color={EVAL_GREEN}/>
-          <ProgressLine label="Mobile · Playful" pct={92} color="#7c5cff"/>
+          <ProgressLine label="Mobile · Playful" pct={94} color="#7c5cff"/>
           <ProgressLine label="Mobile · Linear" pct={88} color="#7c8bf5"/>
           <ProgressLine label="Desktop" pct={90} color={EVAL_GREEN}/>
-          <ProgressLine label="Auth + Perfil" pct={78} color={EVAL_AMBER}/>
+          <ProgressLine label="Auth + Perfil" pct={100} color={EVAL_GREEN}/>
           <ProgressLine label="Estados/empty" pct={92} color={EVAL_GREEN}/>
         </div>
       </div>
