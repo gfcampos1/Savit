@@ -2049,6 +2049,572 @@ function PaperOffline() {
   );
 }
 
+// =============================================
+// N-07 — paper-context-sheet (long-press, bottom-sheet de ações)
+// =============================================
+function PaperContextSheet() {
+  // Background: feed parcialmente visível, escurecido com backdrop
+  const bgItem = (
+    <div style={{
+      background: PAPER.card,
+      border: `1px solid ${PAPER.hair}`,
+      borderRadius: 14,
+      padding: '14px 14px 12px',
+      marginBottom: 10,
+      display: 'flex', gap: 12,
+      boxShadow: PAPER.shadow,
+    }}>
+      <div style={{
+        width: 20, height: 20, borderRadius: 6,
+        border: `1.5px solid ${PAPER.ink}`,
+        marginTop: 2, flexShrink: 0,
+      }}/>
+      <div style={{ flex: 1, minWidth: 0 }}>
+        <div style={{ fontSize: 14, lineHeight: 1.45 }}>Revisar PR do refresh token rotation</div>
+        <div style={{ display: 'flex', alignItems: 'center', gap: 10, marginTop: 6 }}>
+          <CategoryChipPaper name="Trabalho" color="#c0563a"/>
+          <span style={{ fontSize: 11.5, color: PAPER.ink2 }}>Hoje, 16:00</span>
+        </div>
+      </div>
+    </div>
+  );
+
+  return (
+    <div style={{
+      width: '100%', height: '100%',
+      background: PAPER.bg,
+      color: PAPER.ink,
+      fontFamily: '"Geist", system-ui, sans-serif',
+      display: 'flex', flexDirection: 'column',
+      position: 'relative',
+    }}>
+      {/* Faded background */}
+      <div style={{ filter: 'blur(0.5px)', opacity: 0.55, pointerEvents: 'none' }}>
+        <PaperHeader sub="QUI · 30 ABR" title="Hoje" withHair/>
+        <PaperTabs
+          active="all"
+          tabs={[
+            { id: 'all', label: 'Tudo', count: 28 },
+            { id: 'tasks', label: 'Tarefas', count: 4 },
+            { id: 'cats', label: 'Categorias', count: 6 },
+          ]}
+        />
+        <div style={{ padding: '12px 20px' }}>
+          {bgItem}
+          {bgItem}
+        </div>
+      </div>
+
+      {/* Backdrop */}
+      <div style={{
+        position: 'absolute', inset: 0,
+        background: 'rgba(29,26,20,0.40)',
+      }}/>
+
+      {/* Sheet */}
+      <div style={{
+        position: 'absolute', left: 0, right: 0, bottom: 0,
+        background: PAPER.card,
+        borderRadius: '24px 24px 0 0',
+        boxShadow: '0 -16px 48px -12px rgba(29,26,20,0.45)',
+        padding: '14px 0 calc(env(safe-area-inset-bottom) + 18px)',
+      }}>
+        {/* Drag handle */}
+        <div style={{
+          width: 40, height: 4, background: PAPER.hair,
+          borderRadius: 2, margin: '0 auto 14px',
+        }}/>
+
+        {/* Selected item preview */}
+        <div style={{
+          padding: '0 20px 12px',
+          borderBottom: `1px solid ${PAPER.hair}`,
+        }}>
+          <div className="mono" style={{ fontSize: 10, color: PAPER.ink3, letterSpacing: '0.16em', marginBottom: 6 }}>
+            AÇÕES NA TAREFA
+          </div>
+          <div style={{ display: 'flex', alignItems: 'center', gap: 10 }}>
+            <span style={{ width: 6, height: 6, borderRadius: 2, background: '#c0563a' }}/>
+            <div style={{
+              fontSize: 14, color: PAPER.ink2,
+              overflow: 'hidden', textOverflow: 'ellipsis', whiteSpace: 'nowrap', flex: 1,
+            }}>Revisar PR do refresh token rotation</div>
+          </div>
+        </div>
+
+        {/* Action rows */}
+        <div style={{ padding: '4px 0' }}>
+          {[
+            { icon: 'edit',     label: 'Editar' },
+            { icon: 'cat',      label: 'Mudar categoria',  trail: 'Trabalho', trailColor: '#c0563a' },
+            { icon: 'date',     label: 'Mudar prazo',      trail: 'Hoje 16:00' },
+            { icon: 'copy',     label: 'Copiar texto' },
+            { icon: 'share',    label: 'Compartilhar' },
+            { icon: 'archive',  label: 'Arquivar' },
+            { icon: 'trash',    label: 'Excluir',          danger: true },
+          ].map((a, i, arr) => (
+            <PaperContextRow key={i} {...a} last={i === arr.length - 1}/>
+          ))}
+        </div>
+
+        {/* Cancel */}
+        <div style={{ padding: '12px 20px 0' }}>
+          <button style={{
+            width: '100%', padding: 14,
+            background: PAPER.bg, color: PAPER.ink,
+            border: `1px solid ${PAPER.hair}`,
+            borderRadius: 12,
+            fontSize: 14, fontWeight: 500,
+          }}>Cancelar</button>
+        </div>
+      </div>
+    </div>
+  );
+}
+
+function PaperContextRow({ icon, label, trail, trailColor, danger, last }) {
+  const ic = {
+    edit:    <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="1.7" strokeLinecap="round"><path d="M12 20h9M16.5 3.5a2 2 0 0 1 3 3L7 19l-4 1 1-4 12.5-12.5z"/></svg>,
+    cat:     <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="1.7" strokeLinecap="round"><path d="M3 7h18l-2 12a2 2 0 0 1-2 2H7a2 2 0 0 1-2-2L3 7zM8 7V5a2 2 0 0 1 2-2h4a2 2 0 0 1 2 2v2"/></svg>,
+    date:    <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="1.7" strokeLinecap="round"><circle cx="12" cy="12" r="9"/><path d="M12 7v5l3 2"/></svg>,
+    copy:    <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="1.7" strokeLinecap="round"><rect x="9" y="9" width="11" height="11" rx="2"/><path d="M5 15V5a2 2 0 0 1 2-2h10"/></svg>,
+    share:   <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="1.7" strokeLinecap="round"><circle cx="6" cy="12" r="3"/><circle cx="18" cy="6" r="3"/><circle cx="18" cy="18" r="3"/><path d="m8.5 13.5 7 4M15.5 6.5l-7 4"/></svg>,
+    archive: <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="1.7" strokeLinecap="round"><rect x="3" y="3" width="18" height="5" rx="1"/><path d="M5 8v11a2 2 0 0 0 2 2h10a2 2 0 0 0 2-2V8M10 12h4"/></svg>,
+    trash:   <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="1.7" strokeLinecap="round"><path d="M3 6h18M8 6V4a2 2 0 0 1 2-2h4a2 2 0 0 1 2 2v2M5 6l1 14a2 2 0 0 0 2 2h8a2 2 0 0 0 2-2l1-14"/></svg>,
+  }[icon];
+
+  return (
+    <div style={{
+      padding: '14px 20px',
+      display: 'flex', alignItems: 'center', gap: 14,
+      borderBottom: last ? 'none' : `1px solid ${PAPER.hair}`,
+      color: danger ? '#c0563a' : PAPER.ink,
+    }}>
+      <div style={{ color: danger ? '#c0563a' : PAPER.ink2, flexShrink: 0 }}>{ic}</div>
+      <div style={{ flex: 1, fontSize: 14 }}>{label}</div>
+      {trail && (
+        <span style={{
+          fontSize: 11.5, color: trailColor || PAPER.ink2,
+          fontFamily: '"JetBrains Mono", monospace',
+          letterSpacing: '0.04em',
+          display: 'inline-flex', alignItems: 'center', gap: 5,
+        }}>
+          {trailColor && <span style={{ width: 6, height: 6, borderRadius: 2, background: trailColor }}/>}
+          {trail}
+        </span>
+      )}
+      {!trail && (
+        <svg width="12" height="12" viewBox="0 0 24 24" fill="none" stroke={PAPER.ink3} strokeWidth="1.7" strokeLinecap="round"><path d="m9 18 6-6-6-6"/></svg>
+      )}
+    </div>
+  );
+}
+
+// =============================================
+// N-08 — paper-edit (Nota|Tarefa segmented + datepicker inline + cat inline)
+// =============================================
+function PaperEdit() {
+  return (
+    <div style={{
+      width: '100%', height: '100%',
+      background: PAPER.bg,
+      color: PAPER.ink,
+      fontFamily: '"Geist", system-ui, sans-serif',
+      display: 'flex', flexDirection: 'column',
+      position: 'relative',
+    }}>
+      {/* Backdrop layer (faded) */}
+      <div style={{ filter: 'blur(0.5px)', opacity: 0.45, pointerEvents: 'none' }}>
+        <PaperHeader sub="QUI · 30 ABR" title="Hoje" withHair/>
+      </div>
+      <div style={{ position: 'absolute', inset: 0, background: 'rgba(29,26,20,0.42)' }}/>
+
+      {/* Edit sheet */}
+      <div style={{
+        position: 'absolute', left: 0, right: 0, bottom: 0, top: 60,
+        background: PAPER.card,
+        borderRadius: '24px 24px 0 0',
+        boxShadow: '0 -16px 48px -12px rgba(29,26,20,0.45)',
+        display: 'flex', flexDirection: 'column',
+      }}>
+        {/* Handle + title */}
+        <div style={{ padding: '12px 0' }}>
+          <div style={{ width: 40, height: 4, background: PAPER.hair, borderRadius: 2, margin: '0 auto' }}/>
+        </div>
+        <div style={{
+          padding: '0 20px 12px',
+          display: 'flex', alignItems: 'center', justifyContent: 'space-between',
+          borderBottom: `1px solid ${PAPER.hair}`,
+        }}>
+          <button style={{
+            fontSize: 13, color: PAPER.ink2,
+            background: 'transparent',
+          }}>Cancelar</button>
+          <span className="mono" style={{
+            fontSize: 10, color: PAPER.ink3, letterSpacing: '0.16em',
+          }}>EDITAR</span>
+          <button style={{
+            fontSize: 13, color: PAPER.accent, fontWeight: 600,
+            background: 'transparent',
+          }}>Salvar</button>
+        </div>
+
+        <div style={{ flex: 1, overflow: 'auto', padding: '16px 20px 24px' }}>
+          {/* Type segmented control */}
+          <div style={{ marginBottom: 18 }}>
+            <div className="mono" style={{ fontSize: 10, color: PAPER.ink3, letterSpacing: '0.16em', marginBottom: 8 }}>
+              TIPO
+            </div>
+            <div style={{
+              display: 'inline-flex',
+              padding: 3,
+              background: PAPER.bg,
+              border: `1px solid ${PAPER.hair}`,
+              borderRadius: 999,
+              gap: 2,
+            }}>
+              <button style={{
+                padding: '8px 18px', borderRadius: 999,
+                background: 'transparent',
+                color: PAPER.ink3, fontSize: 13, fontWeight: 500,
+                display: 'inline-flex', alignItems: 'center', gap: 6,
+              }}>
+                <svg width="13" height="13" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="1.7"><path d="M14 2H6a2 2 0 0 0-2 2v16a2 2 0 0 0 2 2h12a2 2 0 0 0 2-2V8z"/><path d="M14 2v6h6"/></svg>
+                Nota
+              </button>
+              <button style={{
+                padding: '8px 18px', borderRadius: 999,
+                background: PAPER.ink, color: '#fff',
+                fontSize: 13, fontWeight: 600,
+                display: 'inline-flex', alignItems: 'center', gap: 6,
+              }}>
+                <svg width="13" height="13" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round"><rect x="3" y="3" width="18" height="18" rx="3"/><path d="m8 12 3 3 5-6"/></svg>
+                Tarefa
+              </button>
+            </div>
+          </div>
+
+          {/* Text */}
+          <div style={{ marginBottom: 20 }}>
+            <div className="mono" style={{ fontSize: 10, color: PAPER.ink3, letterSpacing: '0.16em', marginBottom: 8 }}>
+              TEXTO
+            </div>
+            <div style={{
+              padding: '12px 14px',
+              background: PAPER.bg,
+              border: `1px solid ${PAPER.hair}`,
+              borderRadius: 12,
+              fontSize: 15, lineHeight: 1.45,
+              color: PAPER.ink, minHeight: 64,
+            }}>
+              Revisar PR do refresh token rotation
+              <span style={{ display: 'inline-block', width: 1.5, height: 16, background: PAPER.accent, marginLeft: 2, verticalAlign: 'middle' }}/>
+            </div>
+          </div>
+
+          {/* Categoria inline picker */}
+          <div style={{ marginBottom: 20 }}>
+            <div className="mono" style={{ fontSize: 10, color: PAPER.ink3, letterSpacing: '0.16em', marginBottom: 8 }}>
+              CATEGORIA
+            </div>
+            <div style={{ display: 'flex', flexWrap: 'wrap', gap: 8 }}>
+              {[
+                { name: 'Trabalho', color: '#c0563a', active: true },
+                { name: 'Pessoal', color: '#3a8a6a' },
+                { name: 'Casa', color: '#7a5cc7' },
+                { name: 'Leitura', color: '#e6b540' },
+                { name: 'Ideias', color: '#1d4ed8' },
+                { name: 'Saúde', color: '#d96fa0' },
+              ].map((c, i) => (
+                <span key={i} style={{
+                  display: 'inline-flex', alignItems: 'center', gap: 6,
+                  padding: '7px 12px',
+                  background: c.active ? c.color + '20' : PAPER.bg,
+                  border: `1px solid ${c.active ? c.color + '55' : PAPER.hair}`,
+                  borderRadius: 999,
+                  fontSize: 12.5,
+                  color: c.active ? c.color : PAPER.ink2,
+                  fontWeight: c.active ? 600 : 500,
+                }}>
+                  <span style={{ width: 7, height: 7, borderRadius: 2, background: c.color }}/>
+                  {c.name}
+                </span>
+              ))}
+              <span style={{
+                display: 'inline-flex', alignItems: 'center', gap: 6,
+                padding: '7px 12px',
+                background: 'transparent',
+                border: `1px dashed ${PAPER.hair}`,
+                borderRadius: 999,
+                fontSize: 12.5, color: PAPER.ink3,
+              }}>+ nova</span>
+            </div>
+          </div>
+
+          {/* Quando: quick chips */}
+          <div style={{ marginBottom: 14 }}>
+            <div className="mono" style={{ fontSize: 10, color: PAPER.ink3, letterSpacing: '0.16em', marginBottom: 8 }}>
+              QUANDO
+            </div>
+            <div style={{ display: 'flex', flexWrap: 'wrap', gap: 6, marginBottom: 12 }}>
+              {[
+                { label: 'Hoje', active: true },
+                { label: 'Amanhã' },
+                { label: 'Sex 17h' },
+                { label: 'Próxima seg' },
+                { label: 'Sem prazo' },
+              ].map((q, i) => (
+                <span key={i} style={{
+                  padding: '6px 12px', borderRadius: 999,
+                  background: q.active ? PAPER.ink : PAPER.bg,
+                  border: q.active ? 'none' : `1px solid ${PAPER.hair}`,
+                  color: q.active ? '#fff' : PAPER.ink2,
+                  fontSize: 12.5, fontWeight: 500,
+                }}>{q.label}</span>
+              ))}
+            </div>
+
+            {/* Inline mini-calendar */}
+            <PaperMiniCalendar selectedDay={30} hour="16:00"/>
+          </div>
+        </div>
+      </div>
+    </div>
+  );
+}
+
+function PaperMiniCalendar({ selectedDay, hour }) {
+  const dows = ['DOM', 'SEG', 'TER', 'QUA', 'QUI', 'SEX', 'SÁB'];
+  // April 2026 starts on Wednesday (day 3); 30 days
+  const startOffset = 3;
+  const daysInMonth = 30;
+  const cells = [];
+  for (let i = 0; i < startOffset; i++) cells.push(null);
+  for (let d = 1; d <= daysInMonth; d++) cells.push(d);
+  while (cells.length % 7 !== 0) cells.push(null);
+
+  return (
+    <div style={{
+      background: PAPER.bg,
+      border: `1px solid ${PAPER.hair}`,
+      borderRadius: 12,
+      padding: 12,
+    }}>
+      {/* Month nav */}
+      <div style={{
+        display: 'flex', alignItems: 'center', justifyContent: 'space-between',
+        marginBottom: 10,
+      }}>
+        <button style={{
+          width: 28, height: 28, borderRadius: 8,
+          background: 'transparent', color: PAPER.ink2,
+          display: 'flex', alignItems: 'center', justifyContent: 'center',
+        }}>
+          <svg width="12" height="12" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round"><path d="m15 18-6-6 6-6"/></svg>
+        </button>
+        <div style={{
+          fontFamily: '"Instrument Serif", serif',
+          fontSize: 18, letterSpacing: '-0.01em',
+        }}>Abril 2026</div>
+        <button style={{
+          width: 28, height: 28, borderRadius: 8,
+          background: 'transparent', color: PAPER.ink2,
+        }}>
+          <svg width="12" height="12" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round"><path d="m9 18 6-6-6-6"/></svg>
+        </button>
+      </div>
+
+      {/* DOW header */}
+      <div style={{
+        display: 'grid', gridTemplateColumns: 'repeat(7, 1fr)', gap: 0,
+        marginBottom: 4,
+      }}>
+        {dows.map((d, i) => (
+          <div key={i} className="mono" style={{
+            fontSize: 9, color: PAPER.ink3, letterSpacing: '0.10em',
+            textAlign: 'center', padding: '4px 0',
+          }}>{d}</div>
+        ))}
+      </div>
+
+      {/* Days grid */}
+      <div style={{
+        display: 'grid', gridTemplateColumns: 'repeat(7, 1fr)', gap: 2,
+      }}>
+        {cells.map((d, i) => {
+          if (d == null) return <div key={i} style={{ height: 30 }}/>;
+          const sel = d === selectedDay;
+          const today = d === 30; // mock today = 30
+          return (
+            <div key={i} style={{
+              height: 30, borderRadius: 8,
+              display: 'flex', alignItems: 'center', justifyContent: 'center',
+              fontSize: 12,
+              background: sel ? PAPER.accent : 'transparent',
+              color: sel ? '#fff' : (today ? PAPER.accent : PAPER.ink),
+              fontWeight: sel || today ? 600 : 400,
+              border: today && !sel ? `1px solid ${PAPER.accent}` : 'none',
+            }}>{d}</div>
+          );
+        })}
+      </div>
+
+      {/* Time row */}
+      <div style={{
+        marginTop: 12, paddingTop: 12,
+        borderTop: `1px dashed ${PAPER.hair}`,
+        display: 'flex', alignItems: 'center', gap: 10,
+      }}>
+        <span className="mono" style={{ fontSize: 10, color: PAPER.ink3, letterSpacing: '0.14em' }}>HORA</span>
+        <span style={{
+          padding: '4px 10px', borderRadius: 8,
+          background: PAPER.card, border: `1px solid ${PAPER.hair}`,
+          fontFamily: '"JetBrains Mono", monospace',
+          fontSize: 13, color: PAPER.ink,
+        }}>{hour}</span>
+        <div style={{ flex: 1 }}/>
+        <span style={{ fontSize: 11, color: PAPER.ink3 }}>15min antes lembrete</span>
+      </div>
+    </div>
+  );
+}
+
+// =============================================
+// N-09 — paper-color-picker (grid 6×2 com selecionado)
+// =============================================
+function PaperColorPicker() {
+  const palette = [
+    '#c0563a', '#e6b540', '#3a8a6a', '#7a5cc7', '#5b8cff',
+    '#d96fa0', '#1d4ed8', '#ff8a5b', '#5cd6c0', '#ff6b9d',
+    '#7c5cff', '#f0b95c',
+  ];
+  const selected = '#c0563a';
+
+  return (
+    <div style={{
+      width: '100%', height: '100%',
+      background: PAPER.bg,
+      color: PAPER.ink,
+      fontFamily: '"Geist", system-ui, sans-serif',
+      display: 'flex', flexDirection: 'column',
+      position: 'relative',
+    }}>
+      <div style={{
+        padding: '14px 20px',
+        display: 'flex', alignItems: 'center', justifyContent: 'space-between',
+        borderBottom: `1px solid ${PAPER.hair}`,
+      }}>
+        <button style={{
+          width: 36, height: 36, borderRadius: 10,
+          background: 'rgba(29,26,20,0.04)',
+          display: 'flex', alignItems: 'center', justifyContent: 'center',
+        }}>
+          <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke={PAPER.ink} strokeWidth="1.7" strokeLinecap="round"><path d="m15 18-6-6 6-6"/></svg>
+        </button>
+        <div className="mono" style={{ fontSize: 10, color: PAPER.ink3, letterSpacing: '0.16em' }}>EDITAR CATEGORIA</div>
+        <div style={{ width: 36 }}/>
+      </div>
+
+      <div style={{ flex: 1, padding: '24px 24px', display: 'flex', flexDirection: 'column', gap: 24 }}>
+        {/* Preview */}
+        <div style={{
+          background: PAPER.card,
+          border: `1px solid ${PAPER.hair}`,
+          borderRadius: 16,
+          padding: 18,
+          display: 'flex', alignItems: 'center', gap: 14,
+          boxShadow: PAPER.shadow,
+        }}>
+          <div style={{
+            width: 56, height: 56, borderRadius: 14,
+            background: selected,
+            display: 'flex', alignItems: 'center', justifyContent: 'center',
+            fontFamily: '"Instrument Serif", serif',
+            fontSize: 28, color: '#fff',
+            transition: 'background 200ms',
+          }}>T</div>
+          <div style={{ flex: 1, minWidth: 0 }}>
+            <div style={{ fontSize: 18, fontWeight: 500 }}>Trabalho</div>
+            <div className="mono" style={{ fontSize: 11, color: PAPER.ink3, letterSpacing: '0.06em' }}>
+              42 NOTAS · 8 TAREFAS
+            </div>
+          </div>
+        </div>
+
+        {/* Name field */}
+        <div>
+          <div className="mono" style={{ fontSize: 10, color: PAPER.ink3, letterSpacing: '0.16em', marginBottom: 6 }}>
+            NOME
+          </div>
+          <div style={{
+            padding: '10px 14px',
+            background: PAPER.card, border: `1px solid ${PAPER.hair}`,
+            borderRadius: 10, fontSize: 15,
+          }}>
+            Trabalho
+            <span style={{
+              display: 'inline-block', width: 1.5, height: 16,
+              background: PAPER.accent, marginLeft: 2, verticalAlign: 'middle',
+            }}/>
+          </div>
+        </div>
+
+        {/* Color grid 6×2 */}
+        <div>
+          <div className="mono" style={{ fontSize: 10, color: PAPER.ink3, letterSpacing: '0.16em', marginBottom: 12 }}>
+            COR
+          </div>
+          <div style={{
+            display: 'grid', gridTemplateColumns: 'repeat(6, 1fr)',
+            gap: 14,
+            justifyItems: 'center',
+          }}>
+            {palette.map((c, i) => {
+              const isSel = c === selected;
+              return (
+                <div key={i} style={{
+                  position: 'relative',
+                  width: 40, height: 40,
+                  display: 'flex', alignItems: 'center', justifyContent: 'center',
+                }}>
+                  <div style={{
+                    width: 36, height: 36, borderRadius: '50%',
+                    background: c,
+                    transform: isSel ? 'scale(1.10)' : 'scale(1)',
+                    boxShadow: isSel ? `0 0 0 2px ${PAPER.bg}, 0 0 0 4px ${PAPER.ink}` : 'none',
+                    transition: 'transform 200ms, box-shadow 200ms',
+                  }}/>
+                  {isSel && (
+                    <span style={{
+                      position: 'absolute', top: -6, right: -6,
+                      width: 18, height: 18, borderRadius: 9,
+                      background: PAPER.ink,
+                      display: 'flex', alignItems: 'center', justifyContent: 'center',
+                    }}>
+                      <svg width="10" height="10" viewBox="0 0 12 12" fill="none">
+                        <path d="M2.5 6.5L5 9L9.5 3.5" stroke="#fff" strokeWidth="2" strokeLinecap="round"/>
+                      </svg>
+                    </span>
+                  )}
+                </div>
+              );
+            })}
+          </div>
+        </div>
+
+        <div style={{ flex: 1 }}/>
+
+        <button style={{
+          padding: 14, borderRadius: 12,
+          background: PAPER.ink, color: '#fff',
+          fontSize: 14, fontWeight: 600,
+          display: 'flex', alignItems: 'center', justifyContent: 'center', gap: 6,
+        }}>Salvar mudanças</button>
+      </div>
+    </div>
+  );
+}
+
 Object.assign(window, {
   PaperFeed, PaperFeedTyping, PaperCategories, PaperTasks,
   PaperBottomNav, PaperFeedWithNav,
@@ -2058,5 +2624,6 @@ Object.assign(window, {
   PaperSearch, PaperSearchEmpty,
   PaperEmptyFeed, PaperEmptyTasks,
   PaperToastShowcase, PaperOffline,
+  PaperContextSheet, PaperEdit, PaperColorPicker, PaperMiniCalendar,
   PAPER,
 });

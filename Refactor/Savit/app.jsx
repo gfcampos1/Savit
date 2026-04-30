@@ -186,6 +186,22 @@ function App() {
         </DCSection>
 
         <DCSection
+          id="edit"
+          title="Edição, contexto e cores"
+          subtitle="Long-press abre ações. Edit modal vira bottom-sheet com toggle visual e datepicker inline. Color picker com selecionado óbvio."
+        >
+          <DCArtboard id="paper-context-sheet" label="Paper — long-press (bottom-sheet)" width={390} height={844}>
+            <Phone bg="#f6f1e8"><PaperContextSheet /></Phone>
+          </DCArtboard>
+          <DCArtboard id="paper-edit" label="Paper — editar (Nota|Tarefa + datepicker inline)" width={390} height={844}>
+            <Phone bg="#f6f1e8"><PaperEdit /></Phone>
+          </DCArtboard>
+          <DCArtboard id="paper-color-picker" label="Paper — color picker (12 cores)" width={390} height={600}>
+            <Phone bg="#f6f1e8"><PaperColorPicker /></Phone>
+          </DCArtboard>
+        </DCSection>
+
+        <DCSection
           id="desktop"
           title="Desktop · reimaginação"
           subtitle="Coluna tripla: navegação, feed, painel de contexto. Direção: Linear/Tech (a mais densa)."
