@@ -390,10 +390,9 @@
                     <!-- Messages Container -->
                     <main class="chat-content">
                         <div class="messages-container" id="messagesContainer">
-                            <div class="empty-state" id="emptyState">
-                                <i class="fas fa-lightbulb"></i>
-                                <h2>Suas ideias começam aqui</h2>
-                                <p>Digite algo abaixo para salvar sua primeira ideia</p>
+                            <div class="empty-state feed-empty" id="emptyState">
+                                <h2 class="feed-empty__title">Sua primeira ideia mora aqui.</h2>
+                                <p class="feed-empty__hint">Capture qualquer pensamento — vira nota ou tarefa</p>
                             </div>
                         </div>
 
@@ -473,6 +472,7 @@
                                 </button>
                             </div>
                             <div class="format-preview" aria-label="Pré-visualização" style="display: none;"></div>
+                            <div id="composerChips" class="composer-chips" hidden></div>
                             <div id="messageInput" class="wysiwyg-editor" contenteditable="true" role="textbox" aria-multiline="true" aria-label="Digite sua ideia" data-placeholder="Digite sua ideia..."></div>
                             <button class="send-btn" id="sendBtn">
                                 <i class="fas fa-paper-plane"></i>
@@ -1310,9 +1310,12 @@
         </div>
     </div>
 
+    <div id="toastRoot" class="toast-root" aria-live="polite"></div>
     <script src="vendor/MindElixirLite.iife.js?v=20260115-1"></script>
     <script src="js/api.js?v=20260115-1"></script>
     <script src="js/router.js?v=20260115-1"></script>
+    <script src="js/utils/parse-natural.js?v=20260115-1"></script>
+    <script src="js/components/toast.js?v=20260115-1"></script>
     <script src="js/app.js?v=20260115-1"></script>
 </body>
 </html>

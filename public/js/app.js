@@ -398,6 +398,192 @@ const ThemeManager = {
     }
 };
 
+// =============================================
+// Smart Capture (S2 / F1) — wires ParseNatural to composer
+// =============================================
+
+const SmartCapture = {
+    chipsEl: null,
+    inputEl: null,
+    last: null,
+
+    init() {
+        this.chipsEl = document.getElementById('composerChips');
+        this.inputEl = DOM.messageInput;
+        if (!this.chipsEl || !this.inputEl) return;
+
+        const handler = () => this.refresh();
+        this.inputEl.addEventListener('input', handler);
+        this.inputEl.addEventListener('paste', () => setTimeout(handler, 0));
+    },
+
+    getRawText() {
+        if (!this.inputEl) return '';
+        if (this.inputEl.isContentEditable) {
+            try {
+                return (window.RichText && RichText.getPlainText)
+                    ? RichText.getPlainText(this.inputEl)
+                    : (this.inputEl.textContent || '');
+            } catch {
+                return this.inputEl.textContent || '';
+            }
+        }
+        return this.inputEl.value || '';
+    },
+
+    refresh() {
+        if (!window.ParseNatural) return;
+        const text = this.getRawText();
+        this.last = ParseNatural.parse(text, AppState.categories || []);
+        this.render();
+    },
+
+    render() {
+        const el = this.chipsEl;
+        if (!el) return;
+        const parts = (this.last && this.last.parts) || [];
+        if (!parts.length) {
+            el.innerHTML = '';
+            el.hidden = true;
+            return;
+        }
+
+        const isTask = !!(this.last && this.last.isTask);
+        const escape = (s) => (window.Utils && Utils.escapeHtml ? Utils.escapeHtml(s) : String(s).replace(/[&<>"']/g, c => ({'&':'&amp;','<':'&lt;','>':'&gt;','"':'&quot;',"'":'&#39;'}[c])));
+        let html = '';
+        if (isTask) {
+            html += '<span class="composer-chip composer-chip--task"><i class="fas fa-list-check" aria-hidden="true"></i>Tarefa</span>';
+        }
+        for (const p of parts) {
+            const label = ParseNatural.chipLabel(p);
+            const icon = ParseNatural.chipIcon(p);
+            html += '<span class="composer-chip" data-kind="' + p.kind + '">' +
+                '<i class="fas ' + icon + '" aria-hidden="true"></i>' +
+                '<span>' + escape(label) + '</span>' +
+                '<button type="button" class="composer-chip__remove" data-kind="' + p.kind + '" aria-label="Remover">×</button>' +
+                '</span>';
+        }
+        el.innerHTML = html;
+        el.hidden = false;
+
+        el.querySelectorAll('.composer-chip__remove').forEach(btn => {
+            btn.addEventListener('click', (e) => {
+                e.stopPropagation();
+                this.removePart(btn.dataset.kind);
+            });
+        });
+    },
+
+    removePart(kind) {
+        if (!this.last || !this.last.parts) return;
+        const part = this.last.parts.find(p => p.kind === kind);
+        if (!part) return;
+        const text = this.getRawText();
+        const newText = (text.slice(0, part.range[0]) + text.slice(part.range[1])).replace(/\s+/g, ' ').trim();
+        if (this.inputEl.isContentEditable) {
+            this.inputEl.textContent = newText;
+        } else {
+            this.inputEl.value = newText;
+        }
+        this.refresh();
+        this.inputEl.focus();
+    },
+
+    consume() {
+        const r = this.last;
+        return r;
+    },
+
+    clear() {
+        this.last = null;
+        if (this.chipsEl) {
+            this.chipsEl.innerHTML = '';
+            this.chipsEl.hidden = true;
+        }
+    }
+};
+
+// =============================================
+// Swipe helper (S2 / F5) — pointer-driven horizontal swipes on cards
+// =============================================
+
+const Swipe = {
+    THRESHOLD: 80,
+    SUPPRESS_FLAG: '__savit_suppress_click',
+
+    isMobile() {
+        return window.matchMedia('(max-width: 768px)').matches;
+    },
+
+    attach(el, handlers) {
+        if (!el || el.dataset.swipeAttached === '1') return;
+        el.dataset.swipeAttached = '1';
+
+        let startX = 0, startY = 0, dx = 0, dy = 0;
+        let active = false, locked = false, axis = null;
+        let pointerId = null;
+
+        const reset = () => {
+            active = false; locked = false; axis = null;
+            el.classList.remove('is-swiping-right', 'is-swiping-left');
+        };
+
+        const onDown = (e) => {
+            if (e.pointerType === 'mouse' && !Swipe.isMobile()) return;
+            startX = e.clientX; startY = e.clientY; dx = 0; dy = 0;
+            active = true; locked = false; axis = null;
+            pointerId = e.pointerId;
+        };
+
+        const onMove = (e) => {
+            if (!active || e.pointerId !== pointerId) return;
+            dx = e.clientX - startX;
+            dy = e.clientY - startY;
+            if (!locked) {
+                if (Math.abs(dx) > 8 || Math.abs(dy) > 8) {
+                    axis = Math.abs(dx) > Math.abs(dy) ? 'x' : 'y';
+                    locked = true;
+                    if (axis === 'y') { active = false; return; }
+                    try { el.setPointerCapture(pointerId); } catch {}
+                }
+            }
+            if (axis === 'x') {
+                el.style.transform = 'translateX(' + dx + 'px)';
+                el.classList.toggle('is-swiping-right', dx > 0);
+                el.classList.toggle('is-swiping-left', dx < 0);
+            }
+        };
+
+        const onUp = (e) => {
+            if (!active && axis !== 'x') return;
+            const dxFinal = dx;
+            const wasHoriz = axis === 'x';
+            try { el.releasePointerCapture(pointerId); } catch {}
+            reset();
+
+            el.style.transition = 'transform 200ms ease';
+            el.style.transform = '';
+            setTimeout(() => { el.style.transition = ''; }, 220);
+
+            if (wasHoriz && Math.abs(dxFinal) >= Swipe.THRESHOLD) {
+                el[Swipe.SUPPRESS_FLAG] = true;
+                setTimeout(() => { el[Swipe.SUPPRESS_FLAG] = false; }, 400);
+                if (dxFinal > 0 && handlers && handlers.onRight) handlers.onRight();
+                else if (dxFinal < 0 && handlers && handlers.onLeft) handlers.onLeft();
+            }
+        };
+
+        el.addEventListener('pointerdown', onDown);
+        el.addEventListener('pointermove', onMove);
+        el.addEventListener('pointerup', onUp);
+        el.addEventListener('pointercancel', onUp);
+    },
+
+    suppressed(el) {
+        return !!(el && el[Swipe.SUPPRESS_FLAG]);
+    }
+};
+
 function initThemeSectionCollapsible() {
     if (!DOM.themeSection || !DOM.themeSectionToggle) return;
 
@@ -3529,6 +3715,11 @@ const App = {
         if (typeof Router !== 'undefined') {
             Router.init();
         }
+
+        // Initialize Smart Capture (parser + chip preview)
+        if (typeof SmartCapture !== 'undefined') {
+            SmartCapture.init();
+        }
     },
 
     // Load initial data
@@ -4820,6 +5011,12 @@ const App = {
                 if (e.target.closest('details') || e.target.closest('summary')) {
                     return;
                 }
+                // Suppress click that follows a swipe gesture (S2 / F5)
+                if (typeof Swipe !== 'undefined' && Swipe.suppressed(message)) {
+                    e.preventDefault();
+                    e.stopPropagation();
+                    return;
+                }
                 this.openEditMessageModal(message.dataset.id);
             });
 
@@ -4838,7 +5035,87 @@ const App = {
                 e.preventDefault();
                 this.showContextMenu(e, message.dataset.id);
             });
+
+            // Swipe gestures (S2 / F5) — mobile-only by default
+            if (typeof Swipe !== 'undefined') {
+                Swipe.attach(message, {
+                    onRight: () => App.handleSwipeRight(message.dataset.id),
+                });
+            }
         });
+    },
+
+    // Swipe-right handler (S2 / F5)
+    async handleSwipeRight(messageId) {
+        const msg = AppState.messages.find(m => m.id === messageId);
+        if (!msg) return;
+
+        try {
+            if (msg.isTask) {
+                // Toggle done <-> pending
+                const wasCompleted = !!msg.taskCompleted;
+                const { message: updated } = await API.messages.toggle(messageId);
+                const idx = AppState.messages.findIndex(m => m.id === messageId);
+                if (idx !== -1) AppState.messages[idx] = updated;
+                this.renderMessages();
+                if (window.Toast) {
+                    Toast.show(wasCompleted ? 'Tarefa reaberta' : 'Concluída', {
+                        type: 'success',
+                        action: {
+                            label: 'Desfazer',
+                            onClick: async () => {
+                                try {
+                                    const { message: reverted } = await API.messages.toggle(messageId);
+                                    const j = AppState.messages.findIndex(m => m.id === messageId);
+                                    if (j !== -1) AppState.messages[j] = reverted;
+                                    this.renderMessages();
+                                } catch (err) {
+                                    Toast.error('Não foi possível desfazer');
+                                }
+                            }
+                        }
+                    });
+                }
+            } else {
+                // Convert note → task (no due date by default)
+                const { message: updated } = await API.messages.update(messageId, {
+                    text: msg.text,
+                    categoryId: msg.categoryId || null,
+                    isTask: true,
+                    taskDate: null,
+                    taskTime: null
+                });
+                const idx = AppState.messages.findIndex(m => m.id === messageId);
+                if (idx !== -1) AppState.messages[idx] = updated;
+                this.renderMessages();
+                if (window.Toast) {
+                    Toast.show('Virou tarefa', {
+                        type: 'success',
+                        action: {
+                            label: 'Desfazer',
+                            onClick: async () => {
+                                try {
+                                    const { message: reverted } = await API.messages.update(messageId, {
+                                        text: msg.text,
+                                        categoryId: msg.categoryId || null,
+                                        isTask: false,
+                                        taskDate: null,
+                                        taskTime: null
+                                    });
+                                    const j = AppState.messages.findIndex(m => m.id === messageId);
+                                    if (j !== -1) AppState.messages[j] = reverted;
+                                    this.renderMessages();
+                                } catch (err) {
+                                    Toast.error('Não foi possível desfazer');
+                                }
+                            }
+                        }
+                    });
+                }
+            }
+        } catch (err) {
+            if (window.Toast) Toast.error(err && err.message ? err.message : 'Erro ao atualizar');
+        }
     },
 
     groupMessagesByDate(messages) {
@@ -6385,15 +6662,35 @@ const App = {
             const textForCheck = rawText.trim();
             const textToSend = isWysiwyg ? RichText.getHtml(DOM.messageInput) : rawText.trimEnd();
             const hasImages = AppState.pendingImages.length > 0;
-            
+
             if (!textForCheck && !hasImages) return;
+
+            // Smart Capture: merge parsed metadata (additive — explicit user choices win)
+            const parsed = (typeof SmartCapture !== 'undefined') ? SmartCapture.consume() : null;
+            let categoryId = AppState.selectedCategoryId;
+            let isTask = AppState.isTaskMode;
+            let taskDate = AppState.isTaskMode ? DOM.taskDate.value : null;
+            let taskTime = AppState.isTaskMode ? DOM.taskTime.value : null;
+
+            if (parsed) {
+                if (!categoryId && parsed.categoryId) categoryId = parsed.categoryId;
+                if (parsed.dueAt && !AppState.isTaskMode) {
+                    isTask = true;
+                    const d = parsed.dueAt;
+                    const yyyy = d.getFullYear();
+                    const mm = String(d.getMonth() + 1).padStart(2, '0');
+                    const dd = String(d.getDate()).padStart(2, '0');
+                    taskDate = `${yyyy}-${mm}-${dd}`;
+                    taskTime = `${String(d.getHours()).padStart(2, '0')}:${String(d.getMinutes()).padStart(2, '0')}`;
+                }
+            }
 
             await this.createMessage(
                 textToSend,
-                AppState.selectedCategoryId,
-                AppState.isTaskMode,
-                AppState.isTaskMode ? DOM.taskDate.value : null,
-                AppState.isTaskMode ? DOM.taskTime.value : null,
+                categoryId,
+                isTask,
+                taskDate,
+                taskTime,
                 [...AppState.pendingImages]
             );
 
@@ -6405,6 +6702,7 @@ const App = {
             }
             this.clearPendingImages(false);
             resetInputOptions();
+            if (typeof SmartCapture !== 'undefined') SmartCapture.clear();
         });
 
         DOM.messageInput.addEventListener('keydown', (e) => {
@@ -7063,16 +7361,19 @@ function clearSearch() {
 }
 
 function showToast(message, duration = 2500) {
+    // Delegate to the new Toast component (S2). Fallback to legacy DOM toast if unavailable.
+    if (window.Toast && typeof Toast.show === 'function') {
+        Toast.show(message, { duration });
+        return;
+    }
     const existingToast = document.querySelector('.toast');
     if (existingToast) {
         existingToast.remove();
     }
-
     const toast = document.createElement('div');
     toast.className = 'toast';
     toast.textContent = message;
     document.body.appendChild(toast);
-
     setTimeout(() => {
         toast.classList.add('fade-out');
         setTimeout(() => toast.remove(), 300);

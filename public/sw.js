@@ -1,4 +1,4 @@
-const CACHE_NAME = 'savit-v23';
+const CACHE_NAME = 'savit-v24';
 
 // Keep this list same-origin only; cross-origin precache can fail (CORS) and break install.
 const STATIC_ASSETS = [
@@ -8,6 +8,8 @@ const STATIC_ASSETS = [
     '/css/styles.css',
     '/js/api.js',
     '/js/router.js',
+    '/js/utils/parse-natural.js',
+    '/js/components/toast.js',
     '/js/app.js',
     '/vendor/MindElixirLite.css',
     '/vendor/MindElixirLite.iife.js',

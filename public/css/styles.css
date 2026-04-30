@@ -5176,6 +5176,288 @@ body {
     to   { transform: translateY(0) scale(1); opacity: 1; }
 }
 
+/* =============================================
+   S2 — Inbox + Composer + Smart Capture + Swipe + Toast
+   ============================================= */
+
+/* Composer chips ------------------------------- */
+.composer-chips {
+    display: flex;
+    flex-wrap: wrap;
+    gap: 6px;
+    padding: 6px 0 8px;
+}
+
+.composer-chips[hidden] {
+    display: none;
+}
+
+.composer-chip {
+    display: inline-flex;
+    align-items: center;
+    gap: 6px;
+    padding: 4px 10px 4px 8px;
+    background: var(--surface-2);
+    border: 1px solid var(--hair);
+    border-radius: var(--radius-pill);
+    font-family: var(--font-mono);
+    font-size: var(--fs-xs);
+    color: var(--ink);
+    line-height: 1.6;
+}
+
+.composer-chip i {
+    font-size: 11px;
+    color: var(--accent);
+}
+
+.composer-chip--task {
+    background: color-mix(in srgb, var(--accent) 10%, var(--surface-2));
+    color: var(--accent);
+    border-color: color-mix(in srgb, var(--accent) 20%, var(--hair));
+    text-transform: uppercase;
+    letter-spacing: 0.12em;
+}
+
+.composer-chip__remove {
+    background: none;
+    border: none;
+    padding: 0 2px;
+    margin-left: 2px;
+    color: var(--ink-3);
+    cursor: pointer;
+    font-size: 14px;
+    line-height: 1;
+    border-radius: var(--radius-sm);
+}
+
+.composer-chip__remove:hover {
+    color: var(--ink);
+    background: var(--bg);
+}
+
+/* Toast --------------------------------------- */
+.toast-root {
+    position: fixed;
+    left: 50%;
+    bottom: calc(100px + env(safe-area-inset-bottom));
+    transform: translateX(-50%);
+    display: flex;
+    flex-direction: column;
+    gap: 8px;
+    z-index: var(--z-toast);
+    pointer-events: none;
+    width: max-content;
+    max-width: calc(100vw - 32px);
+}
+
+@media (min-width: 769px) {
+    .toast-root {
+        left: auto;
+        right: 24px;
+        bottom: 24px;
+        transform: none;
+    }
+}
+
+.toast {
+    pointer-events: auto;
+    display: inline-flex;
+    align-items: center;
+    gap: var(--spacing-sm);
+    padding: 10px 12px 10px 16px;
+    background: var(--surface);
+    color: var(--ink);
+    border: 1px solid var(--hair);
+    border-radius: var(--radius-md);
+    box-shadow: var(--shadow-md);
+    font-family: var(--font-ui);
+    font-size: var(--fs-sm);
+    opacity: 0;
+    transform: translateY(8px);
+    transition: opacity 180ms ease, transform 180ms ease;
+}
+
+.toast--in {
+    opacity: 1;
+    transform: translateY(0);
+}
+
+.toast--leaving {
+    opacity: 0;
+    transform: translateY(8px);
+}
+
+.toast--success {
+    border-color: color-mix(in srgb, var(--success) 35%, var(--hair));
+}
+
+.toast--error {
+    border-color: color-mix(in srgb, var(--danger) 35%, var(--hair));
+}
+
+.toast__msg {
+    flex: 1;
+    min-width: 0;
+}
+
+.toast__action {
+    background: none;
+    border: none;
+    color: var(--accent);
+    font-family: var(--font-mono);
+    font-size: var(--fs-xs);
+    text-transform: uppercase;
+    letter-spacing: 0.14em;
+    padding: 4px 8px;
+    border-radius: var(--radius-sm);
+    cursor: pointer;
+}
+
+.toast__action:hover {
+    background: var(--surface-2);
+}
+
+.toast__close {
+    background: none;
+    border: none;
+    color: var(--ink-3);
+    font-size: 18px;
+    line-height: 1;
+    cursor: pointer;
+    padding: 0 4px;
+}
+
+.toast__close:hover {
+    color: var(--ink);
+}
+
+/* Feed cards (notes & tasks) ------------------ */
+.message {
+    background: var(--surface);
+    border: 1px solid var(--hair);
+    border-radius: var(--radius-md);
+    box-shadow: var(--shadow-sm);
+    transition: transform 200ms ease, box-shadow var(--transition-fast);
+    touch-action: pan-y;
+    user-select: none;
+    -webkit-user-select: none;
+}
+
+.message.message-out {
+    background: var(--surface);
+}
+
+[data-theme="paper"] .message-text {
+    font-family: var(--font-display);
+    font-size: 18px;
+    line-height: 1.35;
+    color: var(--ink);
+}
+
+[data-theme="playful"] .message {
+    border-left: 3px solid var(--accent);
+}
+
+[data-theme="linear"] .message {
+    border-radius: var(--radius-sm);
+    box-shadow: none;
+}
+
+/* Swipe affordance — colored hint behind card */
+.message {
+    position: relative;
+    z-index: 0;
+    isolation: isolate;
+}
+
+.message.is-swiping-right {
+    box-shadow: 0 0 0 9999px transparent;
+}
+
+.message.is-swiping-right::before,
+.message.is-swiping-left::before {
+    content: "";
+    position: absolute;
+    inset: 0;
+    z-index: -1;
+    border-radius: inherit;
+    pointer-events: none;
+}
+
+.message.is-swiping-right::before {
+    background: color-mix(in srgb, var(--success) 20%, transparent);
+}
+
+.message.is-swiping-left::before {
+    background: color-mix(in srgb, var(--ink-3) 18%, transparent);
+}
+
+.message.is-swiping-right::after {
+    content: "✓";
+    position: absolute;
+    left: 12px;
+    top: 50%;
+    transform: translateY(-50%);
+    color: var(--success);
+    font-size: 22px;
+    font-weight: 700;
+    z-index: -1;
+}
+
+.message.is-swiping-left::after {
+    content: "▢";
+    position: absolute;
+    right: 12px;
+    top: 50%;
+    transform: translateY(-50%);
+    color: var(--ink-3);
+    font-size: 22px;
+    z-index: -1;
+}
+
+/* Feed empty state ---------------------------- */
+.feed-empty {
+    display: flex;
+    flex-direction: column;
+    align-items: center;
+    justify-content: center;
+    padding: var(--spacing-xxl) var(--spacing-lg);
+    text-align: center;
+    color: var(--ink-2);
+    gap: var(--spacing-md);
+}
+
+.feed-empty__title {
+    font-family: var(--font-display);
+    font-size: 24px;
+    line-height: 1.2;
+    color: var(--ink);
+    letter-spacing: -0.02em;
+}
+
+.feed-empty__hint {
+    font-family: var(--font-mono);
+    font-size: var(--fs-xs);
+    color: var(--ink-3);
+    text-transform: uppercase;
+    letter-spacing: 0.14em;
+}
+
+[data-theme="linear"] .feed-empty__title {
+    font-family: var(--font-ui);
+    font-weight: 600;
+    font-size: var(--fs-lg);
+}
+
+@media (prefers-reduced-motion: reduce) {
+    .toast,
+    .message {
+        transition: none !important;
+    }
+}
+
+
 /* Reduced-motion safety */
 @media (prefers-reduced-motion: reduce) {
     .modal,
