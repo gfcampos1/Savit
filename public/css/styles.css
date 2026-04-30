@@ -5457,6 +5457,562 @@ body {
     }
 }
 
+/* =============================================
+   S3 — Category-as-space + Tasks (mobile list) + Focus mode
+   ============================================= */
+
+/* Sidebar dynamic categories ------------------- */
+.sidebar-cat-item {
+    display: flex;
+    align-items: center;
+    gap: var(--spacing-sm);
+    padding: 6px 10px;
+    background: none;
+    border: none;
+    border-radius: var(--radius-sm);
+    color: var(--ink-2);
+    cursor: pointer;
+    font-family: var(--font-ui);
+    font-size: var(--fs-sm);
+    width: 100%;
+    text-align: left;
+    transition: background var(--transition-fast), color var(--transition-fast);
+}
+
+.sidebar-cat-item:hover {
+    background: var(--surface-2);
+    color: var(--ink);
+}
+
+.sidebar-cat-item__swatch {
+    width: 8px;
+    height: 8px;
+    border-radius: 50%;
+    flex-shrink: 0;
+}
+
+.sidebar-cat-item__name {
+    flex: 1;
+    overflow: hidden;
+    text-overflow: ellipsis;
+    white-space: nowrap;
+    min-width: 0;
+}
+
+.sidebar-cat-item__count {
+    font-family: var(--font-mono);
+    font-size: var(--fs-xs);
+    color: var(--ink-3);
+    flex-shrink: 0;
+}
+
+/* Category-as-space header --------------------- */
+.cat-space-header {
+    position: sticky;
+    top: 0;
+    z-index: var(--z-header);
+    background: var(--surface);
+    border-bottom: 1px solid var(--hair);
+    padding: var(--spacing-md) var(--spacing-lg);
+    padding-top: calc(var(--spacing-md) + env(safe-area-inset-top));
+    display: flex;
+    flex-direction: column;
+    gap: var(--spacing-sm);
+}
+
+.cat-space-top {
+    display: flex;
+    align-items: center;
+    gap: var(--spacing-sm);
+    min-height: 40px;
+}
+
+.cat-space-color {
+    width: 18px;
+    height: 18px;
+    border-radius: var(--radius-sm);
+    flex-shrink: 0;
+}
+
+.cat-space-title {
+    flex: 1;
+    font-family: var(--font-display);
+    font-weight: 400;
+    font-size: 28px;
+    line-height: 1.1;
+    letter-spacing: -0.02em;
+    color: var(--ink);
+    margin: 0;
+    overflow: hidden;
+    text-overflow: ellipsis;
+    white-space: nowrap;
+}
+
+[data-theme="linear"] .cat-space-title {
+    font-family: var(--font-ui);
+    font-weight: 600;
+    font-size: var(--fs-lg);
+    letter-spacing: -0.01em;
+}
+
+[data-theme="playful"] .cat-space-title {
+    font-family: var(--font-ui);
+    font-weight: 600;
+    font-size: var(--fs-xl);
+}
+
+.cat-space-add {
+    display: inline-flex;
+    align-items: center;
+    gap: 6px;
+    padding: 8px 14px;
+    background: var(--accent);
+    color: var(--surface);
+    border: none;
+    border-radius: var(--radius-pill);
+    font-family: var(--font-ui);
+    font-size: var(--fs-sm);
+    font-weight: 600;
+    cursor: pointer;
+    flex-shrink: 0;
+    transition: transform var(--transition-fast);
+}
+
+[data-theme="playful"] .cat-space-add {
+    background: var(--grad-primary);
+    color: var(--ink);
+}
+
+[data-theme="linear"] .cat-space-add {
+    background: var(--accent);
+    color: #fff;
+    border-radius: var(--radius-md);
+}
+
+.cat-space-add:hover {
+    transform: translateY(-1px);
+}
+
+.cat-space-add span {
+    display: inline;
+}
+
+@media (max-width: 480px) {
+    .cat-space-add span {
+        display: none;
+    }
+}
+
+.cat-space-meta {
+    display: flex;
+    align-items: center;
+    gap: 8px;
+    font-family: var(--font-mono);
+    font-size: var(--fs-xs);
+    color: var(--ink-3);
+    text-transform: uppercase;
+    letter-spacing: 0.14em;
+    padding-left: 30px;
+}
+
+.cat-space-banner {
+    margin: 4px 0 0 30px;
+    padding: var(--spacing-sm) var(--spacing-md);
+    background: var(--bg);
+    border-left: 2px solid var(--accent);
+    border-radius: 0 var(--radius-sm) var(--radius-sm) 0;
+    font-family: var(--font-display);
+    font-style: italic;
+    font-size: 16px;
+    line-height: 1.4;
+    color: var(--ink-2);
+}
+
+[data-theme="playful"] .cat-space-banner,
+[data-theme="linear"] .cat-space-banner {
+    display: none;
+}
+
+/* Tasks: mobile grouped list + focus card ------ */
+.focus-card {
+    display: flex;
+    align-items: center;
+    justify-content: space-between;
+    gap: var(--spacing-md);
+    padding: var(--spacing-md) var(--spacing-lg);
+    margin: var(--spacing-md) var(--spacing-lg) 0;
+    background: var(--surface);
+    border: 1px solid var(--hair);
+    border-radius: var(--radius-lg);
+    box-shadow: var(--shadow-card);
+    cursor: pointer;
+    text-align: left;
+    transition: transform var(--transition-fast), box-shadow var(--transition-fast);
+}
+
+.focus-card:hover {
+    transform: translateY(-1px);
+    box-shadow: var(--shadow-md);
+}
+
+[data-theme="playful"] .focus-card {
+    background: var(--grad-primary);
+    color: var(--ink);
+    border: none;
+}
+
+[data-theme="linear"] .focus-card {
+    box-shadow: none;
+    border-radius: var(--radius-md);
+}
+
+.focus-card__body {
+    display: flex;
+    flex-direction: column;
+    gap: 4px;
+    min-width: 0;
+}
+
+.focus-card__eyebrow {
+    font-family: var(--font-mono);
+    font-size: var(--fs-xs);
+    color: var(--ink-3);
+    text-transform: uppercase;
+    letter-spacing: 0.16em;
+}
+
+[data-theme="playful"] .focus-card__eyebrow {
+    color: rgba(29, 26, 20, 0.55);
+}
+
+.focus-card__title {
+    font-family: var(--font-display);
+    font-size: 20px;
+    line-height: 1.25;
+    color: var(--ink);
+    margin: 0;
+}
+
+[data-theme="linear"] .focus-card__title {
+    font-family: var(--font-ui);
+    font-weight: 600;
+    font-size: var(--fs-md);
+}
+
+.focus-card__cta {
+    display: inline-flex;
+    align-items: center;
+    gap: 6px;
+    font-family: var(--font-mono);
+    font-size: var(--fs-xs);
+    text-transform: uppercase;
+    letter-spacing: 0.14em;
+    color: var(--accent);
+    flex-shrink: 0;
+}
+
+[data-theme="playful"] .focus-card__cta {
+    color: var(--ink);
+}
+
+.task-list-mobile {
+    display: none;
+    flex-direction: column;
+    gap: var(--spacing-lg);
+    padding: var(--spacing-lg);
+}
+
+.task-group__label {
+    font-family: var(--font-mono);
+    font-size: var(--fs-xs);
+    color: var(--ink-3);
+    text-transform: uppercase;
+    letter-spacing: 0.16em;
+    padding-bottom: var(--spacing-xs);
+    border-bottom: 1px solid var(--hair);
+    margin-bottom: var(--spacing-sm);
+    display: flex;
+    justify-content: space-between;
+    align-items: baseline;
+}
+
+.task-group__count {
+    font-family: var(--font-mono);
+    font-size: var(--fs-xs);
+    color: var(--ink-3);
+}
+
+.task-group__list {
+    display: flex;
+    flex-direction: column;
+    gap: var(--spacing-sm);
+}
+
+.task-group__empty {
+    font-family: var(--font-mono);
+    font-size: var(--fs-xs);
+    color: var(--ink-3);
+    padding: var(--spacing-sm) 0;
+    text-transform: uppercase;
+    letter-spacing: 0.12em;
+}
+
+@media (max-width: 768px) {
+    #kanbanPage .kanban-board,
+    #kanbanPage .kanban-filters {
+        display: none;
+    }
+    #kanbanPage .task-list-mobile {
+        display: flex;
+    }
+}
+
+@media (min-width: 769px) {
+    #kanbanPage .focus-card {
+        max-width: 540px;
+    }
+    #kanbanPage .task-list-mobile {
+        display: none;
+    }
+}
+
+/* Focus mode (fullscreen) ---------------------- */
+.focus-page {
+    position: fixed;
+    inset: 0;
+    z-index: var(--z-overlay);
+    background: var(--bg);
+    display: none;
+    flex-direction: column;
+    padding: max(var(--spacing-lg), env(safe-area-inset-top)) var(--spacing-lg) calc(var(--spacing-lg) + env(safe-area-inset-bottom));
+}
+
+.focus-page[data-active="1"] {
+    display: flex;
+}
+
+.focus-page__chrome {
+    display: flex;
+    align-items: center;
+    justify-content: space-between;
+    flex-shrink: 0;
+}
+
+.focus-page__close {
+    width: 40px;
+    height: 40px;
+    display: inline-flex;
+    align-items: center;
+    justify-content: center;
+    background: var(--surface);
+    border: 1px solid var(--hair);
+    border-radius: var(--radius-pill);
+    color: var(--ink);
+    font-size: 18px;
+    cursor: pointer;
+}
+
+.focus-page__counter {
+    font-family: var(--font-mono);
+    font-size: var(--fs-xs);
+    color: var(--ink-3);
+    text-transform: uppercase;
+    letter-spacing: 0.16em;
+}
+
+.focus-page__stage {
+    flex: 1;
+    display: flex;
+    flex-direction: column;
+    align-items: center;
+    justify-content: center;
+    gap: var(--spacing-xl);
+    padding: var(--spacing-xl) 0;
+}
+
+.focus-page__headline {
+    font-family: var(--font-display);
+    font-weight: 400;
+    font-size: 32px;
+    line-height: 1.2;
+    color: var(--ink);
+    text-align: center;
+    max-width: 18ch;
+    letter-spacing: -0.02em;
+    margin: 0;
+}
+
+[data-theme="linear"] .focus-page__headline {
+    font-family: var(--font-ui);
+    font-weight: 600;
+    font-size: var(--fs-xl);
+}
+
+[data-theme="playful"] .focus-page__headline strong {
+    background: var(--grad-primary);
+    -webkit-background-clip: text;
+    background-clip: text;
+    color: transparent;
+}
+
+.focus-page__card {
+    width: 100%;
+    max-width: 460px;
+    padding: var(--spacing-xl);
+    background: var(--surface);
+    border: 1px solid var(--hair);
+    border-radius: var(--radius-lg);
+    box-shadow: var(--shadow-md);
+    display: flex;
+    flex-direction: column;
+    gap: var(--spacing-sm);
+}
+
+[data-theme="linear"] .focus-page__card {
+    box-shadow: none;
+    border-radius: var(--radius-md);
+}
+
+.focus-page__cat {
+    display: inline-block;
+    align-self: flex-start;
+    padding: 2px 10px;
+    border-radius: var(--radius-pill);
+    color: var(--surface);
+    font-family: var(--font-mono);
+    font-size: var(--fs-xs);
+    text-transform: uppercase;
+    letter-spacing: 0.12em;
+}
+
+.focus-page__text {
+    font-family: var(--font-display);
+    font-size: 22px;
+    line-height: 1.35;
+    color: var(--ink);
+    margin: 0;
+}
+
+[data-theme="linear"] .focus-page__text {
+    font-family: var(--font-ui);
+    font-weight: 500;
+    font-size: var(--fs-lg);
+}
+
+.focus-page__when {
+    font-family: var(--font-mono);
+    font-size: var(--fs-xs);
+    color: var(--ink-3);
+    text-transform: uppercase;
+    letter-spacing: 0.14em;
+}
+
+.focus-page__hint {
+    font-family: var(--font-mono);
+    font-size: var(--fs-xs);
+    color: var(--ink-3);
+    text-transform: uppercase;
+    letter-spacing: 0.16em;
+}
+
+.focus-page__actions {
+    display: grid;
+    grid-template-columns: 44px 1fr 1fr 44px;
+    gap: var(--spacing-sm);
+    align-items: stretch;
+    flex-shrink: 0;
+}
+
+.focus-action {
+    display: inline-flex;
+    align-items: center;
+    justify-content: center;
+    gap: 6px;
+    padding: 14px 16px;
+    border: 1px solid var(--hair);
+    background: var(--surface);
+    color: var(--ink-2);
+    border-radius: var(--radius-md);
+    font-family: var(--font-ui);
+    font-size: var(--fs-sm);
+    font-weight: 600;
+    cursor: pointer;
+    min-height: 48px;
+}
+
+.focus-action:hover {
+    color: var(--ink);
+    background: var(--surface-2);
+}
+
+.focus-action--prev,
+.focus-action--next {
+    padding: 14px 0;
+    color: var(--ink-3);
+}
+
+.focus-action--snooze {
+    color: var(--accent-2);
+}
+
+.focus-action--done {
+    background: var(--success);
+    color: var(--surface);
+    border-color: var(--success);
+}
+
+[data-theme="paper"] .focus-action--done {
+    color: var(--surface);
+}
+
+[data-theme="linear"] .focus-action--done {
+    color: #0a0c10;
+}
+
+.focus-action--done:hover {
+    filter: brightness(0.95);
+    background: var(--success);
+    color: var(--surface);
+}
+
+.focus-page__empty {
+    flex: 1;
+    display: none;
+    flex-direction: column;
+    align-items: center;
+    justify-content: center;
+    gap: var(--spacing-md);
+    text-align: center;
+}
+
+.focus-page[data-empty="1"] .focus-page__empty { display: flex; }
+.focus-page[data-empty="1"] .focus-page__stage,
+.focus-page[data-empty="1"] .focus-page__actions { display: none; }
+
+.focus-page__empty-title {
+    font-family: var(--font-display);
+    font-size: 26px;
+    color: var(--ink);
+    letter-spacing: -0.02em;
+    margin: 0;
+}
+
+[data-theme="linear"] .focus-page__empty-title {
+    font-family: var(--font-ui);
+    font-weight: 600;
+    font-size: var(--fs-lg);
+}
+
+.focus-page__empty-hint {
+    font-family: var(--font-mono);
+    font-size: var(--fs-xs);
+    color: var(--ink-3);
+    text-transform: uppercase;
+    letter-spacing: 0.14em;
+    margin: 0;
+}
+
+
 
 /* Reduced-motion safety */
 @media (prefers-reduced-motion: reduce) {

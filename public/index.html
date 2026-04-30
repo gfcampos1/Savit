@@ -508,8 +508,22 @@
                 <!-- Kanban Page -->
                 <div class="page" id="kanbanPage">
                     <header class="page-header">
-                        <h1>Kanban</h1>
+                        <h1>Tarefas</h1>
                     </header>
+
+                    <button class="focus-card" id="focusCard" type="button" hidden>
+                        <div class="focus-card__body">
+                            <span class="focus-card__eyebrow">Foco do dia</span>
+                            <p class="focus-card__title">
+                                Hoje você quer fechar
+                                <strong id="focusCardCount">0 tarefas</strong>.
+                            </p>
+                        </div>
+                        <span class="focus-card__cta">
+                            <i class="fas fa-bolt" aria-hidden="true"></i>
+                            Iniciar foco
+                        </span>
+                    </button>
 
                     <div class="kanban-filters">
                         <div class="kanban-search">
@@ -519,6 +533,10 @@
                         <select id="kanbanCategoryFilter" class="kanban-filter-select">
                             <option value="">Todos os temas</option>
                         </select>
+                    </div>
+
+                    <div class="task-list-mobile" id="taskListMobile" aria-label="Tarefas agrupadas">
+                        <!-- mobile grouped list rendered by JS -->
                     </div>
 
                     <div class="kanban-board" id="kanbanBoard">
@@ -684,11 +702,24 @@
 
                 <!-- Category Messages Page -->
                 <div class="page" id="categoryMessagesPage">
-                    <header class="header">
-                        <button class="back-btn" id="backFromCategoryBtn">
-                            <i class="fas fa-arrow-left"></i>
-                        </button>
-                        <h1 class="app-title" id="categoryMessagesTitle">Categoria</h1>
+                    <header class="cat-space-header" id="catSpaceHeader">
+                        <div class="cat-space-top">
+                            <button class="back-btn" id="backFromCategoryBtn" type="button" aria-label="Voltar">
+                                <i class="fas fa-arrow-left" aria-hidden="true"></i>
+                            </button>
+                            <span class="cat-space-color" id="catSpaceColor" aria-hidden="true"></span>
+                            <h1 class="cat-space-title" id="categoryMessagesTitle">Categoria</h1>
+                            <button class="cat-space-add" id="catSpaceAddBtn" type="button" aria-label="Adicionar nota nesta categoria">
+                                <i class="fas fa-plus" aria-hidden="true"></i>
+                                <span>Adicionar nota</span>
+                            </button>
+                        </div>
+                        <div class="cat-space-meta">
+                            <span class="cat-space-count" id="catSpaceCountNotes">0 notas</span>
+                            <span class="cat-space-sep" aria-hidden="true">·</span>
+                            <span class="cat-space-count" id="catSpaceCountTasks">0 tarefas</span>
+                        </div>
+                        <blockquote class="cat-space-banner" id="catSpaceBanner" hidden></blockquote>
                     </header>
 
                     <main class="chat-content">
@@ -1307,6 +1338,45 @@
                 <i class="fas fa-times"></i>
             </button>
             <img id="imageViewerImg" src="" alt="Imagem">
+        </div>
+    </div>
+
+    <!-- Focus Mode (S3 / F3) -->
+    <div id="focusPage" class="focus-page" role="dialog" aria-modal="true" aria-labelledby="focusHeadline" hidden>
+        <div class="focus-page__chrome">
+            <button class="focus-page__close" id="focusCloseBtn" type="button" aria-label="Sair do foco">
+                <i class="fas fa-xmark" aria-hidden="true"></i>
+            </button>
+            <span class="focus-page__counter" id="focusCounter">0 / 0</span>
+        </div>
+        <div class="focus-page__stage">
+            <h2 class="focus-page__headline" id="focusHeadline">Hoje você quer fechar <strong>0 tarefas</strong>.</h2>
+            <article class="focus-page__card" id="focusActiveCard">
+                <span class="focus-page__cat" id="focusTaskCat" hidden></span>
+                <p class="focus-page__text" id="focusTaskText">—</p>
+                <div class="focus-page__when" id="focusTaskWhen" hidden></div>
+            </article>
+            <div class="focus-page__hint" id="focusHint">← deslize ou use as setas →</div>
+        </div>
+        <div class="focus-page__actions">
+            <button class="focus-action focus-action--prev" id="focusPrevBtn" type="button" aria-label="Anterior">
+                <i class="fas fa-arrow-left" aria-hidden="true"></i>
+            </button>
+            <button class="focus-action focus-action--snooze" id="focusSnoozeBtn" type="button" aria-label="Adiar 1 hora">
+                <i class="fas fa-rotate-right" aria-hidden="true"></i>
+                <span>Adiar 1h</span>
+            </button>
+            <button class="focus-action focus-action--done" id="focusDoneBtn" type="button" aria-label="Concluir">
+                <i class="fas fa-check" aria-hidden="true"></i>
+                <span>Concluir</span>
+            </button>
+            <button class="focus-action focus-action--next" id="focusNextBtn" type="button" aria-label="Próxima">
+                <i class="fas fa-arrow-right" aria-hidden="true"></i>
+            </button>
+        </div>
+        <div class="focus-page__empty" id="focusEmpty" hidden>
+            <p class="focus-page__empty-title">Nada pendente para hoje.</p>
+            <p class="focus-page__empty-hint">Capture algo ou volte mais tarde.</p>
         </div>
     </div>
 

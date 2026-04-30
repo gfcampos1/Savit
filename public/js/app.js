@@ -584,6 +584,228 @@ const Swipe = {
     }
 };
 
+// =============================================
+// Focus Mode (S3 / F3) — fullscreen "tarefa por vez"
+// =============================================
+
+const FocusMode = {
+    STORAGE_KEY: 'savit_focus_idx',
+    pageEl: null,
+    queue: [],
+    idx: 0,
+    keyHandler: null,
+    swipeBound: false,
+
+    init() {
+        this.pageEl = document.getElementById('focusPage');
+        if (!this.pageEl) return;
+
+        const close = () => this.exit();
+        const closeBtn = document.getElementById('focusCloseBtn');
+        if (closeBtn) closeBtn.addEventListener('click', close);
+        const prev = document.getElementById('focusPrevBtn');
+        const next = document.getElementById('focusNextBtn');
+        const done = document.getElementById('focusDoneBtn');
+        const snooze = document.getElementById('focusSnoozeBtn');
+        if (prev) prev.addEventListener('click', () => this.prev());
+        if (next) next.addEventListener('click', () => this.next());
+        if (done) done.addEventListener('click', () => this.complete());
+        if (snooze) snooze.addEventListener('click', () => this.snooze());
+
+        // Swipe on the active card
+        if (typeof Swipe !== 'undefined' && !this.swipeBound) {
+            const card = document.getElementById('focusActiveCard');
+            if (card) {
+                Swipe.attach(card, {
+                    onLeft: () => this.next(),
+                    onRight: () => this.prev(),
+                });
+            }
+            this.swipeBound = true;
+        }
+    },
+
+    isActive() {
+        return this.pageEl && this.pageEl.dataset.active === '1';
+    },
+
+    todayPending() {
+        const today0 = new Date(); today0.setHours(0, 0, 0, 0);
+        const tomorrow0 = new Date(today0); tomorrow0.setDate(tomorrow0.getDate() + 1);
+        return (AppState.messages || []).filter(m => {
+            if (!m.isTask || m.taskCompleted || !m.taskDate) return false;
+            const d = new Date(m.taskDate + 'T00:00:00');
+            return d >= today0 && d < tomorrow0;
+        }).sort((a, b) => {
+            const ta = a.taskTime || '23:59';
+            const tb = b.taskTime || '23:59';
+            return ta.localeCompare(tb);
+        });
+    },
+
+    start() {
+        if (!this.pageEl) return;
+        this.queue = this.todayPending();
+        const saved = parseInt(localStorage.getItem(this.STORAGE_KEY) || '0', 10);
+        this.idx = (Number.isFinite(saved) && saved >= 0 && saved < this.queue.length) ? saved : 0;
+        this.pageEl.dataset.active = '1';
+        this.pageEl.hidden = false;
+        // Mirror to URL hash
+        if (typeof Router !== 'undefined' && location.hash !== '#/focus') {
+            history.pushState(null, '', '#/focus');
+        }
+        this.bindKeys();
+        this.render();
+    },
+
+    exit() {
+        if (!this.pageEl) return;
+        this.pageEl.dataset.active = '';
+        this.pageEl.hidden = true;
+        this.unbindKeys();
+        // Drop the focus hash so router doesn't reopen on hashchange
+        if (location.hash === '#/focus') {
+            history.back();
+        }
+    },
+
+    bindKeys() {
+        if (this.keyHandler) return;
+        this.keyHandler = (e) => {
+            if (!this.isActive()) return;
+            if (e.key === 'Escape') { e.preventDefault(); this.exit(); }
+            else if (e.key === 'ArrowRight') { e.preventDefault(); this.next(); }
+            else if (e.key === 'ArrowLeft')  { e.preventDefault(); this.prev(); }
+            else if (e.key === 'Enter')      { e.preventDefault(); this.complete(); }
+        };
+        document.addEventListener('keydown', this.keyHandler);
+    },
+
+    unbindKeys() {
+        if (this.keyHandler) {
+            document.removeEventListener('keydown', this.keyHandler);
+            this.keyHandler = null;
+        }
+    },
+
+    render() {
+        if (!this.pageEl) return;
+        this.pageEl.dataset.empty = this.queue.length === 0 ? '1' : '';
+
+        const counter = document.getElementById('focusCounter');
+        const headline = document.getElementById('focusHeadline');
+        const text = document.getElementById('focusTaskText');
+        const cat = document.getElementById('focusTaskCat');
+        const when = document.getElementById('focusTaskWhen');
+
+        if (this.queue.length === 0) {
+            if (counter) counter.textContent = '0 / 0';
+            return;
+        }
+
+        if (this.idx >= this.queue.length) this.idx = this.queue.length - 1;
+        if (this.idx < 0) this.idx = 0;
+
+        const task = this.queue[this.idx];
+        if (counter) counter.textContent = (this.idx + 1) + ' / ' + this.queue.length;
+        if (headline) {
+            const n = this.queue.length;
+            headline.innerHTML = 'Hoje você quer fechar <strong>' + n + ' tarefa' + (n === 1 ? '' : 's') + '</strong>.';
+        }
+        if (text) {
+            const tmp = document.createElement('div');
+            tmp.innerHTML = String(task.text || '');
+            const plain = (tmp.textContent || tmp.innerText || '').trim();
+            text.textContent = plain || '—';
+        }
+        if (cat) {
+            if (task.category) {
+                cat.textContent = task.category.name || '';
+                cat.style.background = Utils.sanitizeCssColor(task.category.color || '#888');
+                cat.hidden = false;
+            } else {
+                cat.hidden = true;
+            }
+        }
+        if (when) {
+            if (task.taskTime) {
+                when.textContent = 'Hoje · ' + task.taskTime;
+                when.hidden = false;
+            } else {
+                when.textContent = 'Hoje';
+                when.hidden = false;
+            }
+        }
+
+        try { localStorage.setItem(this.STORAGE_KEY, String(this.idx)); } catch { /* ignore */ }
+    },
+
+    next() {
+        if (!this.queue.length) return;
+        this.idx = (this.idx + 1) % this.queue.length;
+        this.render();
+    },
+
+    prev() {
+        if (!this.queue.length) return;
+        this.idx = (this.idx - 1 + this.queue.length) % this.queue.length;
+        this.render();
+    },
+
+    async complete() {
+        const task = this.queue[this.idx];
+        if (!task) return;
+        try {
+            const { message: updated } = await API.messages.toggle(task.id);
+            const j = AppState.messages.findIndex(m => m.id === task.id);
+            if (j !== -1) AppState.messages[j] = updated;
+            // Remove from queue
+            this.queue.splice(this.idx, 1);
+            if (this.idx >= this.queue.length) this.idx = Math.max(0, this.queue.length - 1);
+            this.render();
+            App.renderMessages();
+            if (window.Toast) Toast.show('Concluída', { type: 'success' });
+            if (this.queue.length === 0) {
+                if (window.Toast) Toast.show('Tudo fechado por hoje', { type: 'success' });
+            }
+        } catch (err) {
+            if (window.Toast) Toast.error('Erro ao concluir');
+        }
+    },
+
+    async snooze() {
+        const task = this.queue[this.idx];
+        if (!task) return;
+        // Bump taskTime by +1h (or set to now+1h if missing)
+        let newTime;
+        if (task.taskTime && /^\d{2}:\d{2}$/.test(task.taskTime)) {
+            const [h, m] = task.taskTime.split(':').map(n => parseInt(n, 10));
+            const d = new Date(); d.setHours(h, m, 0, 0); d.setHours(d.getHours() + 1);
+            newTime = String(d.getHours()).padStart(2, '0') + ':' + String(d.getMinutes()).padStart(2, '0');
+        } else {
+            const d = new Date(); d.setHours(d.getHours() + 1);
+            newTime = String(d.getHours()).padStart(2, '0') + ':' + String(d.getMinutes()).padStart(2, '0');
+        }
+        try {
+            const { message: updated } = await API.messages.update(task.id, {
+                text: task.text,
+                categoryId: task.categoryId || null,
+                isTask: true,
+                taskDate: task.taskDate,
+                taskTime: newTime
+            });
+            const j = AppState.messages.findIndex(m => m.id === task.id);
+            if (j !== -1) AppState.messages[j] = updated;
+            this.queue[this.idx] = updated;
+            this.render();
+            App.renderMessages();
+            if (window.Toast) Toast.show('Adiada para ' + newTime, { type: 'info' });
+        } catch (err) {
+            if (window.Toast) Toast.error('Erro ao adiar');
+        }
+    }
+};
+
 function initThemeSectionCollapsible() {
     if (!DOM.themeSection || !DOM.themeSectionToggle) return;
 
@@ -3720,6 +3942,11 @@ const App = {
         if (typeof SmartCapture !== 'undefined') {
             SmartCapture.init();
         }
+
+        // Initialize Focus Mode (S3)
+        if (typeof FocusMode !== 'undefined') {
+            FocusMode.init();
+        }
     },
 
     // Load initial data
@@ -3753,6 +3980,7 @@ const App = {
             this.renderSectionsManager();
             this.updateSectionSortButtons();
             this.renderProfile();
+            this.renderSidebarCategories();
         } catch (error) {
             console.error('Failed to load data:', error);
             showToast('Erro ao carregar dados');
@@ -3866,6 +4094,7 @@ const App = {
             this.renderCategorySectionSelect();
             this.renderSectionsManager();
             this.updateSectionSortButtons();
+            this.renderSidebarCategories();
         } catch (error) {
             console.error('Failed to refresh categories:', error);
         }
@@ -5661,6 +5890,10 @@ const App = {
 
     // Kanban
     renderKanban() {
+        // S3: render mobile grouped list and focus card alongside the desktop board
+        this.renderTaskListMobile();
+        this.renderFocusCard();
+
         const search = AppState.kanbanSearch.toLowerCase();
         const categoryFilter = AppState.kanbanCategory;
 
@@ -6118,17 +6351,80 @@ const App = {
         if (!category) return;
 
         AppState.viewingCategoryId = categoryId;
-        DOM.categoryMessagesTitle.textContent = category.name;
-        DOM.categoryMessagesTitle.style.color = Utils.sanitizeCssColor(category.color);
-
+        this.renderCategorySpaceHeader(category);
         this.renderCategoryMessagesView(categoryId);
 
-        // Show category messages page
+        // Mirror to URL hash and switch the page
+        if (typeof Router !== 'undefined' && Router.syncFromNavigate) {
+            Router.syncFromNavigate('categoryMessages', { categoryId });
+        }
+        AppState.currentPage = 'categoryMessages';
         document.querySelectorAll('.page').forEach(p => p.classList.remove('active'));
         DOM.categoryMessagesPage.classList.add('active');
-
-        // Update nav
         DOM.bottomNav.querySelectorAll('.nav-item').forEach(btn => btn.classList.remove('active'));
+    },
+
+    renderCategorySpaceHeader(category) {
+        if (!category) return;
+        const colorEl = document.getElementById('catSpaceColor');
+        const titleEl = DOM.categoryMessagesTitle;
+        const notesEl = document.getElementById('catSpaceCountNotes');
+        const tasksEl = document.getElementById('catSpaceCountTasks');
+        const bannerEl = document.getElementById('catSpaceBanner');
+
+        const safeColor = Utils.sanitizeCssColor(category.color);
+        if (colorEl) colorEl.style.background = safeColor;
+        if (titleEl) {
+            titleEl.textContent = category.name;
+            titleEl.style.color = '';
+        }
+
+        const msgs = AppState.messages.filter(m => m.categoryId === category.id);
+        const notesCount = msgs.filter(m => !m.isTask).length;
+        const tasksPending = msgs.filter(m => m.isTask && !m.taskCompleted).length;
+        if (notesEl) notesEl.textContent = notesCount + ' nota' + (notesCount === 1 ? '' : 's');
+        if (tasksEl) tasksEl.textContent = tasksPending + ' tarefa' + (tasksPending === 1 ? '' : 's');
+
+        // Editorial banner: first line of latest note (Paper only — CSS hides on other themes)
+        const latestNote = msgs
+            .filter(m => !m.isTask && m.text)
+            .sort((a, b) => new Date(b.createdAt) - new Date(a.createdAt))[0];
+        if (bannerEl) {
+            if (latestNote) {
+                const tmp = document.createElement('div');
+                tmp.innerHTML = String(latestNote.text || '');
+                const plain = (tmp.textContent || tmp.innerText || '').trim();
+                const firstLine = plain.split(/\r?\n/)[0].trim();
+                if (firstLine) {
+                    const trimmed = firstLine.length > 140 ? firstLine.slice(0, 140) + '…' : firstLine;
+                    bannerEl.textContent = trimmed;
+                    bannerEl.hidden = false;
+                } else {
+                    bannerEl.hidden = true;
+                }
+            } else {
+                bannerEl.hidden = true;
+            }
+        }
+    },
+
+    openComposerForCategory(categoryId) {
+        const cat = AppState.categories.find(c => c.id === categoryId);
+        if (!cat) return;
+        AppState.selectedCategoryId = cat.id;
+        this.navigateTo('chat');
+        // Update visible "selected category" pill if present
+        if (DOM.selectedCategory && DOM.selectedCategoryName) {
+            DOM.selectedCategoryName.textContent = cat.name;
+            DOM.selectedCategory.style.background = Utils.sanitizeCssColor(cat.color);
+            DOM.selectedCategory.style.display = 'flex';
+        }
+        if (DOM.addCategoryBtn) DOM.addCategoryBtn.classList.add('active');
+        requestAnimationFrame(() => {
+            if (DOM.messageInput && typeof DOM.messageInput.focus === 'function') {
+                DOM.messageInput.focus();
+            }
+        });
     },
 
     renderCategoryMessagesView(categoryId) {
@@ -6137,6 +6433,117 @@ const App = {
             .sort((a, b) => new Date(a.createdAt) - new Date(b.createdAt));
 
         this.renderMessages(messages, DOM.categoryMessagesContainer);
+
+        // Refresh the header counters/banner whenever the view re-renders
+        const cat = AppState.categories.find(c => c.id === categoryId);
+        if (cat) this.renderCategorySpaceHeader(cat);
+    },
+
+    // Sidebar dynamic categories (S3 / F4)
+    renderSidebarCategories() {
+        const list = document.getElementById('sidebarCategoryList');
+        if (!list) return;
+        const cats = (AppState.categories || []).slice().sort((a, b) => (a.name || '').localeCompare(b.name || '', 'pt-BR'));
+        if (!cats.length) {
+            list.innerHTML = '';
+            return;
+        }
+        const counts = {};
+        for (const m of (AppState.messages || [])) {
+            if (!m.categoryId) continue;
+            counts[m.categoryId] = (counts[m.categoryId] || 0) + 1;
+        }
+        let html = '';
+        for (const c of cats) {
+            const safeColor = Utils.sanitizeCssColor(c.color || '#888');
+            const safeName = Utils.escapeHtml(c.name || '');
+            const cnt = counts[c.id] || 0;
+            html += '<button type="button" class="sidebar-cat-item" data-cat-id="' + Utils.escapeHtml(c.id) + '">'
+                + '<span class="sidebar-cat-item__swatch" style="background:' + safeColor + '"></span>'
+                + '<span class="sidebar-cat-item__name">' + safeName + '</span>'
+                + '<span class="sidebar-cat-item__count">' + cnt + '</span>'
+                + '</button>';
+        }
+        list.innerHTML = html;
+        list.querySelectorAll('.sidebar-cat-item').forEach(btn => {
+            btn.addEventListener('click', () => {
+                const id = btn.dataset.catId;
+                if (id) this.openCategoryMessages(id);
+            });
+        });
+    },
+
+    // Tasks: mobile grouped list + Focus card (S3)
+    renderTaskListMobile() {
+        const root = document.getElementById('taskListMobile');
+        if (!root) return;
+
+        const now = new Date();
+        const today0 = new Date(now); today0.setHours(0, 0, 0, 0);
+        const tomorrow0 = new Date(today0); tomorrow0.setDate(tomorrow0.getDate() + 1);
+        const weekEnd = new Date(today0); weekEnd.setDate(weekEnd.getDate() + 7);
+
+        const pending = (AppState.messages || []).filter(m => m.isTask && !m.taskCompleted);
+
+        const groups = {
+            today:    { label: 'Hoje',          items: [] },
+            tomorrow: { label: 'Amanhã',        items: [] },
+            week:     { label: 'Esta semana',   items: [] },
+            none:     { label: 'Sem prazo',     items: [] },
+        };
+
+        for (const m of pending) {
+            if (!m.taskDate) { groups.none.items.push(m); continue; }
+            const d = new Date(m.taskDate + 'T00:00:00');
+            if (d < tomorrow0) groups.today.items.push(m);
+            else if (d < new Date(today0.getTime() + 2 * 86400000)) groups.tomorrow.items.push(m);
+            else if (d < weekEnd) groups.week.items.push(m);
+            else groups.none.items.push(m); // far future, treat as no near deadline
+        }
+
+        const renderGroup = (g) => {
+            let html = '<section class="task-group">'
+                + '<div class="task-group__label"><span>' + Utils.escapeHtml(g.label) + '</span><span class="task-group__count">' + g.items.length + '</span></div>'
+                + '<div class="task-group__list">';
+            if (!g.items.length) {
+                html += '<div class="task-group__empty">— vazio</div>';
+            } else {
+                for (const m of g.items) {
+                    html += this.renderMessageBubble(m);
+                }
+            }
+            html += '</div></section>';
+            return html;
+        };
+
+        let out = '';
+        out += renderGroup(groups.today);
+        out += renderGroup(groups.tomorrow);
+        out += renderGroup(groups.week);
+        if (groups.none.items.length) out += renderGroup(groups.none);
+        root.innerHTML = out;
+
+        this.attachMessageEventListeners(root);
+    },
+
+    renderFocusCard() {
+        const card = document.getElementById('focusCard');
+        if (!card) return;
+        const today0 = new Date(); today0.setHours(0, 0, 0, 0);
+        const tomorrow0 = new Date(today0); tomorrow0.setDate(tomorrow0.getDate() + 1);
+        const todayPending = (AppState.messages || []).filter(m => {
+            if (!m.isTask || m.taskCompleted || !m.taskDate) return false;
+            const d = new Date(m.taskDate + 'T00:00:00');
+            return d >= today0 && d < tomorrow0;
+        });
+        const cnt = todayPending.length;
+        if (cnt === 0) {
+            card.hidden = true;
+            return;
+        }
+        card.hidden = false;
+        const cntEl = document.getElementById('focusCardCount');
+        if (cntEl) cntEl.textContent = cnt + ' tarefa' + (cnt === 1 ? '' : 's');
     },
 
     closeCategoryMessages() {
@@ -6946,6 +7353,24 @@ const App = {
 
         // Category messages page
         DOM.backFromCategoryBtn.addEventListener('click', () => this.closeCategoryMessages());
+
+        // Category space "+ Adicionar nota" (S3 / F4)
+        const catSpaceAddBtn = document.getElementById('catSpaceAddBtn');
+        if (catSpaceAddBtn) {
+            catSpaceAddBtn.addEventListener('click', () => {
+                if (AppState.viewingCategoryId) {
+                    this.openComposerForCategory(AppState.viewingCategoryId);
+                }
+            });
+        }
+
+        // Kanban: Focus card "Iniciar foco" (S3 / F3)
+        const focusCardBtn = document.getElementById('focusCard');
+        if (focusCardBtn) {
+            focusCardBtn.addEventListener('click', () => {
+                if (typeof FocusMode !== 'undefined') FocusMode.start();
+            });
+        }
 
         setupFormattingToolbar(DOM.categoryFormatToolbar, DOM.categoryMessageInput);
 

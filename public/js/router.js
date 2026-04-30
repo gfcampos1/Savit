@@ -15,6 +15,7 @@
         { hash: '#/tasks',     page: 'kanban' },
         { hash: '#/today',     page: 'kanban', meta: { filter: 'today' } },
         { hash: '#/profile',   page: 'profile' },
+        { hash: '#/focus',     page: '__focus' }, // handled inline
         // Dynamic: #/category/<id> -> categoryMessages with viewingCategoryId
     ];
 
@@ -54,12 +55,27 @@
             if (force) location.replace(location.pathname + location.search + DEFAULT_HASH);
             return;
         }
+        // Special-case: focus mode is an overlay, not a regular page
+        if (parsed.page === '__focus') {
+            if (typeof FocusMode !== 'undefined' && !FocusMode.isActive()) {
+                FocusMode.start();
+            }
+            return;
+        }
+        // Leaving #/focus closes the overlay if open
+        if (typeof FocusMode !== 'undefined' && FocusMode.isActive()) {
+            FocusMode.exit();
+        }
         if (typeof App === 'undefined' || typeof App.navigateTo !== 'function') return;
         suppressNext = true;
         try {
             // categoryMessages needs the id stored in AppState before navigation
             if (parsed.page === 'categoryMessages' && parsed.params && parsed.params.categoryId) {
                 if (typeof AppState !== 'undefined') AppState.viewingCategoryId = parsed.params.categoryId;
+                if (typeof App !== 'undefined' && typeof App.openCategoryMessages === 'function') {
+                    App.openCategoryMessages(parsed.params.categoryId);
+                    return;
+                }
             }
             App.navigateTo(parsed.page);
         } finally {
