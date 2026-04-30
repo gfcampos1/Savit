@@ -21,15 +21,113 @@ function Phone({ children, dark = false, statusTime = '9:41', bg = '#fff' }) {
   );
 }
 
+// §5 — Tweaks defaults & accent palette (Paper only)
+const TWEAK_DEFAULTS = /*EDITMODE-BEGIN*/{
+  "theme": "paper",
+  "accent": "citrus",
+  "density": "comfortable",
+  "showGrid": false,
+  "showLabels": true,
+  "lang": "pt-BR"
+}/*EDITMODE-END*/;
+
+const PAPER_ACCENTS = {
+  citrus: '#c0563a',
+  terra:  '#a0533c',
+  amber:  '#e6b540',
+  mint:   '#3a8a6a',
+  purple: '#7a5cc7',
+  blue:   '#5b8cff',
+};
+
 // Section header for the canvas
 function App() {
-  const [tweaks, setTweaks] = useTweaks ? useTweaks({
-    accent: "citrus",
-    density: "comfortable"
-  }) : [{ accent: "citrus" }, () => {}];
+  const [tweaks, setTweak] = (typeof useTweaks === 'function')
+    ? useTweaks(TWEAK_DEFAULTS)
+    : [TWEAK_DEFAULTS, () => {}];
+
+  // 4px debug grid overlay (toggle via tweaks panel)
+  const debugGrid = tweaks.showGrid ? (
+    <style>{`
+      [data-dc-artboard] { position: relative; }
+      [data-dc-artboard]::after {
+        content: ''; position: absolute; inset: 0; pointer-events: none;
+        background-image:
+          repeating-linear-gradient(0deg, rgba(192,86,58,0.10) 0 1px, transparent 1px 4px),
+          repeating-linear-gradient(90deg, rgba(192,86,58,0.10) 0 1px, transparent 1px 4px);
+      }
+    `}</style>
+  ) : null;
+
+  // Hide artboard labels when toggle is off
+  const labelsStyle = !tweaks.showLabels ? (
+    <style>{`[data-dc-artboard-label] { display: none !important; }`}</style>
+  ) : null;
 
   return (
     <>
+      {debugGrid}
+      {labelsStyle}
+      <TweaksPanel title="Savit · Tweaks">
+        <TweakSection label="Tema"/>
+        <TweakRadio
+          label="Variante"
+          value={tweaks.theme}
+          options={[
+            { value: 'paper',   label: 'Paper' },
+            { value: 'playful', label: 'Vibrante' },
+            { value: 'linear',  label: 'Linear' },
+          ]}
+          onChange={(v) => setTweak('theme', v)}
+        />
+        <TweakRadio
+          label="Accent (Paper)"
+          value={tweaks.accent}
+          options={[
+            { value: 'citrus', label: 'Citrus' },
+            { value: 'terra',  label: 'Terra' },
+            { value: 'amber',  label: 'Amber' },
+            { value: 'mint',   label: 'Mint' },
+            { value: 'purple', label: 'Purple' },
+            { value: 'blue',   label: 'Blue' },
+          ]}
+          onChange={(v) => setTweak('accent', v)}
+        />
+
+        <TweakSection label="Layout"/>
+        <TweakRadio
+          label="Densidade"
+          value={tweaks.density}
+          options={[
+            { value: 'comfortable', label: 'Conforto' },
+            { value: 'compact',     label: 'Denso' },
+          ]}
+          onChange={(v) => setTweak('density', v)}
+        />
+
+        <TweakSection label="Debug"/>
+        <TweakToggle
+          label="Mostrar grid 4px"
+          value={tweaks.showGrid}
+          onChange={(v) => setTweak('showGrid', v)}
+        />
+        <TweakToggle
+          label="Mostrar labels"
+          value={tweaks.showLabels}
+          onChange={(v) => setTweak('showLabels', v)}
+        />
+
+        <TweakSection label="Idioma"/>
+        <TweakSelect
+          label="Locale"
+          value={tweaks.lang}
+          options={[
+            { value: 'pt-BR', label: 'Português (BR)' },
+            { value: 'en',    label: 'English (em breve)' },
+          ]}
+          onChange={(v) => setTweak('lang', v)}
+        />
+      </TweaksPanel>
       <DesignCanvas>
         <DCSection
           id="review"
@@ -277,6 +375,25 @@ function App() {
           </DCArtboard>
           <DCArtboard id="onboarding-3" label="3 · Linguagem natural" width={390} height={844}>
             <Phone bg="#f6f1e8"><Onboarding3 /></Phone>
+          </DCArtboard>
+        </DCSection>
+
+        <DCSection
+          id="utils"
+          title="Componentes utilitários"
+          subtitle="Skeletons, dialog, datepicker, share-target. As pequenas peças que terminam o sistema."
+        >
+          <DCArtboard id="comp-skeleton" label="Skeleton loaders · 3 variantes" width={1280} height={500}>
+            <CompSkeleton />
+          </DCArtboard>
+          <DCArtboard id="comp-dialog" label="Confirmation dialog (mobile + desktop)" width={1280} height={500}>
+            <CompDialog />
+          </DCArtboard>
+          <DCArtboard id="comp-datepicker" label="Datepicker · standalone" width={360} height={460}>
+            <CompDatepicker />
+          </DCArtboard>
+          <DCArtboard id="paper-share-incoming" label="Paper — share-target landing" width={390} height={844}>
+            <Phone bg="#f6f1e8"><PaperShareIncoming /></Phone>
           </DCArtboard>
         </DCSection>
 

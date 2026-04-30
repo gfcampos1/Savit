@@ -24,31 +24,28 @@ function EvalReview() {
       ],
     },
     {
-      title: 'Faltando da SPEC',
-      tone: 'bad',
+      title: 'Pendências menores',
+      tone: 'warn',
       items: [
-        'Skeletons (linha, grid, kanban), dialog confirm, datepicker standalone, tooltip. Vão pra S6.',
-        'Share-target landing — sticky "vindo de Safari". S6.',
-        'Tweaks panel está importado mas inerte — ligadura em S6.',
+        'Tooltip (desktop only) — pode ser adicionado em iteração futura junto com keyboard shortcuts.',
+        'Tweaks "Idioma · en" é placeholder visual — i18n efetivo é trabalho de implementação, não de mock.',
+        'A11y audit (Lighthouse, screen reader) — fora do escopo de design canvas.',
       ],
     },
     {
-      title: 'S1–S5 — adicionado (35 artboards)',
+      title: 'S1–S6 — adicionado (40 artboards)',
       tone: 'good',
       items: [
         'S1 · 6 artboards: nav (3 temas) + focus (default, pomodoro, empty).',
         'S2 · 5 artboards: cat-space (3 temas) + dash mobile (Paper, Playful).',
         'S3 · 8 artboards: feed-monday × 2 + search × 2 + empty × 2 + toast + offline.',
         'S4 · 3 artboards: context-sheet, edit modal redesenhado, color picker.',
-        'S5 · auth-mfa — bottom-sheet sobre login borrado com 6 inputs OTP, contador de reenvio mono, botão disabled enquanto incompleto.',
-        'S5 · auth-login-linear — fundo dark blue-gray, fonte Geist em vez de Instrument Serif, fields como blocos surf com mono "EMAIL/PASSWORD", botão Entrar com kbd ↵, copy "atalhos · ⌘K · texto natural · sem cliques".',
-        'S5 · auth-login-playful — glow blobs ambiente, avatar gradient com sombra accent, headline "Bem-vinda de volta ✦" com gradient text fill (rose→amber), fields blur surface.',
-        'S5 · profile-sessions — 4 dispositivos com badge ATUAL (verde) e SUSPEITA (danger). Um deles em estado revealed com bg vermelho "Encerrar". CTA outline danger "Encerrar todas as outras".',
-        'S5 · profile-export — checklist de conteúdo (Notas/Tarefas/Categorias selecionadas, Imagens opt-out), tamanho estimado 340 KB, CTA "Baixar savit-2026-04-30.json".',
-        'S5 · profile-import — dropzone tracejada accent, validação live "✓ 128 NOTAS · 84 TAREFAS · 6 CATEGORIAS DETECTADAS", aviso de fusão de categorias, CTA "Importar 218 itens".',
-        'S5 · paper-404 — "404" gigante em serif accent + "Esta página fugiu." em itálico. Código de referência mono no rodapé.',
-        'S5 · paper-error (500) — "Algo deu errado. Já fomos avisados." Bloco mono com log do request 503 + retry. Botão "Tentar de novo" + "Continuar offline".',
-        'S5 · onboarding-1/2/3 — 3 telas progressivas: captura (mock card girado -1deg com chips do parser), categorias-como-cores (grid 6 com 3 selecionadas), linguagem natural (4 exemplos in/out com setas accent). Step dots indicando progresso.',
+        'S5 · 11 artboards: auth-mfa, login Linear/Playful, sessões, export/import, 404, erro 500, onboarding × 3.',
+        'S6 · comp-skeleton — 3 variantes (linha, grid 4, kanban 4 colunas) lado a lado + mostra do top loader 3px accent.',
+        'S6 · comp-dialog — confirmation dialog em duas larguras (mobile 320px / desktop 480px) com ícone trash em accent×0.10, botão Excluir em danger.',
+        'S6 · comp-datepicker — calendário standalone 360×460 com pílulas de atalho rápido + mini-calendário reusado.',
+        'S6 · paper-share-incoming — banner sticky "vindo de Safari · arxiv.org" + card de conteúdo compartilhado + chips do parser preview + campo de comentário opcional + CTA "Salvar em Leitura".',
+        'S6 · Tweaks panel ligado — TweaksPanel renderizado no App() com 6 controles funcionais: Tema (Paper/Vibrante/Linear), Accent Paper (6 cores), Densidade (Conforto/Denso), Mostrar grid 4px (overlay debug), Mostrar labels, Idioma (pt-BR / en). TWEAK_DEFAULTS bloco EDITMODE-BEGIN/END pra persistência via host.',
       ],
     },
     {
@@ -109,17 +106,18 @@ function EvalReview() {
     }}>
       <div style={{ display: 'flex', alignItems: 'baseline', justifyContent: 'space-between', gap: 24 }}>
         <div>
-          <div className="mono" style={{ fontSize: 11, opacity: 0.5, letterSpacing: '0.12em' }}>AVALIAÇÃO · 30 ABR · S0–S5</div>
+          <div className="mono" style={{ fontSize: 11, opacity: 0.5, letterSpacing: '0.12em' }}>AVALIAÇÃO · 30 ABR · S0–S6 ✓</div>
           <div style={{
             fontFamily: '"Instrument Serif", serif',
             fontSize: 44, lineHeight: 1.05, letterSpacing: '-0.02em',
             marginTop: 8,
           }}>
-            S0–S5 fechados.<br/>Falta só S6.
+            Redesign fechado.<br/>
+            <span style={{ fontStyle: 'italic', color: EVAL_GREEN }}>40 artboards.</span>
           </div>
         </div>
         <div style={{ fontSize: 12, color: 'rgba(0,0,0,0.55)', maxWidth: 320, lineHeight: 1.55, textAlign: 'right' }}>
-          R-01..R-30 + bottom nav (3) + modo foco (3) prontos. Próximo: categoria-espaço e dashboards mobile (S2).
+          R-01..R-30 + 40 artboards novos (S1–S6) + tweaks panel funcional. Pronto pra handoff de implementação.
         </div>
       </div>
 
@@ -183,23 +181,21 @@ function EvalReview() {
             VEREDITO
           </div>
           <div style={{ fontFamily: '"Instrument Serif", serif', fontSize: 26, lineHeight: 1.3, letterSpacing: '-0.01em' }}>
-            S0–S5 entregam <span style={{ color: EVAL_GREEN }}>app + auth + perfil + erros + onboarding</span>. Toda a jornada do usuário tem mock.
-            Falta apenas <span style={{ color: EVAL_ACCENT }}>S6: componentes utilitários + tweaks panel funcional</span>.
+            <span style={{ color: EVAL_GREEN }}>Redesign fechado.</span> 40 artboards novos + 30 correções R-NN + tweaks panel ligado.
+            Direção visual definida em 3 personalidades, jornada completa, e o sistema final.
+            <span style={{ color: EVAL_ACCENT }}> Pronto pra handoff de implementação.</span>
           </div>
         </div>
         <div style={{ display: 'flex', flexDirection: 'column', gap: 6, minWidth: 160 }}>
-          <ProgressLine label="S0 · Correções" pct={100} color={EVAL_GREEN}/>
-          <ProgressLine label="S1 · Nav+Foco" pct={100} color={EVAL_GREEN}/>
-          <ProgressLine label="S2 · Espaço+Dash" pct={100} color={EVAL_GREEN}/>
-          <ProgressLine label="S3 · Estados" pct={100} color={EVAL_GREEN}/>
-          <ProgressLine label="S4 · Edição+Picker" pct={100} color={EVAL_GREEN}/>
-          <ProgressLine label="S5 · Auth+Erros" pct={100} color={EVAL_GREEN}/>
+          <ProgressLine label="S0–S6 · Tudo" pct={100} color={EVAL_GREEN}/>
           <ProgressLine label="Mobile · Paper" pct={100} color={EVAL_GREEN}/>
-          <ProgressLine label="Mobile · Playful" pct={94} color="#7c5cff"/>
-          <ProgressLine label="Mobile · Linear" pct={88} color="#7c8bf5"/>
-          <ProgressLine label="Desktop" pct={90} color={EVAL_GREEN}/>
+          <ProgressLine label="Mobile · Playful" pct={96} color="#7c5cff"/>
+          <ProgressLine label="Mobile · Linear" pct={90} color="#7c8bf5"/>
+          <ProgressLine label="Desktop" pct={92} color={EVAL_GREEN}/>
           <ProgressLine label="Auth + Perfil" pct={100} color={EVAL_GREEN}/>
-          <ProgressLine label="Estados/empty" pct={92} color={EVAL_GREEN}/>
+          <ProgressLine label="Estados/empty" pct={100} color={EVAL_GREEN}/>
+          <ProgressLine label="Utilitários" pct={100} color={EVAL_GREEN}/>
+          <ProgressLine label="Tweaks panel" pct={100} color={EVAL_GREEN}/>
         </div>
       </div>
     </div>

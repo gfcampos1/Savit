@@ -2615,6 +2615,432 @@ function PaperColorPicker() {
   );
 }
 
+// =============================================
+// §4 — Componentes utilitários
+// =============================================
+
+// 4.1 Skeleton loaders — 3 variantes lado a lado
+function CompSkeleton() {
+  // Shimmer is a static visual hint here (animation pode ser adicionada via @keyframes)
+  const Bar = ({ w = '100%', h = 12, mt = 0, op = 1 }) => (
+    <div style={{
+      width: w, height: h, borderRadius: 4,
+      background: PAPER.hair, marginTop: mt, opacity: op,
+      backgroundImage: `linear-gradient(90deg, ${PAPER.hair} 0%, rgba(29,26,20,0.05) 50%, ${PAPER.hair} 100%)`,
+    }}/>
+  );
+  const SkelLine = () => (
+    <div style={{
+      background: PAPER.card, border: `1px solid ${PAPER.hair}`,
+      borderRadius: 12, padding: 14,
+      display: 'flex', alignItems: 'flex-start', gap: 10,
+    }}>
+      <div style={{
+        width: 18, height: 18, borderRadius: 5,
+        background: PAPER.hair, flexShrink: 0,
+      }}/>
+      <div style={{ flex: 1 }}>
+        <Bar w="92%"/>
+        <Bar w="60%" mt={6}/>
+        <div style={{ display: 'flex', gap: 8, marginTop: 10 }}>
+          <Bar w={70} h={8} op={0.8}/>
+          <Bar w={50} h={8} op={0.8}/>
+        </div>
+      </div>
+    </div>
+  );
+  const SkelGrid = () => (
+    <div style={{ display: 'grid', gridTemplateColumns: '1fr 1fr', gap: 10 }}>
+      {[0,1,2,3].map(i => (
+        <div key={i} style={{
+          background: PAPER.card, border: `1px solid ${PAPER.hair}`,
+          borderRadius: 14, padding: 14, minHeight: 110,
+          display: 'flex', flexDirection: 'column', gap: 8,
+        }}>
+          <Bar w={28} h={28} mt={0}/>
+          <Bar w="60%"/>
+          <Bar w={36} h={20}/>
+          <Bar w={40} h={8} op={0.8}/>
+        </div>
+      ))}
+    </div>
+  );
+  const SkelKanban = () => (
+    <div style={{ display: 'grid', gridTemplateColumns: 'repeat(4, 1fr)', gap: 10 }}>
+      {['Hoje', 'Amanhã', 'Esta semana', 'Sem prazo'].map((h, i) => (
+        <div key={i} style={{
+          background: PAPER.card, border: `1px solid ${PAPER.hair}`,
+          borderRadius: 12, padding: 12,
+          display: 'flex', flexDirection: 'column', gap: 8,
+        }}>
+          <div className="mono" style={{ fontSize: 9.5, color: PAPER.ink3, letterSpacing: '0.14em', textTransform: 'uppercase' }}>{h}</div>
+          {[0,1,2].slice(0, 3 - (i % 2)).map(j => (
+            <div key={j} style={{
+              background: PAPER.bg, borderRadius: 8, padding: 10,
+              display: 'flex', flexDirection: 'column', gap: 6,
+            }}>
+              <Bar w="84%" h={10}/>
+              <div style={{ display: 'flex', gap: 6 }}>
+                <Bar w={36} h={8} op={0.7}/>
+                <Bar w={50} h={8} op={0.7}/>
+              </div>
+            </div>
+          ))}
+        </div>
+      ))}
+    </div>
+  );
+  const PanelLabel = ({ children }) => (
+    <div className="mono" style={{
+      fontSize: 10, color: PAPER.ink3,
+      letterSpacing: '0.16em', marginBottom: 8,
+    }}>{children}</div>
+  );
+
+  return (
+    <div style={{
+      width: '100%', height: '100%',
+      background: PAPER.bg,
+      fontFamily: '"Geist", system-ui, sans-serif',
+      padding: 28,
+      display: 'flex', flexDirection: 'column', gap: 14,
+    }}>
+      <div style={{ display: 'flex', alignItems: 'baseline', gap: 16 }}>
+        <div className="mono" style={{ fontSize: 10, color: PAPER.ink3, letterSpacing: '0.18em' }}>SKELETON LOADERS</div>
+        <div style={{ fontFamily: '"Instrument Serif", serif', fontSize: 28, letterSpacing: '-0.02em' }}>
+          3 variantes
+        </div>
+        <div style={{ flex: 1 }}/>
+        <div className="mono" style={{ fontSize: 10, color: PAPER.ink3 }}>shimmer · linear-gradient · 1.2s loop</div>
+      </div>
+
+      <div style={{ display: 'grid', gridTemplateColumns: '1fr 1fr 2fr', gap: 18, flex: 1 }}>
+        <div>
+          <PanelLabel>LINHA · 1 CARD</PanelLabel>
+          <SkelLine/>
+        </div>
+        <div>
+          <PanelLabel>GRID · 4 CARDS</PanelLabel>
+          <SkelGrid/>
+        </div>
+        <div>
+          <PanelLabel>KANBAN · 4 COLUNAS</PanelLabel>
+          <SkelKanban/>
+        </div>
+      </div>
+
+      {/* Top loader bar example */}
+      <div style={{
+        marginTop: 6, padding: '10px 14px',
+        background: PAPER.card, border: `1px solid ${PAPER.hair}`,
+        borderRadius: 10,
+        display: 'flex', alignItems: 'center', gap: 14,
+        position: 'relative', overflow: 'hidden',
+      }}>
+        <span style={{
+          position: 'absolute', top: 0, left: 0, height: 3,
+          width: '38%', background: PAPER.accent,
+        }}/>
+        <span className="mono" style={{ fontSize: 10, color: PAPER.ink3, letterSpacing: '0.14em' }}>TOP LOADER</span>
+        <span style={{ fontSize: 12, color: PAPER.ink2 }}>3px no topo, accent, indeterminado durante req</span>
+      </div>
+    </div>
+  );
+}
+
+// 4.4 Confirmation dialog — mobile + desktop side by side
+function CompDialog() {
+  const Mobile = () => (
+    <div style={{
+      width: 320,
+      background: PAPER.card, border: `1px solid ${PAPER.hair}`,
+      borderRadius: 18, padding: 22,
+      display: 'flex', flexDirection: 'column', gap: 14,
+      boxShadow: '0 24px 60px -12px rgba(29,26,20,0.30)',
+    }}>
+      <div style={{
+        width: 44, height: 44, borderRadius: 12,
+        background: '#c0563a18', color: '#c0563a',
+        display: 'flex', alignItems: 'center', justifyContent: 'center',
+      }}>
+        <svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="1.7" strokeLinecap="round"><path d="M3 6h18M8 6V4a2 2 0 0 1 2-2h4a2 2 0 0 1 2 2v2M5 6l1 14a2 2 0 0 0 2 2h8a2 2 0 0 0 2-2l1-14"/></svg>
+      </div>
+      <div>
+        <div style={{
+          fontFamily: '"Instrument Serif", serif',
+          fontSize: 22, lineHeight: 1.25, letterSpacing: '-0.01em',
+        }}>Excluir esta nota?</div>
+        <div style={{ fontSize: 13, color: PAPER.ink2, marginTop: 6, lineHeight: 1.5 }}>
+          Não dá pra desfazer. A nota some pra sempre.
+        </div>
+      </div>
+      <div style={{ display: 'flex', gap: 8, marginTop: 4 }}>
+        <button style={{
+          flex: 1, padding: 12, borderRadius: 12,
+          background: 'transparent', color: PAPER.ink,
+          border: `1px solid ${PAPER.hair}`,
+          fontSize: 13, fontWeight: 500,
+        }}>Cancelar</button>
+        <button style={{
+          flex: 1, padding: 12, borderRadius: 12,
+          background: '#c0563a', color: '#fff',
+          fontSize: 13, fontWeight: 600,
+        }}>Excluir</button>
+      </div>
+    </div>
+  );
+
+  const Desktop = () => (
+    <div style={{
+      width: 480,
+      background: PAPER.card, border: `1px solid ${PAPER.hair}`,
+      borderRadius: 16, padding: 24,
+      display: 'grid', gridTemplateColumns: '44px 1fr',
+      gap: 18, alignItems: 'flex-start',
+      boxShadow: '0 24px 60px -12px rgba(29,26,20,0.30)',
+    }}>
+      <div style={{
+        width: 44, height: 44, borderRadius: 12,
+        background: '#c0563a18', color: '#c0563a',
+        display: 'flex', alignItems: 'center', justifyContent: 'center',
+      }}>
+        <svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="1.7" strokeLinecap="round"><path d="M3 6h18M8 6V4a2 2 0 0 1 2-2h4a2 2 0 0 1 2 2v2M5 6l1 14a2 2 0 0 0 2 2h8a2 2 0 0 0 2-2l1-14"/></svg>
+      </div>
+      <div style={{ display: 'flex', flexDirection: 'column', gap: 14 }}>
+        <div>
+          <div style={{
+            fontFamily: '"Instrument Serif", serif',
+            fontSize: 22, lineHeight: 1.25, letterSpacing: '-0.01em',
+          }}>Excluir <em style={{ color: PAPER.accent, fontStyle: 'italic' }}>"Revisar PR do refresh token rotation"</em>?</div>
+          <div style={{ fontSize: 13, color: PAPER.ink2, marginTop: 6, lineHeight: 1.5 }}>
+            Esta tarefa será removida permanentemente. Não há como desfazer.
+          </div>
+        </div>
+        <div style={{ display: 'flex', gap: 8, justifyContent: 'flex-end' }}>
+          <button style={{
+            padding: '10px 18px', borderRadius: 10,
+            background: 'transparent', color: PAPER.ink,
+            border: `1px solid ${PAPER.hair}`,
+            fontSize: 13, fontWeight: 500,
+          }}>Cancelar</button>
+          <button style={{
+            padding: '10px 18px', borderRadius: 10,
+            background: '#c0563a', color: '#fff',
+            fontSize: 13, fontWeight: 600,
+          }}>Excluir tarefa</button>
+        </div>
+      </div>
+    </div>
+  );
+
+  return (
+    <div style={{
+      width: '100%', height: '100%',
+      background: PAPER.bg,
+      fontFamily: '"Geist", system-ui, sans-serif',
+      padding: 28,
+      display: 'flex', flexDirection: 'column', gap: 18,
+    }}>
+      <div style={{ display: 'flex', alignItems: 'baseline', gap: 16 }}>
+        <div className="mono" style={{ fontSize: 10, color: PAPER.ink3, letterSpacing: '0.18em' }}>CONFIRMATION DIALOG</div>
+        <div style={{ fontFamily: '"Instrument Serif", serif', fontSize: 28, letterSpacing: '-0.02em' }}>
+          Mobile + desktop
+        </div>
+      </div>
+      <div style={{ display: 'flex', flexDirection: 'row', gap: 32, alignItems: 'flex-start', flexWrap: 'wrap' }}>
+        <div>
+          <div className="mono" style={{ fontSize: 10, color: PAPER.ink3, letterSpacing: '0.14em', marginBottom: 10 }}>MOBILE · 320px</div>
+          <Mobile/>
+        </div>
+        <div>
+          <div className="mono" style={{ fontSize: 10, color: PAPER.ink3, letterSpacing: '0.14em', marginBottom: 10 }}>DESKTOP · 480px</div>
+          <Desktop/>
+        </div>
+      </div>
+      <div className="mono" style={{ fontSize: 10, color: PAPER.ink3, letterSpacing: '0.14em', marginTop: 'auto' }}>
+        DANGER COLOR: #c0563a · ICON BG: accent×0.10 · COPY: TÍTULO SERIF + DETALHE INK2
+      </div>
+    </div>
+  );
+}
+
+// 4.5 Datepicker standalone
+function CompDatepicker() {
+  return (
+    <div style={{
+      width: '100%', height: '100%',
+      background: PAPER.bg,
+      fontFamily: '"Geist", system-ui, sans-serif',
+      padding: 24,
+      display: 'flex', flexDirection: 'column', gap: 16,
+    }}>
+      <div className="mono" style={{ fontSize: 10, color: PAPER.ink3, letterSpacing: '0.18em' }}>DATEPICKER · STANDALONE</div>
+      <div style={{ fontFamily: '"Instrument Serif", serif', fontSize: 24, letterSpacing: '-0.02em' }}>
+        320 × 420
+      </div>
+
+      {/* Quick chips above */}
+      <div style={{ display: 'flex', flexWrap: 'wrap', gap: 6 }}>
+        {[
+          { label: 'Hoje', active: true },
+          { label: 'Amanhã' },
+          { label: 'Sex 17h' },
+          { label: 'Próxima seg' },
+          { label: 'Sem prazo' },
+        ].map((q, i) => (
+          <span key={i} style={{
+            padding: '5px 10px', borderRadius: 999,
+            background: q.active ? PAPER.ink : PAPER.card,
+            border: q.active ? 'none' : `1px solid ${PAPER.hair}`,
+            color: q.active ? '#fff' : PAPER.ink2,
+            fontSize: 12, fontWeight: 500,
+          }}>{q.label}</span>
+        ))}
+      </div>
+
+      <PaperMiniCalendar selectedDay={30} hour="16:00"/>
+    </div>
+  );
+}
+
+// N-15 — paper-share-incoming
+function PaperShareIncoming() {
+  return (
+    <div style={{
+      width: '100%', height: '100%',
+      background: PAPER.bg,
+      color: PAPER.ink,
+      fontFamily: '"Geist", system-ui, sans-serif',
+      display: 'flex', flexDirection: 'column',
+      position: 'relative',
+    }}>
+      {/* Sticky source banner */}
+      <div style={{
+        background: PAPER.card,
+        borderBottom: `1px solid ${PAPER.hair}`,
+        padding: '10px 20px',
+        display: 'flex', alignItems: 'center', gap: 8,
+      }}>
+        <span style={{
+          width: 8, height: 8, borderRadius: 4,
+          background: PAPER.accent2,
+        }}/>
+        <span className="mono" style={{
+          fontSize: 11, color: PAPER.ink, letterSpacing: '0.14em',
+          textTransform: 'uppercase',
+        }}>· vindo de Safari ·</span>
+        <div style={{ flex: 1 }}/>
+        <span style={{
+          fontSize: 11, color: PAPER.ink3, fontFamily: '"JetBrains Mono", monospace',
+        }}>arxiv.org</span>
+      </div>
+
+      <PaperHeader sub="QUI · 30 ABR" title="Capturar"/>
+
+      <div style={{ flex: 1, padding: '14px 20px 24px', display: 'flex', flexDirection: 'column', gap: 16 }}>
+        <div style={{
+          padding: 18,
+          background: PAPER.card,
+          border: `1px solid ${PAPER.hair}`,
+          borderRadius: 16,
+          boxShadow: PAPER.shadow,
+          display: 'flex', flexDirection: 'column', gap: 10,
+        }}>
+          <div className="mono" style={{ fontSize: 10, color: PAPER.ink3, letterSpacing: '0.16em' }}>
+            CONTEÚDO COMPARTILHADO
+          </div>
+          <div style={{
+            fontFamily: '"Instrument Serif", serif',
+            fontSize: 19, lineHeight: 1.4, color: PAPER.ink,
+          }}>
+            Attention is all you need
+          </div>
+          <div style={{ fontSize: 13, color: PAPER.ink2, lineHeight: 1.55 }}>
+            We propose a new simple network architecture, the Transformer, based solely on attention mechanisms…
+          </div>
+          <div style={{
+            fontSize: 11.5, color: PAPER.accent,
+            fontFamily: '"JetBrains Mono", monospace',
+            wordBreak: 'break-all',
+            paddingTop: 6,
+            borderTop: `1px dashed ${PAPER.hair}`,
+          }}>
+            arxiv.org/abs/1706.03762
+          </div>
+        </div>
+
+        {/* Composer chips already filled */}
+        <div>
+          <div className="mono" style={{ fontSize: 10, color: PAPER.ink3, letterSpacing: '0.16em', marginBottom: 8 }}>
+            VAI VIRAR
+          </div>
+          <div style={{ display: 'flex', flexWrap: 'wrap', gap: 6 }}>
+            <span style={{
+              display: 'inline-flex', alignItems: 'center', gap: 6,
+              padding: '5px 10px',
+              background: PAPER.bg,
+              border: `1px solid ${PAPER.hair}`,
+              borderRadius: 999, fontSize: 11.5,
+              fontFamily: '"JetBrains Mono", monospace',
+              letterSpacing: '0.04em',
+            }}>
+              <span style={{ fontSize: 10, color: PAPER.accent, fontWeight: 600 }}>NOTA</span>
+              link salvo
+            </span>
+            <span style={{
+              display: 'inline-flex', alignItems: 'center', gap: 6,
+              padding: '5px 10px',
+              background: PAPER.bg,
+              border: `1px solid ${PAPER.hair}`,
+              borderRadius: 999, fontSize: 11.5,
+              fontFamily: '"JetBrains Mono", monospace',
+              letterSpacing: '0.04em',
+            }}>
+              <span style={{ width: 6, height: 6, borderRadius: 2, background: '#e6b540' }}/>
+              leitura
+            </span>
+          </div>
+        </div>
+
+        {/* Optional comment field */}
+        <div>
+          <div className="mono" style={{ fontSize: 10, color: PAPER.ink3, letterSpacing: '0.16em', marginBottom: 8 }}>
+            ADICIONE UMA NOTA (OPCIONAL)
+          </div>
+          <div style={{
+            padding: '12px 14px',
+            background: PAPER.card,
+            border: `1px solid ${PAPER.hair}`,
+            borderRadius: 12,
+            fontSize: 14, color: PAPER.ink3, minHeight: 60,
+          }}>
+            "Reler isso pensando no parser do Savit"
+            <span style={{ display: 'inline-block', width: 1.5, height: 16, background: PAPER.accent, marginLeft: 2, verticalAlign: 'middle' }}/>
+          </div>
+        </div>
+      </div>
+
+      <div style={{ padding: '12px 20px calc(env(safe-area-inset-bottom) + 18px)', display: 'flex', gap: 10 }}>
+        <button style={{
+          flex: 1, padding: 14, borderRadius: 12,
+          background: PAPER.card, color: PAPER.ink,
+          border: `1px solid ${PAPER.hair}`,
+          fontSize: 14, fontWeight: 500,
+        }}>Cancelar</button>
+        <button style={{
+          flex: 2, padding: 14, borderRadius: 12,
+          background: PAPER.ink, color: '#fff',
+          fontSize: 14, fontWeight: 600,
+          display: 'flex', alignItems: 'center', justifyContent: 'center', gap: 8,
+        }}>
+          <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2.4" strokeLinecap="round"><path d="M20 6 9 17l-5-5"/></svg>
+          Salvar em Leitura
+        </button>
+      </div>
+    </div>
+  );
+}
+
 Object.assign(window, {
   PaperFeed, PaperFeedTyping, PaperCategories, PaperTasks,
   PaperBottomNav, PaperFeedWithNav,
@@ -2625,5 +3051,6 @@ Object.assign(window, {
   PaperEmptyFeed, PaperEmptyTasks,
   PaperToastShowcase, PaperOffline,
   PaperContextSheet, PaperEdit, PaperColorPicker, PaperMiniCalendar,
+  CompSkeleton, CompDialog, CompDatepicker, PaperShareIncoming,
   PAPER,
 });
