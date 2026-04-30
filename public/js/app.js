@@ -806,6 +806,201 @@ const FocusMode = {
     }
 };
 
+// =============================================
+// S5 — Polish & bug fixes (§7)
+// =============================================
+
+const S5Polish = {
+    init() {
+        this.bindOfflineBanner();
+        this.bindGlobalKeys();
+        this.bindCmdLaunchers();
+        this.bindCategoryChipReopen();
+        this.bindShowCompletedToggle();
+        this.restoreScrollOnNavigate();
+    },
+
+    // §7.17 — Sticky offline banner
+    bindOfflineBanner() {
+        let banner = document.getElementById('offlineBanner');
+        if (!banner) {
+            banner = document.createElement('div');
+            banner.id = 'offlineBanner';
+            banner.className = 'offline-banner';
+            banner.setAttribute('role', 'status');
+            banner.textContent = 'Sem conexão · suas alterações estão salvas localmente';
+            document.body.appendChild(banner);
+        }
+        const update = () => banner.classList.toggle('is-visible', !navigator.onLine);
+        window.addEventListener('online', update);
+        window.addEventListener('offline', update);
+        update();
+    },
+
+    // §7.20 — Global keyboard shortcuts (Esc/arrows). ⌘K is in CommandPalette.
+    bindGlobalKeys() {
+        document.addEventListener('keydown', (e) => {
+            // Ignore if typing in a field or editor
+            const t = e.target;
+            const isEditable = t && (t.tagName === 'INPUT' || t.tagName === 'TEXTAREA' || t.isContentEditable);
+
+            // Esc closes any open modal (.modal.active)
+            if (e.key === 'Escape' && !isEditable) {
+                const openModal = document.querySelector('.modal.active');
+                if (openModal) {
+                    openModal.classList.remove('active');
+                    e.preventDefault();
+                    return;
+                }
+            }
+        });
+    },
+
+    // §F2 — open palette from sidebar Cmd btn / mobile FAB long-press
+    bindCmdLaunchers() {
+        const sidebarCmdBtn = document.getElementById('sidebarCmdBtn');
+        if (sidebarCmdBtn && typeof CommandPalette !== 'undefined') {
+            // Replace inbox-jump with palette open (S1 placeholder graduates here)
+            const fresh = sidebarCmdBtn.cloneNode(true);
+            sidebarCmdBtn.parentNode.replaceChild(fresh, sidebarCmdBtn);
+            fresh.addEventListener('click', () => CommandPalette.open());
+        }
+
+        // Long-press on the mobile capture FAB opens the palette (per spec §3.11)
+        const fab = document.getElementById('captureFab');
+        if (fab && typeof CommandPalette !== 'undefined') {
+            let timer = null;
+            const start = () => {
+                timer = setTimeout(() => { CommandPalette.open(); timer = null; }, 500);
+            };
+            const cancel = () => { if (timer) { clearTimeout(timer); timer = null; } };
+            fab.addEventListener('touchstart', start, { passive: true });
+            fab.addEventListener('touchend', cancel);
+            fab.addEventListener('touchmove', cancel);
+            fab.addEventListener('touchcancel', cancel);
+        }
+    },
+
+    // §7.4 — clicking the selected-category pill (not the X) reopens picker
+    bindCategoryChipReopen() {
+        const pill = document.getElementById('selectedCategory');
+        const removeBtn = document.getElementById('removeCategoryBtn');
+        if (!pill) return;
+        pill.addEventListener('click', (e) => {
+            if (e.target === removeBtn || (removeBtn && removeBtn.contains(e.target))) return;
+            const modal = DOM && DOM.categorySelectorModal;
+            if (modal && typeof openModal === 'function') openModal(modal);
+        });
+        pill.style.cursor = 'pointer';
+    },
+
+    // §7.16 — toggle "Mostrar concluídas" on the tasks page
+    bindShowCompletedToggle() {
+        const kanbanPage = document.getElementById('kanbanPage');
+        if (!kanbanPage) return;
+        const filtersRow = kanbanPage.querySelector('.kanban-filters');
+        if (!filtersRow) return;
+        if (kanbanPage.querySelector('.show-completed-toggle')) return;
+        const btn = document.createElement('button');
+        btn.type = 'button';
+        btn.className = 'show-completed-toggle';
+        btn.innerHTML = '<i class="fas fa-eye" aria-hidden="true"></i><span>Concluídas</span>';
+        const STORAGE = 'savit_show_completed';
+        const apply = () => {
+            const on = localStorage.getItem(STORAGE) === '1';
+            btn.classList.toggle('is-on', on);
+            kanbanPage.dataset.showCompleted = on ? '1' : '0';
+        };
+        btn.addEventListener('click', () => {
+            const on = localStorage.getItem(STORAGE) === '1';
+            try { localStorage.setItem(STORAGE, on ? '0' : '1'); } catch { /* ignore */ }
+            apply();
+            // Force re-render of mobile list to respect new preference
+            if (typeof App !== 'undefined' && typeof App.renderTaskListMobile === 'function') {
+                App.renderTaskListMobile();
+            }
+        });
+        filtersRow.appendChild(btn);
+        apply();
+    },
+
+    showCompletedEnabled() {
+        try { return localStorage.getItem('savit_show_completed') === '1'; }
+        catch { return false; }
+    },
+
+    // §7.14 — preserve feed scroll position per page (sessionStorage)
+    SCROLL_KEY: (page) => 'savit_scroll_' + page,
+
+    saveScroll(pageId) {
+        if (!pageId) return;
+        const containers = {
+            chat: DOM && DOM.messagesContainer,
+            categoryMessages: DOM && DOM.categoryMessagesContainer,
+        };
+        const c = containers[pageId];
+        if (!c) return;
+        try { sessionStorage.setItem(this.SCROLL_KEY(pageId), String(c.scrollTop || 0)); } catch { /* ignore */ }
+    },
+
+    restoreScroll(pageId) {
+        const containers = {
+            chat: DOM && DOM.messagesContainer,
+            categoryMessages: DOM && DOM.categoryMessagesContainer,
+        };
+        const c = containers[pageId];
+        if (!c) return;
+        try {
+            const saved = parseInt(sessionStorage.getItem(this.SCROLL_KEY(pageId)) || '', 10);
+            if (Number.isFinite(saved)) {
+                requestAnimationFrame(() => { c.scrollTop = saved; });
+            }
+        } catch { /* ignore */ }
+    },
+
+    restoreScrollOnNavigate() {
+        // Wrap App.navigateTo to save/restore scroll
+        if (typeof App === 'undefined' || App.__s5wrapped) return;
+        App.__s5wrapped = true;
+        const original = App.navigateTo.bind(App);
+        App.navigateTo = (page) => {
+            const prev = AppState.currentPage;
+            S5Polish.saveScroll(prev);
+            const ret = original(page);
+            S5Polish.restoreScroll(page);
+            return ret;
+        };
+    },
+
+    // §F2 / PWA — handle ?share-target on first load
+    handleShareTarget() {
+        try {
+            const params = new URLSearchParams(window.location.search);
+            if (!params.has('share-target')) return;
+            const text = [params.get('title'), params.get('text'), params.get('url')]
+                .filter(Boolean)
+                .join('\n')
+                .trim();
+            if (!text) return;
+            // Defer until App is ready
+            requestAnimationFrame(() => {
+                if (typeof App === 'undefined') return;
+                App.navigateTo('chat');
+                requestAnimationFrame(() => {
+                    if (!DOM.messageInput) return;
+                    if (DOM.messageInput.isContentEditable) DOM.messageInput.textContent = text;
+                    else DOM.messageInput.value = text;
+                    DOM.messageInput.focus();
+                    if (typeof SmartCapture !== 'undefined') SmartCapture.refresh();
+                });
+            });
+            // Strip the query so reload doesn't re-trigger
+            const cleanUrl = window.location.pathname + window.location.hash;
+            history.replaceState(null, '', cleanUrl);
+        } catch { /* ignore */ }
+    }
+};
+
 function initThemeSectionCollapsible() {
     if (!DOM.themeSection || !DOM.themeSectionToggle) return;
 
@@ -3947,6 +4142,17 @@ const App = {
         if (typeof FocusMode !== 'undefined') {
             FocusMode.init();
         }
+
+        // Initialize Command Palette (S5 / F2) — global ⌘K
+        if (typeof CommandPalette !== 'undefined') {
+            CommandPalette.init();
+        }
+
+        // Initialize S5 polish: offline banner, scroll restore, etc.
+        S5Polish.init();
+
+        // PWA share target — handle ?share-target on first load
+        S5Polish.handleShareTarget();
     },
 
     // Load initial data
@@ -6651,7 +6857,8 @@ const App = {
         const tomorrow0 = new Date(today0); tomorrow0.setDate(tomorrow0.getDate() + 1);
         const weekEnd = new Date(today0); weekEnd.setDate(weekEnd.getDate() + 7);
 
-        const pending = (AppState.messages || []).filter(m => m.isTask && !m.taskCompleted);
+        const showCompleted = (typeof S5Polish !== 'undefined') && S5Polish.showCompletedEnabled();
+        const pending = (AppState.messages || []).filter(m => m.isTask && (showCompleted || !m.taskCompleted));
 
         const groups = {
             today:    { label: 'Hoje',          items: [] },
@@ -7086,15 +7293,32 @@ const App = {
 
     // Event listeners setup
     setupEventListeners() {
-        // Auth forms
+        // Auth forms (§7.19 — explicit client-side guard before API call)
         DOM.loginForm.addEventListener('submit', (e) => {
             e.preventDefault();
-            this.login(DOM.loginEmail.value, DOM.loginPassword.value, DOM.loginMfaCode?.value);
+            const email = (DOM.loginEmail.value || '').trim();
+            const pass = DOM.loginPassword.value || '';
+            if (!email || !pass) {
+                showToast('Preencha email e senha');
+                return;
+            }
+            this.login(email, pass, DOM.loginMfaCode?.value);
         });
 
         DOM.registerForm.addEventListener('submit', (e) => {
             e.preventDefault();
-            this.register(DOM.registerName.value, DOM.registerEmail.value, DOM.registerPassword.value);
+            const name = (DOM.registerName.value || '').trim();
+            const email = (DOM.registerEmail.value || '').trim();
+            const pass = DOM.registerPassword.value || '';
+            if (!name || !email || !pass) {
+                showToast('Preencha todos os campos');
+                return;
+            }
+            if (pass.length < 10) {
+                showToast('Senha deve ter no mínimo 10 caracteres');
+                return;
+            }
+            this.register(name, email, pass);
         });
 
         DOM.showRegister.addEventListener('click', (e) => {
@@ -7351,11 +7575,11 @@ const App = {
             DOM.voiceStopBtn.addEventListener('click', () => SpeechToText.stop());
         }
 
-        // Search
+        // Search (§7.7 — autofocus reliably via rAF)
         DOM.searchBtn.addEventListener('click', () => {
             DOM.searchBar.classList.toggle('active');
             if (DOM.searchBar.classList.contains('active')) {
-                DOM.searchInput.focus();
+                requestAnimationFrame(() => DOM.searchInput.focus());
             } else {
                 clearSearch();
             }
@@ -8304,9 +8528,23 @@ document.addEventListener('DOMContentLoaded', () => {
     // Register Service Worker (PWA) - keep this in external JS to satisfy CSP.
     if ('serviceWorker' in navigator) {
         navigator.serviceWorker.register('/sw.js').then((registration) => {
-            // If there's already a waiting worker, activate it now.
+            // §7.9 — surface waiting workers as a "Recarregar?" toast
+            const promptUpdate = (worker) => {
+                if (!worker || !window.Toast) return;
+                Toast.show('Nova versão disponível', {
+                    type: 'info',
+                    duration: 20000,
+                    action: {
+                        label: 'Recarregar',
+                        onClick: () => {
+                            worker.postMessage({ type: 'SKIP_WAITING' });
+                        }
+                    }
+                });
+            };
+
             if (registration.waiting) {
-                registration.waiting.postMessage({ type: 'SKIP_WAITING' });
+                promptUpdate(registration.waiting);
             }
 
             registration.addEventListener('updatefound', () => {
@@ -8314,7 +8552,7 @@ document.addEventListener('DOMContentLoaded', () => {
                 if (!newWorker) return;
                 newWorker.addEventListener('statechange', () => {
                     if (newWorker.state === 'installed' && navigator.serviceWorker.controller) {
-                        newWorker.postMessage({ type: 'SKIP_WAITING' });
+                        promptUpdate(newWorker);
                     }
                 });
             });

@@ -6395,6 +6395,328 @@ body {
     color: var(--ink);
 }
 
+/* =============================================
+   S5 — Command Palette + polish + bug fixes
+   ============================================= */
+
+/* Command Palette ----------------------------- */
+.cmd-palette {
+    position: fixed;
+    inset: 0;
+    z-index: var(--z-overlay);
+    display: none;
+}
+
+.cmd-palette[data-active="1"] {
+    display: block;
+}
+
+.cmd-palette__backdrop {
+    position: absolute;
+    inset: 0;
+    background: rgba(0, 0, 0, 0.45);
+    backdrop-filter: blur(8px);
+    animation: modalBackdropIn 0.18s ease both;
+}
+
+[data-theme="paper"] .cmd-palette__backdrop {
+    background: rgba(29, 26, 20, 0.35);
+}
+
+.cmd-palette__panel {
+    position: absolute;
+    top: 12vh;
+    left: 50%;
+    width: min(560px, calc(100vw - 32px));
+    transform: translateX(-50%);
+    background: var(--surface);
+    border: 1px solid var(--hair);
+    border-radius: var(--radius-lg);
+    box-shadow: var(--shadow-lg);
+    overflow: hidden;
+    animation: modalIn 0.22s cubic-bezier(0.2, 0.8, 0.2, 1) both;
+}
+
+[data-theme="linear"] .cmd-palette__panel {
+    border-radius: var(--radius-md);
+}
+
+.cmd-palette__input-row {
+    display: flex;
+    align-items: center;
+    gap: var(--spacing-sm);
+    padding: var(--spacing-md) var(--spacing-lg);
+    border-bottom: 1px solid var(--hair);
+}
+
+.cmd-palette__input-row > i {
+    color: var(--ink-3);
+    font-size: 16px;
+}
+
+.cmd-palette__input {
+    flex: 1;
+    background: none;
+    border: none;
+    outline: none;
+    color: var(--ink);
+    font-family: var(--font-ui);
+    font-size: var(--fs-lg);
+    padding: 0;
+    min-width: 0;
+}
+
+.cmd-palette__input::placeholder {
+    color: var(--ink-3);
+}
+
+.cmd-palette__kbd {
+    font-family: var(--font-mono);
+    font-size: 10px;
+    color: var(--ink-3);
+    background: var(--surface-2);
+    padding: 2px 6px;
+    border-radius: var(--radius-sm);
+    border: 1px solid var(--hair);
+}
+
+.cmd-palette__smart {
+    display: flex;
+    align-items: center;
+    gap: 8px;
+    padding: 10px var(--spacing-lg);
+    background: var(--bg);
+    border-bottom: 1px solid var(--hair);
+    font-family: var(--font-ui);
+    font-size: var(--fs-sm);
+    color: var(--ink-2);
+}
+
+.cmd-palette__smart > i {
+    color: var(--accent);
+    font-size: 12px;
+}
+
+.cmd-smart__label {
+    font-family: var(--font-mono);
+    font-size: var(--fs-xs);
+    color: var(--accent);
+    text-transform: uppercase;
+    letter-spacing: 0.16em;
+}
+
+.cmd-smart__text {
+    color: var(--ink);
+    flex: 1;
+    min-width: 0;
+    overflow: hidden;
+    text-overflow: ellipsis;
+    white-space: nowrap;
+}
+
+.cmd-smart__chip {
+    font-family: var(--font-mono);
+    font-size: var(--fs-xs);
+    color: var(--ink-2);
+    background: var(--surface-2);
+    padding: 2px 8px;
+    border-radius: var(--radius-pill);
+    text-transform: uppercase;
+    letter-spacing: 0.12em;
+}
+
+.cmd-palette__list {
+    max-height: min(60vh, 480px);
+    overflow-y: auto;
+    padding: 6px;
+}
+
+.cmd-palette__group {
+    font-family: var(--font-mono);
+    font-size: var(--fs-xs);
+    color: var(--ink-3);
+    text-transform: uppercase;
+    letter-spacing: 0.16em;
+    padding: 8px 10px 4px;
+}
+
+.cmd-palette__item {
+    display: flex;
+    align-items: center;
+    gap: 10px;
+    width: 100%;
+    padding: 10px 12px;
+    background: none;
+    border: none;
+    border-radius: var(--radius-md);
+    color: var(--ink);
+    font-family: var(--font-ui);
+    font-size: var(--fs-md);
+    cursor: pointer;
+    text-align: left;
+}
+
+.cmd-palette__item > i {
+    width: 20px;
+    text-align: center;
+    color: var(--ink-3);
+    font-size: 14px;
+}
+
+.cmd-palette__item.is-active {
+    background: var(--surface-2);
+    color: var(--ink);
+}
+
+[data-theme="linear"] .cmd-palette__item.is-active {
+    background: rgba(124, 139, 245, 0.06);
+    box-shadow: inset 2px 0 0 var(--accent);
+}
+
+.cmd-palette__item.is-active > i {
+    color: var(--accent);
+}
+
+.cmd-palette__label {
+    flex: 1;
+    overflow: hidden;
+    text-overflow: ellipsis;
+    white-space: nowrap;
+}
+
+.cmd-palette__item--create {
+    color: var(--accent);
+}
+
+.cmd-palette__empty {
+    padding: var(--spacing-lg);
+    text-align: center;
+    color: var(--ink-3);
+    font-family: var(--font-mono);
+    font-size: var(--fs-xs);
+    text-transform: uppercase;
+    letter-spacing: 0.12em;
+}
+
+.cmd-palette__empty em {
+    color: var(--ink);
+    font-style: normal;
+    font-family: var(--font-display);
+    font-size: var(--fs-md);
+    text-transform: none;
+    letter-spacing: 0;
+}
+
+.cmd-palette__footer {
+    display: flex;
+    gap: var(--spacing-md);
+    padding: 8px var(--spacing-lg);
+    border-top: 1px solid var(--hair);
+    background: var(--bg);
+    font-family: var(--font-mono);
+    font-size: var(--fs-xs);
+    color: var(--ink-3);
+    text-transform: uppercase;
+    letter-spacing: 0.14em;
+}
+
+.cmd-palette__footer kbd {
+    font-family: var(--font-mono);
+    background: var(--surface-2);
+    padding: 1px 6px;
+    border-radius: var(--radius-sm);
+    border: 1px solid var(--hair);
+    margin-right: 4px;
+}
+
+/* Offline banner (Bug §7.17) ------------------ */
+.offline-banner {
+    position: fixed;
+    top: 0;
+    left: 0;
+    right: 0;
+    z-index: calc(var(--z-overlay) + 1);
+    background: var(--ink);
+    color: var(--bg);
+    padding: 8px 16px;
+    text-align: center;
+    font-family: var(--font-mono);
+    font-size: var(--fs-xs);
+    text-transform: uppercase;
+    letter-spacing: 0.14em;
+    transform: translateY(-100%);
+    transition: transform 200ms ease;
+}
+
+.offline-banner.is-visible {
+    transform: translateY(0);
+}
+
+[data-theme="playful"] .offline-banner,
+[data-theme="linear"] .offline-banner {
+    background: var(--danger);
+    color: #fff;
+}
+
+/* SW update toast (Bug §7.9) — uses regular toast styling.
+   Color picker active state (Bug §7.12) ------ */
+.color-option.active,
+.color-option[aria-selected="true"] {
+    transform: scale(1.15);
+    outline: 2px solid var(--ink);
+    outline-offset: 2px;
+}
+
+[data-theme="playful"] .color-option.active,
+[data-theme="linear"] .color-option.active {
+    outline-color: var(--accent);
+}
+
+/* Hide completed tasks toggle (Bug §7.16) ----- */
+.show-completed-toggle {
+    display: inline-flex;
+    align-items: center;
+    gap: 6px;
+    padding: 6px 12px;
+    background: var(--surface-2);
+    border: 1px solid var(--hair);
+    border-radius: var(--radius-pill);
+    color: var(--ink-2);
+    font-family: var(--font-mono);
+    font-size: var(--fs-xs);
+    text-transform: uppercase;
+    letter-spacing: 0.12em;
+    cursor: pointer;
+    margin-left: auto;
+}
+
+.show-completed-toggle.is-on {
+    background: var(--accent);
+    color: var(--surface);
+    border-color: var(--accent);
+}
+
+[data-theme="linear"] .show-completed-toggle.is-on {
+    color: #fff;
+}
+
+/* Long-press: prevent text selection + native menu (Bug §7.15) */
+.message,
+.kanban-card,
+.task-list-mobile .message,
+.composer-chip {
+    -webkit-user-select: none;
+    user-select: none;
+    -webkit-touch-callout: none;
+}
+
+.message-text,
+.message-text * {
+    -webkit-user-select: text;
+    user-select: text;
+}
+
+
 
 
 /* Reduced-motion safety */

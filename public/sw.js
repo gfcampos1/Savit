@@ -1,4 +1,4 @@
-const CACHE_NAME = 'savit-v26';
+const CACHE_NAME = 'savit-v27';
 
 // Keep this list same-origin only; cross-origin precache can fail (CORS) and break install.
 const STATIC_ASSETS = [
@@ -10,6 +10,7 @@ const STATIC_ASSETS = [
     '/js/router.js',
     '/js/utils/parse-natural.js',
     '/js/components/toast.js',
+    '/js/components/command-palette.js',
     '/js/app.js',
     '/vendor/MindElixirLite.css',
     '/vendor/MindElixirLite.iife.js',
@@ -38,9 +39,15 @@ async function precacheAssets() {
 }
 
 self.addEventListener('install', (event) => {
-    event.waitUntil(
-        precacheAssets().then(() => self.skipWaiting())
-    );
+    // S5: do NOT auto-skipWaiting. Wait for the client to send SKIP_WAITING
+    // (triggered by the "Recarregar" toast — bug §7.9).
+    event.waitUntil(precacheAssets());
+});
+
+self.addEventListener('message', (event) => {
+    if (event.data && event.data.type === 'SKIP_WAITING') {
+        self.skipWaiting();
+    }
 });
 
 self.addEventListener('activate', (event) => {

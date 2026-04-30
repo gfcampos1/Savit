@@ -216,6 +216,12 @@ const API = {
             });
         },
 
+        async archive(id) {
+            return API.request(`/messages/${id}/archive`, {
+                method: 'PATCH'
+            });
+        },
+
         async delete(id) {
             return API.request(`/messages/${id}`, {
                 method: 'DELETE'

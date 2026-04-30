@@ -307,6 +307,33 @@ router.patch('/:id/toggle', validateParams(IdParam), writeLimiter, async (req, r
     }
 });
 
+// Archive / unarchive message (S5 — backend hook for swipe-left in S6)
+router.patch('/:id/archive', validateParams(IdParam), writeLimiter, async (req, res) => {
+    try {
+        const existing = await prisma.message.findFirst({
+            where: { id: req.params.id, userId: req.user.id }
+        });
+
+        if (!existing) {
+            return res.status(404).json({ error: 'Mensagem não encontrada.' });
+        }
+
+        const archived = !existing.archivedAt;
+        const message = await prisma.message.update({
+            where: { id: req.params.id },
+            data: { archivedAt: archived ? new Date() : null },
+            include: {
+                category: { select: { id: true, name: true, color: true } }
+            }
+        });
+
+        res.json({ message: decryptMessage(message), archived });
+    } catch (error) {
+        console.error('Archive message error:', error);
+        res.status(500).json({ error: 'Erro ao arquivar mensagem.' });
+    }
+});
+
 // Delete message
 router.delete('/:id', validateParams(IdParam), writeLimiter, async (req, res) => {
     try {
