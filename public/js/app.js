@@ -5420,10 +5420,24 @@ const App = {
         const shouldStick = isMainChat ? AppState.chatStickToBottom : false;
 
         if (messagesToRender.length === 0) {
+            const hasSearch = !!(AppState.searchQuery || AppState.searchCategory || AppState.searchDate);
             if (container === DOM.messagesContainer) {
-                DOM.emptyState.style.display = 'flex';
-                container.innerHTML = '';
-                container.appendChild(DOM.emptyState);
+                if (hasSearch) {
+                    // §7.8 — search-specific empty state with the query echoed back
+                    const q = AppState.searchQuery || '';
+                    container.innerHTML = '<div class="empty-state feed-empty">'
+                        + '<h2 class="feed-empty__title">Nenhum resultado' + (q ? ' para <em>' + Utils.escapeHtml(q) + '</em>' : '') + '.</h2>'
+                        + '<button type="button" class="feed-empty__cta" id="clearSearchInline">Limpar busca</button>'
+                        + '</div>';
+                    const clr = container.querySelector('#clearSearchInline');
+                    if (clr) clr.addEventListener('click', () => {
+                        if (typeof clearSearch === 'function') clearSearch();
+                    });
+                } else {
+                    DOM.emptyState.style.display = 'flex';
+                    container.innerHTML = '';
+                    container.appendChild(DOM.emptyState);
+                }
             } else {
                 container.innerHTML = `
                     <div class="empty-state">
@@ -5639,13 +5653,44 @@ const App = {
                 this.showContextMenu(e, message.dataset.id);
             });
 
-            // Swipe gestures (S2 / F5) — mobile-only by default
+            // Swipe gestures (S2/F5 + S6 archive) — mobile-only by default
             if (typeof Swipe !== 'undefined') {
                 Swipe.attach(message, {
                     onRight: () => App.handleSwipeRight(message.dataset.id),
+                    onLeft:  () => App.handleSwipeLeft(message.dataset.id),
                 });
             }
         });
+    },
+
+    // Swipe-left handler (S6 / F5) — archive with undo
+    async handleSwipeLeft(messageId) {
+        const msg = AppState.messages.find(m => m.id === messageId);
+        if (!msg) return;
+        try {
+            const { message: updated } = await API.messages.archive(messageId);
+            AppState.messages = AppState.messages.filter(m => m.id !== messageId);
+            this.renderMessages();
+            if (window.Toast) {
+                Toast.show('Arquivada', {
+                    type: 'info',
+                    action: {
+                        label: 'Desfazer',
+                        onClick: async () => {
+                            try {
+                                const { message: reverted } = await API.messages.archive(messageId);
+                                AppState.messages.push(reverted);
+                                this.renderMessages();
+                            } catch (err) {
+                                Toast.error('Não foi possível restaurar');
+                            }
+                        }
+                    }
+                });
+            }
+        } catch (err) {
+            if (window.Toast) Toast.error(err && err.message ? err.message : 'Erro ao arquivar');
+        }
     },
 
     // Swipe-right handler (S2 / F5)
@@ -6267,6 +6312,8 @@ const App = {
         // S3: render mobile grouped list and focus card alongside the desktop board
         this.renderTaskListMobile();
         this.renderFocusCard();
+        // S6: render calendar (only visible when view-toggle is on calendar)
+        this.renderTaskCalendar();
 
         const search = AppState.kanbanSearch.toLowerCase();
         const categoryFilter = AppState.kanbanCategory;
@@ -6901,6 +6948,91 @@ const App = {
         this.attachMessageEventListeners(root);
     },
 
+    // S6 — Task calendar (desktop only)
+    renderTaskCalendar() {
+        const grid = document.getElementById('calGrid');
+        const titleEl = document.getElementById('calTitle');
+        if (!grid || !titleEl) return;
+
+        const ref = AppState.calendarDate instanceof Date ? AppState.calendarDate : new Date();
+        AppState.calendarDate = ref;
+        const year = ref.getFullYear();
+        const month = ref.getMonth();
+        const firstOfMonth = new Date(year, month, 1);
+        const startWeekday = firstOfMonth.getDay(); // 0..6 (sun..sat)
+        const daysInMonth = new Date(year, month + 1, 0).getDate();
+        const today0 = new Date(); today0.setHours(0, 0, 0, 0);
+
+        const monthNames = ['Janeiro', 'Fevereiro', 'Março', 'Abril', 'Maio', 'Junho',
+            'Julho', 'Agosto', 'Setembro', 'Outubro', 'Novembro', 'Dezembro'];
+        titleEl.textContent = monthNames[month] + ' ' + year;
+
+        // Bucket tasks by ISO date (YYYY-MM-DD)
+        const buckets = {};
+        for (const m of (AppState.messages || [])) {
+            if (!m.isTask || !m.taskDate) continue;
+            const key = String(m.taskDate).split('T')[0];
+            if (!buckets[key]) buckets[key] = [];
+            buckets[key].push(m);
+        }
+
+        // Build 6×7 grid (or 5×7 if fits) starting from Sunday before first
+        const cellCount = startWeekday + daysInMonth;
+        const rows = Math.ceil(cellCount / 7);
+        const totalCells = rows * 7;
+        let html = '';
+        for (let i = 0; i < totalCells; i++) {
+            const dayOffset = i - startWeekday + 1;
+            const cellDate = new Date(year, month, dayOffset);
+            const isOut = dayOffset < 1 || dayOffset > daysInMonth;
+            const isoKey = cellDate.getFullYear() + '-'
+                + String(cellDate.getMonth() + 1).padStart(2, '0') + '-'
+                + String(cellDate.getDate()).padStart(2, '0');
+            const isToday = !isOut && cellDate.getTime() === today0.getTime();
+            const tasks = (!isOut && buckets[isoKey]) || [];
+
+            const classes = ['cal-day'];
+            if (isOut) classes.push('cal-day--out');
+            if (isToday) classes.push('cal-day--today');
+
+            let dots = '';
+            const maxDots = 6;
+            tasks.slice(0, maxDots).forEach(t => {
+                const color = (t.category && t.category.color) ? Utils.sanitizeCssColor(t.category.color) : 'var(--ink-3)';
+                const overdue = !t.taskCompleted && cellDate < today0;
+                dots += '<span class="cal-dot' + (overdue ? ' cal-dot--overdue' : '') + '" style="background:' + color + '" title="' + Utils.escapeHtml(stripHtmlText(t.text)) + '"></span>';
+            });
+            const more = tasks.length > maxDots ? ('<span class="cal-day__more">+' + (tasks.length - maxDots) + '</span>') : '';
+
+            html += '<div class="' + classes.join(' ') + '">'
+                + '<span class="cal-day__num">' + cellDate.getDate() + '</span>'
+                + '<div class="cal-day__dots">' + dots + more + '</div>'
+                + '</div>';
+        }
+        grid.innerHTML = html;
+
+        function stripHtmlText(s) {
+            const tmp = document.createElement('div');
+            tmp.innerHTML = String(s || '');
+            return (tmp.textContent || tmp.innerText || '').trim().slice(0, 60);
+        }
+    },
+
+    setTaskView(view) {
+        const page = document.getElementById('kanbanPage');
+        if (!page) return;
+        page.dataset.view = view;
+        const board = document.getElementById('kanbanBoard');
+        const cal = document.getElementById('taskCalendar');
+        if (board) board.style.display = view === 'kanban' ? '' : 'none';
+        if (cal) cal.hidden = view !== 'calendar';
+        document.querySelectorAll('#kanbanPage .view-toggle__btn').forEach(btn => {
+            const isActive = btn.dataset.view === view;
+            btn.classList.toggle('is-active', isActive);
+            btn.setAttribute('aria-selected', isActive ? 'true' : 'false');
+        });
+    },
+
     renderFocusCard() {
         const card = document.getElementById('focusCard');
         if (!card) return;
@@ -6951,6 +7083,21 @@ const App = {
         DOM.editMessageIsTask.checked = message.isTask;
         DOM.editTaskDate.value = message.taskDate ? message.taskDate.split('T')[0] : '';
         DOM.editTaskTime.value = message.taskTime || '';
+
+        // §7.5 — sync visual toggle pill + datetime-local input
+        const togglePill = document.getElementById('editMessageIsTaskToggle');
+        if (togglePill) {
+            togglePill.classList.toggle('is-on', !!message.isTask);
+            togglePill.setAttribute('aria-pressed', message.isTask ? 'true' : 'false');
+            const lbl = togglePill.querySelector('span');
+            if (lbl) lbl.textContent = message.isTask ? 'É uma tarefa' : 'Tornar tarefa';
+        }
+        const dtInput = document.getElementById('editTaskDateTime');
+        if (dtInput) {
+            const date = DOM.editTaskDate.value || '';
+            const time = DOM.editTaskTime.value || '';
+            dtInput.value = (date && time) ? (date + 'T' + time) : (date || '');
+        }
 
         DOM.editTaskFields.style.display = message.isTask ? 'block' : 'none';
 
@@ -7734,6 +7881,36 @@ const App = {
         DOM.editMessageIsTask.addEventListener('change', () => {
             DOM.editTaskFields.style.display = DOM.editMessageIsTask.checked ? 'block' : 'none';
         });
+
+        // §7.5 — visual toggle pill drives the hidden checkbox
+        const editTaskToggle = document.getElementById('editMessageIsTaskToggle');
+        if (editTaskToggle) {
+            editTaskToggle.addEventListener('click', () => {
+                const next = !DOM.editMessageIsTask.checked;
+                DOM.editMessageIsTask.checked = next;
+                DOM.editMessageIsTask.dispatchEvent(new Event('change'));
+                editTaskToggle.classList.toggle('is-on', next);
+                editTaskToggle.setAttribute('aria-pressed', next ? 'true' : 'false');
+                const lbl = editTaskToggle.querySelector('span');
+                if (lbl) lbl.textContent = next ? 'É uma tarefa' : 'Tornar tarefa';
+            });
+        }
+
+        // §7.6 / §7.5 — single datetime-local input mirrors split fields
+        const editDt = document.getElementById('editTaskDateTime');
+        if (editDt) {
+            editDt.addEventListener('change', () => {
+                const v = editDt.value || '';
+                if (v.includes('T')) {
+                    const [d, t] = v.split('T');
+                    DOM.editTaskDate.value = d || '';
+                    DOM.editTaskTime.value = (t || '').slice(0, 5);
+                } else {
+                    DOM.editTaskDate.value = v;
+                    DOM.editTaskTime.value = '';
+                }
+            });
+        }
         DOM.saveEditMessageBtn.addEventListener('click', () => {
             this.updateMessage(AppState.editingMessageId);
             closeModal(DOM.editMessageModal);
@@ -7763,6 +7940,34 @@ const App = {
                 if (typeof FocusMode !== 'undefined') FocusMode.start();
             });
         }
+
+        // S6 — Tasks view toggle (Kanban ↔ Calendar)
+        const TASK_VIEW_KEY = 'savit_task_view';
+        document.querySelectorAll('#kanbanPage .view-toggle__btn').forEach(btn => {
+            btn.addEventListener('click', () => {
+                const view = btn.dataset.view || 'kanban';
+                try { localStorage.setItem(TASK_VIEW_KEY, view); } catch { /* ignore */ }
+                this.setTaskView(view);
+                if (view === 'calendar') this.renderTaskCalendar();
+            });
+        });
+        const savedView = (() => { try { return localStorage.getItem(TASK_VIEW_KEY); } catch { return null; } })();
+        if (savedView === 'calendar' || savedView === 'kanban') {
+            this.setTaskView(savedView);
+        }
+
+        const calPrev = document.getElementById('calPrevBtn');
+        const calNext = document.getElementById('calNextBtn');
+        if (calPrev) calPrev.addEventListener('click', () => {
+            const d = AppState.calendarDate || new Date();
+            AppState.calendarDate = new Date(d.getFullYear(), d.getMonth() - 1, 1);
+            this.renderTaskCalendar();
+        });
+        if (calNext) calNext.addEventListener('click', () => {
+            const d = AppState.calendarDate || new Date();
+            AppState.calendarDate = new Date(d.getFullYear(), d.getMonth() + 1, 1);
+            this.renderTaskCalendar();
+        });
 
         setupFormattingToolbar(DOM.categoryFormatToolbar, DOM.categoryMessageInput);
 

@@ -553,9 +553,21 @@
                 </div>
 
                 <!-- Kanban Page -->
-                <div class="page" id="kanbanPage">
+                <div class="page" id="kanbanPage" data-view="kanban">
                     <header class="page-header">
                         <h1>Tarefas</h1>
+                        <div class="page-header-actions">
+                            <div class="view-toggle" role="tablist" aria-label="Visualização de tarefas">
+                                <button class="view-toggle__btn is-active" data-view="kanban" role="tab" aria-selected="true" type="button">
+                                    <i class="fas fa-columns" aria-hidden="true"></i>
+                                    <span>Kanban</span>
+                                </button>
+                                <button class="view-toggle__btn" data-view="calendar" role="tab" aria-selected="false" type="button">
+                                    <i class="fas fa-calendar" aria-hidden="true"></i>
+                                    <span>Calendário</span>
+                                </button>
+                            </div>
+                        </div>
                     </header>
 
                     <button class="focus-card" id="focusCard" type="button" hidden>
@@ -584,6 +596,24 @@
 
                     <div class="task-list-mobile" id="taskListMobile" aria-label="Tarefas agrupadas">
                         <!-- mobile grouped list rendered by JS -->
+                    </div>
+
+                    <!-- Calendar view (S6, desktop only) -->
+                    <div class="task-calendar" id="taskCalendar" hidden>
+                        <header class="task-calendar__header">
+                            <button class="task-calendar__nav" id="calPrevBtn" type="button" aria-label="Mês anterior">
+                                <i class="fas fa-chevron-left" aria-hidden="true"></i>
+                            </button>
+                            <span class="task-calendar__title" id="calTitle">—</span>
+                            <button class="task-calendar__nav" id="calNextBtn" type="button" aria-label="Próximo mês">
+                                <i class="fas fa-chevron-right" aria-hidden="true"></i>
+                            </button>
+                        </header>
+                        <div class="task-calendar__weekdays" aria-hidden="true">
+                            <span>dom</span><span>seg</span><span>ter</span>
+                            <span>qua</span><span>qui</span><span>sex</span><span>sáb</span>
+                        </div>
+                        <div class="task-calendar__grid" id="calGrid"></div>
                     </div>
 
                     <div class="kanban-board" id="kanbanBoard">
@@ -1110,17 +1140,18 @@
                         </div>
                     </div>
                     <div class="form-group">
-                        <label class="checkbox-label">
-                            <input type="checkbox" id="editMessageIsTask">
-                            <span>É uma tarefa</span>
-                        </label>
+                        <button type="button" class="task-toggle-pill" id="editMessageIsTaskToggle" aria-pressed="false">
+                            <i class="fas fa-list-check" aria-hidden="true"></i>
+                            <span>Tornar tarefa</span>
+                        </button>
+                        <input type="checkbox" id="editMessageIsTask" hidden>
                     </div>
                     <div class="form-group task-fields" id="editTaskFields" style="display: none;">
-                        <label>Data e hora da tarefa</label>
-                        <div class="task-datetime">
-                            <input type="date" id="editTaskDate">
-                            <input type="time" id="editTaskTime">
-                        </div>
+                        <label class="form-group__label">Quando</label>
+                        <input type="datetime-local" id="editTaskDateTime" class="task-datetime-input">
+                        <!-- Legacy split fields kept hidden for back-compat with renderer code -->
+                        <input type="date" id="editTaskDate" hidden>
+                        <input type="time" id="editTaskTime" hidden>
                     </div>
                 </div>
                 <div class="modal-footer">

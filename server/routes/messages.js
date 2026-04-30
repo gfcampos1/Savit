@@ -45,7 +45,9 @@ router.get('/', readHeavyLimiter, validateQuery(MessagesQuery), async (req, res)
         const { categoryId, search, date, isTask, limit = 100, offset = 0 } = req.query;
 
         const where = {
-            userId: req.user.id
+            userId: req.user.id,
+            // S6: hide archived from default list (callers can pass ?includeArchived=1)
+            ...(req.query.includeArchived === '1' ? {} : { archivedAt: null })
         };
 
         // Filter by category
