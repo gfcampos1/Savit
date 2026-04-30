@@ -663,9 +663,18 @@ const FocusMode = {
         this.pageEl.dataset.active = '';
         this.pageEl.hidden = true;
         this.unbindKeys();
-        // Drop the focus hash so router doesn't reopen on hashchange
+        // Drop the focus hash so router doesn't reopen on hashchange.
+        // V2.5 — fall back to /tasks if there's no in-app history (direct entry via bookmark).
         if (location.hash === '#/focus') {
-            history.back();
+            const hasInAppHistory = history.length > 1
+                && (!document.referrer || document.referrer.includes(location.host));
+            if (hasInAppHistory) {
+                history.back();
+            } else if (typeof Router !== 'undefined' && typeof Router.go === 'function') {
+                Router.go('#/tasks');
+            } else {
+                location.hash = '#/tasks';
+            }
         }
     },
 
@@ -852,6 +861,27 @@ const S5Polish = {
                     e.preventDefault();
                     return;
                 }
+            }
+
+            // §7.20 — ↑↓ navigate between feed cards on Inbox
+            if ((e.key === 'ArrowDown' || e.key === 'ArrowUp') && !isEditable) {
+                if (document.querySelector('.modal.active')) return;
+                if (document.getElementById('focusPage')?.dataset.active === '1') return;
+                if (typeof CommandPalette !== 'undefined' && CommandPalette.isOpen && CommandPalette.isOpen()) return;
+                const cards = Array.from(document.querySelectorAll('#chatPage .messages-container .message[data-id]'));
+                if (!cards.length) return;
+                e.preventDefault();
+                const focused = document.activeElement;
+                let idx = cards.indexOf(focused);
+                if (idx === -1) {
+                    idx = e.key === 'ArrowDown' ? 0 : cards.length - 1;
+                } else {
+                    idx = e.key === 'ArrowDown'
+                        ? Math.min(idx + 1, cards.length - 1)
+                        : Math.max(idx - 1, 0);
+                }
+                cards[idx].focus();
+                cards[idx].scrollIntoView({ block: 'nearest', behavior: 'smooth' });
             }
         });
     },
@@ -1433,8 +1463,7 @@ const DOM = {
     editMessageCategoryMenu: document.getElementById('editMessageCategoryMenu'),
     editMessageIsTask: document.getElementById('editMessageIsTask'),
     editTaskFields: document.getElementById('editTaskFields'),
-    editTaskDate: document.getElementById('editTaskDate'),
-    editTaskTime: document.getElementById('editTaskTime'),
+    editTaskDateTime: document.getElementById('editTaskDateTime'),
     deleteMessageBtn: document.getElementById('deleteMessageBtn'),
     saveEditMessageBtn: document.getElementById('saveEditMessageBtn'),
     editProfileModal: document.getElementById('editProfileModal'),
@@ -4100,11 +4129,17 @@ const App = {
         if (AppState.user) {
             const firstName = AppState.user.name.split(' ')[0];
             const initial = AppState.user.name.charAt(0).toUpperCase();
-            
+
             DOM.userName.textContent = firstName;
             DOM.profileName.textContent = AppState.user.name;
             DOM.profileEmail.textContent = AppState.user.email;
-            
+
+            // Profile avatar letter (V1.2)
+            const profileAvatarLetter = document.getElementById('profileAvatarLetter');
+            if (profileAvatarLetter) {
+                profileAvatarLetter.textContent = initial || 'S';
+            }
+
             // Update sidebar (desktop)
             if (DOM.sidebarAvatar) {
                 DOM.sidebarAvatar.textContent = initial;
@@ -5508,7 +5543,7 @@ const App = {
         if (msg.isTask && msg.taskCompleted) classNames.push('task-completed');
         if (isOverdue) classNames.push('task-overdue');
 
-        let html = `<div class="${classNames.join(' ')}" data-id="${msg.id}">`;
+        let html = `<div class="${classNames.join(' ')}" data-id="${msg.id}" tabindex="0">`;
 
         // Category badge
         if (msg.category) {
@@ -6519,12 +6554,26 @@ const App = {
                 return;
             }
 
+            // §7.5/§7.6 — single datetime-local input; split into date + time at save time
+            let taskDate = null;
+            let taskTime = null;
+            if (DOM.editMessageIsTask.checked && DOM.editTaskDateTime) {
+                const v = DOM.editTaskDateTime.value || '';
+                if (v.includes('T')) {
+                    const [d, t] = v.split('T');
+                    taskDate = d || null;
+                    taskTime = (t || '').slice(0, 5) || null;
+                } else if (v) {
+                    taskDate = v;
+                }
+            }
+
             const { message } = await API.messages.update(id, {
                 text: isWysiwyg ? RichText.getHtml(DOM.editMessageText) : rawText.trimEnd(),
                 categoryId: DOM.editMessageCategory.value || null,
                 isTask: DOM.editMessageIsTask.checked,
-                taskDate: DOM.editMessageIsTask.checked ? DOM.editTaskDate.value : null,
-                taskTime: DOM.editMessageIsTask.checked ? DOM.editTaskTime.value : null
+                taskDate,
+                taskTime,
             });
 
             // Update in state
@@ -7081,10 +7130,8 @@ const App = {
             });
         }
         DOM.editMessageIsTask.checked = message.isTask;
-        DOM.editTaskDate.value = message.taskDate ? message.taskDate.split('T')[0] : '';
-        DOM.editTaskTime.value = message.taskTime || '';
 
-        // §7.5 — sync visual toggle pill + datetime-local input
+        // §7.5 — visual toggle pill
         const togglePill = document.getElementById('editMessageIsTaskToggle');
         if (togglePill) {
             togglePill.classList.toggle('is-on', !!message.isTask);
@@ -7092,11 +7139,12 @@ const App = {
             const lbl = togglePill.querySelector('span');
             if (lbl) lbl.textContent = message.isTask ? 'É uma tarefa' : 'Tornar tarefa';
         }
-        const dtInput = document.getElementById('editTaskDateTime');
-        if (dtInput) {
-            const date = DOM.editTaskDate.value || '';
-            const time = DOM.editTaskTime.value || '';
-            dtInput.value = (date && time) ? (date + 'T' + time) : (date || '');
+
+        // §7.6 — populate single datetime-local input from message
+        if (DOM.editTaskDateTime) {
+            const date = message.taskDate ? message.taskDate.split('T')[0] : '';
+            const time = message.taskTime || '';
+            DOM.editTaskDateTime.value = (date && time) ? (date + 'T' + time) : (date || '');
         }
 
         DOM.editTaskFields.style.display = message.isTask ? 'block' : 'none';
@@ -7896,21 +7944,8 @@ const App = {
             });
         }
 
-        // §7.6 / §7.5 — single datetime-local input mirrors split fields
-        const editDt = document.getElementById('editTaskDateTime');
-        if (editDt) {
-            editDt.addEventListener('change', () => {
-                const v = editDt.value || '';
-                if (v.includes('T')) {
-                    const [d, t] = v.split('T');
-                    DOM.editTaskDate.value = d || '';
-                    DOM.editTaskTime.value = (t || '').slice(0, 5);
-                } else {
-                    DOM.editTaskDate.value = v;
-                    DOM.editTaskTime.value = '';
-                }
-            });
-        }
+        // §7.5/§7.6 — datetime-local is the single source of truth.
+        // Save logic in updateMessage() reads it directly; no syncing needed.
         DOM.saveEditMessageBtn.addEventListener('click', () => {
             this.updateMessage(AppState.editingMessageId);
             closeModal(DOM.editMessageModal);

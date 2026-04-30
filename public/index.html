@@ -36,9 +36,9 @@
         <div class="auth-screen" id="authScreen" style="display: none;">
             <div class="auth-container">
                 <div class="auth-header">
-                    <i class="fas fa-lightbulb"></i>
-                    <h1>Savit</h1>
-                    <p>Suas ideias, sempre à mão</p>
+                    <span class="auth-mark">S</span>
+                    <span class="auth-eyebrow">SAVIT</span>
+                    <h1 class="auth-tagline">Suas ideias,<br><em>sempre à mão.</em></h1>
                 </div>
 
                 <!-- Login Form -->
@@ -438,7 +438,7 @@
                     <main class="chat-content">
                         <div class="messages-container" id="messagesContainer">
                             <div class="empty-state feed-empty" id="emptyState">
-                                <h2 class="feed-empty__title">Sua primeira ideia mora aqui.</h2>
+                                <h2 class="feed-empty__title">Sua primeira ideia<br><em>mora aqui.</em></h2>
                                 <p class="feed-empty__hint">Capture qualquer pensamento — vira nota ou tarefa</p>
                             </div>
                         </div>
@@ -654,7 +654,7 @@
                     <div class="page-content">
                         <div class="profile-header">
                             <div class="profile-avatar" id="profileAvatar">
-                                <i class="fas fa-user"></i>
+                                <span class="profile-avatar__letter" id="profileAvatarLetter">S</span>
                             </div>
                             <h2 id="profileName">Usuário</h2>
                             <p id="profileEmail">email@exemplo.com</p>
@@ -1149,9 +1149,6 @@
                     <div class="form-group task-fields" id="editTaskFields" style="display: none;">
                         <label class="form-group__label">Quando</label>
                         <input type="datetime-local" id="editTaskDateTime" class="task-datetime-input">
-                        <!-- Legacy split fields kept hidden for back-compat with renderer code -->
-                        <input type="date" id="editTaskDate" hidden>
-                        <input type="time" id="editTaskTime" hidden>
                     </div>
                 </div>
                 <div class="modal-footer">
