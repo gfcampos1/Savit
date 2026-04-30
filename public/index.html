@@ -1,9 +1,9 @@
 <!DOCTYPE html>
-<html lang="pt-BR">
+<html lang="pt-BR" data-theme="paper">
 <head>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no">
-    <meta name="theme-color" content="#075E54">
+    <meta name="theme-color" content="#f6f1e8">
     <meta name="apple-mobile-web-app-capable" content="yes">
     <meta name="mobile-web-app-capable" content="yes">
     <meta name="apple-mobile-web-app-status-bar-style" content="black-translucent">
@@ -13,6 +13,10 @@
     <link rel="icon" type="image/png" sizes="16x16" href="icons/icon-16.png">
     <link rel="apple-touch-icon" sizes="180x180" href="icons/icon-180.png">
     <title>Savit - Suas Ideias</title>
+    <link rel="preconnect" href="https://fonts.googleapis.com">
+    <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+    <link rel="stylesheet" href="https://fonts.googleapis.com/css2?family=Geist:wght@400;500;600;700&family=Instrument+Serif:ital@0;1&family=JetBrains+Mono:wght@400;500&display=swap">
+    <link rel="stylesheet" href="css/tokens.css">
     <link rel="stylesheet" href="css/styles.css">
     <link rel="stylesheet" href="vendor/MindElixirLite.css">
     <link rel="stylesheet" href="vendor/fontawesome/css/all.min.css">
@@ -90,61 +94,73 @@
             <!-- Desktop Sidebar -->
             <aside class="sidebar" id="sidebar">
                 <div class="sidebar-header">
-                    <i class="fas fa-lightbulb"></i>
-                    <span>Savit</span>
+                    <div class="sidebar-brand">
+                        <span class="sidebar-mark">S</span>
+                        <span class="sidebar-name">Savit</span>
+                    </div>
+                    <span class="sidebar-version">v2</span>
                 </div>
-                <nav class="sidebar-nav">
+                <button class="sidebar-cmd" id="sidebarCmdBtn" type="button" aria-label="Abrir paleta de comandos">
+                    <i class="fas fa-magnifying-glass" aria-hidden="true"></i>
+                    <span>Buscar ou capturar</span>
+                    <kbd class="sidebar-kbd">⌘K</kbd>
+                </button>
+                <nav class="sidebar-nav" aria-label="Navegação principal">
                     <button class="sidebar-nav-item active" data-page="home">
-                        <i class="fas fa-home"></i>
-                        <span>Início</span>
+                        <i class="fas fa-chart-simple" aria-hidden="true"></i>
+                        <span>Dashboard</span>
                     </button>
                     <button class="sidebar-nav-item" data-page="chat">
-                        <i class="fas fa-comment-dots"></i>
-                        <span>Ideias</span>
-                    </button>
-                    <button class="sidebar-nav-item" data-page="categories">
-                        <i class="fas fa-folder"></i>
-                        <span>Temas</span>
+                        <i class="fas fa-inbox" aria-hidden="true"></i>
+                        <span>Inbox</span>
                     </button>
                     <button class="sidebar-nav-item" data-page="kanban">
-                        <i class="fas fa-columns"></i>
-                        <span>Kanban</span>
+                        <i class="fas fa-list-check" aria-hidden="true"></i>
+                        <span>Tarefas</span>
                     </button>
-                    <button class="sidebar-nav-item" data-page="profile">
-                        <i class="fas fa-user"></i>
-                        <span>Perfil</span>
+                    <button class="sidebar-nav-item" data-page="categories">
+                        <i class="fas fa-folder-open" aria-hidden="true"></i>
+                        <span>Categorias</span>
                     </button>
                 </nav>
-                <div class="sidebar-footer">
-                    <div class="sidebar-user">
-                        <div class="sidebar-avatar" id="sidebarAvatar">G</div>
-                        <span class="sidebar-username" id="sidebarUsername">Usuário</span>
+                <div class="sidebar-section">
+                    <div class="sidebar-section-label">Categorias</div>
+                    <div class="sidebar-section-list" id="sidebarCategoryList">
+                        <!-- populated dynamically in S3 -->
                     </div>
+                </div>
+                <div class="sidebar-footer">
+                    <button class="sidebar-user" data-page="profile" type="button">
+                        <div class="sidebar-avatar" id="sidebarAvatar">G</div>
+                        <div class="sidebar-user-meta">
+                            <span class="sidebar-username" id="sidebarUsername">Usuário</span>
+                            <span class="sidebar-userplan">Conta</span>
+                        </div>
+                    </button>
                 </div>
             </aside>
 
             <!-- Main Content Area -->
             <div class="main-content">
                 <!-- Bottom Navigation (Mobile) -->
-                <nav class="bottom-nav" id="bottomNav">
-                    <button class="nav-item active" data-page="home">
-                        <i class="fas fa-home"></i>
-                        <span>Início</span>
+                <nav class="bottom-nav" id="bottomNav" aria-label="Navegação inferior">
+                    <button class="nav-item active" data-page="chat">
+                        <i class="fas fa-inbox" aria-hidden="true"></i>
+                        <span>Inbox</span>
                     </button>
-                    <button class="nav-item" data-page="chat">
-                        <i class="fas fa-comment-dots"></i>
-                        <span>Ideias</span>
+                    <button class="nav-item" data-page="home">
+                        <i class="fas fa-chart-simple" aria-hidden="true"></i>
+                        <span>Hoje</span>
                     </button>
-                    <button class="nav-item" data-page="categories">
-                        <i class="fas fa-folder"></i>
-                        <span>Temas</span>
+                    <button class="nav-item nav-item--capture" id="captureFab" type="button" aria-label="Capturar nova ideia">
+                        <i class="fas fa-plus" aria-hidden="true"></i>
                     </button>
                     <button class="nav-item" data-page="kanban">
-                        <i class="fas fa-columns"></i>
-                        <span>Kanban</span>
+                        <i class="fas fa-list-check" aria-hidden="true"></i>
+                        <span>Tarefas</span>
                     </button>
                     <button class="nav-item" data-page="profile">
-                        <i class="fas fa-user"></i>
+                        <i class="fas fa-user" aria-hidden="true"></i>
                         <span>Perfil</span>
                     </button>
                 </nav>
@@ -569,22 +585,22 @@
                             <div class="theme-selector is-collapsed" id="themeSection">
                                 <button class="theme-selector-header" id="themeSectionToggle" type="button">
                                     <span class="theme-selector-title">Tema do aplicativo</span>
-                                    <span class="theme-selector-current" id="themeCurrentLabel">Sistema</span>
+                                    <span class="theme-selector-current" id="themeCurrentLabel">Papel</span>
                                     <i class="fas fa-chevron-down" aria-hidden="true"></i>
                                 </button>
                                 <div class="theme-selector-content" id="themeSectionContent">
                                     <div class="theme-options">
-                                        <button class="theme-option" data-theme="light" id="themeLightBtn">
-                                            <i class="fas fa-sun"></i>
-                                            <span>Claro</span>
+                                        <button class="theme-option active" data-theme="paper" id="themePaperBtn">
+                                            <i class="fas fa-file-lines"></i>
+                                            <span>Papel</span>
                                         </button>
-                                        <button class="theme-option active" data-theme="dark" id="themeDarkBtn">
-                                            <i class="fas fa-moon"></i>
-                                            <span>Escuro</span>
+                                        <button class="theme-option" data-theme="playful" id="themePlayfulBtn">
+                                            <i class="fas fa-wand-magic-sparkles"></i>
+                                            <span>Vibrante</span>
                                         </button>
-                                        <button class="theme-option" data-theme="system" id="themeSystemBtn">
-                                            <i class="fas fa-desktop"></i>
-                                            <span>Sistema</span>
+                                        <button class="theme-option" data-theme="linear" id="themeLinearBtn">
+                                            <i class="fas fa-grip-lines"></i>
+                                            <span>Linear</span>
                                         </button>
                                     </div>
                                 </div>
@@ -1296,6 +1312,7 @@
 
     <script src="vendor/MindElixirLite.iife.js?v=20260115-1"></script>
     <script src="js/api.js?v=20260115-1"></script>
+    <script src="js/router.js?v=20260115-1"></script>
     <script src="js/app.js?v=20260115-1"></script>
 </body>
 </html>

@@ -25,7 +25,7 @@ const AppState = {
     searchDate: '',
     viewingCategoryId: null,
     isLoading: false,
-    theme: 'dark',
+    theme: 'paper',
     pendingImages: [],
     categoryPendingImages: [],
     drawingForCategory: false,
@@ -348,49 +348,52 @@ const SpeechToText = {
 // =============================================
 
 const ThemeManager = {
+    VALID: ['paper', 'playful', 'linear'],
+    DEFAULT: 'paper',
+    LABELS: { paper: 'Papel', playful: 'Vibrante', linear: 'Linear' },
+    META_BG: { paper: '#f6f1e8', playful: '#0e0a1a', linear: '#0a0c10' },
+
     init() {
-        // Load saved theme or detect system preference
-        const savedTheme = localStorage.getItem('savit-theme') || 'system';
-        this.setTheme(savedTheme);
-        
-        // Listen for system theme changes
-        window.matchMedia('(prefers-color-scheme: dark)').addEventListener('change', (e) => {
-            if (AppState.theme === 'system') {
-                this.applyTheme(e.matches ? 'dark' : 'light');
+        this.migrateLegacyKey();
+        const stored = localStorage.getItem('savit_theme');
+        const theme = this.VALID.includes(stored) ? stored : this.DEFAULT;
+        this.setTheme(theme);
+    },
+
+    migrateLegacyKey() {
+        try {
+            const legacy = localStorage.getItem('savit-theme');
+            const current = localStorage.getItem('savit_theme');
+            if (legacy && !current) {
+                const map = { light: 'paper', dark: 'linear', system: 'paper' };
+                localStorage.setItem('savit_theme', map[legacy] || this.DEFAULT);
             }
-        });
+            if (legacy) localStorage.removeItem('savit-theme');
+        } catch {
+            // ignore storage errors
+        }
     },
 
     setTheme(theme) {
+        if (!this.VALID.includes(theme)) theme = this.DEFAULT;
         AppState.theme = theme;
-        localStorage.setItem('savit-theme', theme);
-        
-        if (theme === 'system') {
-            const prefersDark = window.matchMedia('(prefers-color-scheme: dark)').matches;
-            this.applyTheme(prefersDark ? 'dark' : 'light');
-        } else {
-            this.applyTheme(theme);
-        }
-        
+        try { localStorage.setItem('savit_theme', theme); } catch { /* ignore */ }
+        this.applyTheme(theme);
         this.updateButtons();
     },
 
     applyTheme(theme) {
-        if (theme === 'light') {
-            document.documentElement.setAttribute('data-theme', 'light');
-        } else {
-            document.documentElement.removeAttribute('data-theme');
-        }
+        document.documentElement.dataset.theme = theme;
+        const meta = document.querySelector('meta[name="theme-color"]');
+        if (meta) meta.setAttribute('content', this.META_BG[theme] || this.META_BG.paper);
     },
 
     updateButtons() {
         document.querySelectorAll('.theme-option').forEach(btn => {
             btn.classList.toggle('active', btn.dataset.theme === AppState.theme);
         });
-
-        const labels = { light: 'Claro', dark: 'Escuro', system: 'Sistema' };
         if (DOM.themeCurrentLabel) {
-            DOM.themeCurrentLabel.textContent = labels[AppState.theme] || 'Sistema';
+            DOM.themeCurrentLabel.textContent = this.LABELS[AppState.theme] || this.LABELS[this.DEFAULT];
         }
     }
 };
@@ -737,9 +740,9 @@ const DOM = {
     categoryDrawMessageBtn: document.getElementById('categoryDrawMessageBtn'),
 
     // Theme
-    themeLightBtn: document.getElementById('themeLightBtn'),
-    themeDarkBtn: document.getElementById('themeDarkBtn'),
-    themeSystemBtn: document.getElementById('themeSystemBtn'),
+    themePaperBtn: document.getElementById('themePaperBtn'),
+    themePlayfulBtn: document.getElementById('themePlayfulBtn'),
+    themeLinearBtn: document.getElementById('themeLinearBtn'),
 
     // Theme section (collapsible)
     themeSection: document.getElementById('themeSection'),
@@ -3521,6 +3524,11 @@ const App = {
 
         // Initialize collapsible UI sections
         initThemeSectionCollapsible();
+
+        // Initialize hash router (after DOM/state are ready)
+        if (typeof Router !== 'undefined') {
+            Router.init();
+        }
     },
 
     // Load initial data
@@ -3564,8 +3572,16 @@ const App = {
     navigateTo(page) {
         AppState.currentPage = page;
 
+        // Mirror to URL hash
+        if (typeof Router !== 'undefined' && Router.syncFromNavigate) {
+            const params = page === 'categoryMessages' && AppState.viewingCategoryId
+                ? { categoryId: AppState.viewingCategoryId }
+                : null;
+            Router.syncFromNavigate(page, params);
+        }
+
         // Update bottom nav
-        DOM.bottomNav.querySelectorAll('.nav-item').forEach(btn => {
+        DOM.bottomNav.querySelectorAll('.nav-item[data-page]').forEach(btn => {
             btn.classList.toggle('active', btn.dataset.page === page);
         });
 
@@ -6241,18 +6257,45 @@ const App = {
             DOM.loginForm.style.display = 'block';
         });
 
-        // Navigation
-        DOM.bottomNav.querySelectorAll('.nav-item').forEach(btn => {
+        // Navigation (mobile bottom nav — only items with data-page are nav-targets)
+        DOM.bottomNav.querySelectorAll('.nav-item[data-page]').forEach(btn => {
             btn.addEventListener('click', () => {
                 this.navigateTo(btn.dataset.page);
             });
         });
 
+        // Mobile capture FAB — opens inbox and focuses composer (real composer in S2)
+        const captureFab = document.getElementById('captureFab');
+        if (captureFab) {
+            captureFab.addEventListener('click', () => {
+                this.navigateTo('chat');
+                requestAnimationFrame(() => {
+                    if (DOM.messageInput && typeof DOM.messageInput.focus === 'function') {
+                        DOM.messageInput.focus();
+                    }
+                });
+            });
+        }
+
         // Sidebar Navigation (Desktop)
         if (DOM.sidebar) {
-            DOM.sidebar.querySelectorAll('.sidebar-nav-item').forEach(btn => {
+            DOM.sidebar.querySelectorAll('[data-page]').forEach(btn => {
                 btn.addEventListener('click', () => {
                     this.navigateTo(btn.dataset.page);
+                });
+            });
+        }
+
+        // Sidebar command button — placeholder for command palette (S5).
+        // For now, navigate to inbox + focus composer.
+        const sidebarCmdBtn = document.getElementById('sidebarCmdBtn');
+        if (sidebarCmdBtn) {
+            sidebarCmdBtn.addEventListener('click', () => {
+                this.navigateTo('chat');
+                requestAnimationFrame(() => {
+                    if (DOM.messageInput && typeof DOM.messageInput.focus === 'function') {
+                        DOM.messageInput.focus();
+                    }
                 });
             });
         }
@@ -6706,14 +6749,14 @@ const App = {
         }
 
         // Theme buttons
-        if (DOM.themeLightBtn) {
-            DOM.themeLightBtn.addEventListener('click', () => ThemeManager.setTheme('light'));
+        if (DOM.themePaperBtn) {
+            DOM.themePaperBtn.addEventListener('click', () => ThemeManager.setTheme('paper'));
         }
-        if (DOM.themeDarkBtn) {
-            DOM.themeDarkBtn.addEventListener('click', () => ThemeManager.setTheme('dark'));
+        if (DOM.themePlayfulBtn) {
+            DOM.themePlayfulBtn.addEventListener('click', () => ThemeManager.setTheme('playful'));
         }
-        if (DOM.themeSystemBtn) {
-            DOM.themeSystemBtn.addEventListener('click', () => ThemeManager.setTheme('system'));
+        if (DOM.themeLinearBtn) {
+            DOM.themeLinearBtn.addEventListener('click', () => ThemeManager.setTheme('linear'));
         }
 
         // Image attachment - Main chat
