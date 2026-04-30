@@ -25,6 +25,7 @@ model User {
   categories Category[]
   categorySections CategorySection[]
   sessions   Session[]
+  weeklySummaries WeeklySummary[]
 
   @@map("users")
 }
@@ -50,6 +51,8 @@ model Category {
   name      String
   nameHash  String?  @map("name_hash")
   color     String   @default("#25D366")
+  icon      String?
+  sortOrder Int      @default(0)
   userId    String
   sectionId String?
   createdAt DateTime @default(now())
@@ -86,18 +89,21 @@ model CategorySection {
 }
 
 model Message {
-  id            String    @id @default(cuid())
-  text          String
-  images        String?   // JSON array of base64 images
-  isTask        Boolean   @default(false)
-  taskDate      DateTime?
-  taskTime      String?
-  taskCompleted Boolean   @default(false)
-  completedAt   DateTime?
-  userId        String
-  categoryId    String?
-  createdAt     DateTime  @default(now())
-  updatedAt     DateTime  @updatedAt
+  id                 String    @id @default(cuid())
+  text               String
+  images             String?   // JSON array of base64 images
+  isTask             Boolean   @default(false)
+  taskDate           DateTime?
+  taskTime           String?
+  taskCompleted      Boolean   @default(false)
+  completedAt        DateTime?
+  priority           String?
+  archivedAt         DateTime?
+  reminderMinBefore  Int?
+  userId             String
+  categoryId         String?
+  createdAt          DateTime  @default(now())
+  updatedAt          DateTime  @updatedAt
 
   user     User      @relation(fields: [userId], references: [id], onDelete: Cascade)
   category Category? @relation(fields: [categoryId], references: [id], onDelete: SetNull)
@@ -106,4 +112,19 @@ model Message {
   @@index([categoryId])
   @@index([createdAt])
   @@map("messages")
+}
+
+model WeeklySummary {
+  id        String   @id @default(cuid())
+  userId    String
+  weekStart DateTime
+  payload   Json
+  text      String
+  createdAt DateTime @default(now())
+
+  user      User     @relation(fields: [userId], references: [id], onDelete: Cascade)
+
+  @@index([userId])
+  @@unique([userId, weekStart])
+  @@map("weekly_summaries")
 }

@@ -4423,7 +4423,10 @@ const App = {
         const stats = AppState.stats;
         if (!stats) return;
 
-        // Stats cards
+        // S4 — Editorial dashboard
+        this.renderDashboardEditorial(stats);
+
+        // Stats cards (legacy, hidden — kept to satisfy existing renderers)
         DOM.statTotalMessages.textContent = stats.messages.total;
         DOM.statToday.textContent = stats.messages.today;
         DOM.statPendingTasks.textContent = stats.tasks.pending;
@@ -4462,6 +4465,166 @@ const App = {
         DOM.profileTotalMessages.textContent = stats.messages.total;
         DOM.profileTotalCategories.textContent = stats.categories.total;
         DOM.profileTotalTasks.textContent = stats.tasks.total;
+    },
+
+    // -------------------------------------------------------------------
+    // S4 — Editorial dashboard renderers
+    // -------------------------------------------------------------------
+
+    renderDashboardEditorial(stats) {
+        // KPI strip
+        const setKpi = (id, val) => {
+            const el = document.getElementById(id);
+            if (el) el.textContent = (val == null ? 0 : val);
+        };
+        setKpi('kpiCaptured', stats.messages && stats.messages.thisWeek);
+        setKpi('kpiCompleted', stats.tasks && stats.tasks.completed);
+        setKpi('kpiPending', stats.tasks && stats.tasks.pending);
+        setKpi('kpiStreak', stats.activity && stats.activity.streak);
+
+        this.renderActivity30(stats.daily30);
+        this.renderTopCats(stats.byCategory);
+        this.renderHeatmap(stats.byHourDay);
+        this.renderWeeklySummary(stats.weekSummary);
+    },
+
+    renderActivity30(daily) {
+        const root = document.getElementById('activity30Chart');
+        if (!root) return;
+        const arr = Array.isArray(daily) ? daily : [];
+        if (!arr.length) {
+            root.innerHTML = '<div class="top-cats__empty">Sem atividade ainda</div>';
+            return;
+        }
+        const max = Math.max(...arr.map(d => d.count || 0), 1);
+        let html = '';
+        for (const d of arr) {
+            const pct = Math.max(2, Math.round(((d.count || 0) / max) * 100));
+            const cls = d.count ? '' : ' activity-30__bar--zero';
+            const title = (d.date || '') + ' · ' + (d.count || 0) + ' ideia' + (d.count === 1 ? '' : 's');
+            html += '<div class="activity-30__bar' + cls + '" style="height:' + pct + '%" title="' + Utils.escapeHtml(title) + '"></div>';
+        }
+        root.innerHTML = html;
+    },
+
+    renderTopCats(cats) {
+        const root = document.getElementById('topCatsList');
+        if (!root) return;
+        const arr = (cats || []).filter(c => c.count > 0).slice(0, 5);
+        if (!arr.length) {
+            root.innerHTML = '<div class="top-cats__empty">Sem categorias ainda</div>';
+            return;
+        }
+        const max = Math.max(...arr.map(c => c.count));
+        let html = '';
+        for (const c of arr) {
+            const safeColor = Utils.sanitizeCssColor(c.color || '#888');
+            const widthPct = Math.max(8, Math.round((c.count / max) * 100));
+            html += '<div class="top-cat-row">'
+                + '<span class="top-cat-row__name">' + Utils.escapeHtml(c.name || '') + '</span>'
+                + '<span class="top-cat-row__count">' + c.count + ' · ' + (c.pct || 0) + '%</span>'
+                + '<div class="top-cat-row__bar"><div class="top-cat-row__fill" style="width:' + widthPct + '%; background:' + safeColor + '"></div></div>'
+                + '</div>';
+        }
+        root.innerHTML = html;
+    },
+
+    renderHeatmap(byHourDay) {
+        const root = document.getElementById('heatmapGrid');
+        if (!root) return;
+        const cells = {};
+        let max = 1;
+        for (const c of (byHourDay || [])) {
+            const key = c.dow + ':' + c.hour;
+            cells[key] = c.count;
+            if (c.count > max) max = c.count;
+        }
+        const dows = ['dom', 'seg', 'ter', 'qua', 'qui', 'sex', 'sáb'];
+        const level = (n) => {
+            if (!n) return '';
+            const ratio = n / max;
+            if (ratio >= 0.75) return ' heatmap__cell--l4';
+            if (ratio >= 0.50) return ' heatmap__cell--l3';
+            if (ratio >= 0.25) return ' heatmap__cell--l2';
+            return ' heatmap__cell--l1';
+        };
+        let html = '';
+        for (let d = 0; d < 7; d++) {
+            html += '<span class="heatmap__row-label">' + dows[d] + '</span>';
+            for (let h = 0; h < 24; h++) {
+                const cnt = cells[d + ':' + h] || 0;
+                const tip = dows[d] + ' · ' + String(h).padStart(2, '0') + 'h · ' + cnt;
+                html += '<span class="heatmap__cell' + level(cnt) + '" title="' + tip + '"></span>';
+            }
+        }
+        root.innerHTML = html;
+    },
+
+    renderWeeklySummary(ws) {
+        const section = document.getElementById('weeklySummary');
+        const textEl = document.getElementById('weeklySummaryText');
+        const tagsEl = document.getElementById('weeklySummaryTags');
+        if (!section || !textEl) return;
+
+        if (!ws || !ws.text) {
+            section.hidden = true;
+            return;
+        }
+        section.hidden = false;
+        textEl.innerHTML = this.formatMarkdownInline(ws.text);
+
+        if (tagsEl) {
+            const tags = [];
+            if (typeof ws.deltaVsLastWeek === 'number') {
+                if (ws.deltaVsLastWeek > 0) tags.push('<span class="weekly-tag weekly-tag--up">+' + ws.deltaVsLastWeek + '% vs sem. anterior</span>');
+                else if (ws.deltaVsLastWeek < 0) tags.push('<span class="weekly-tag weekly-tag--down">' + ws.deltaVsLastWeek + '% vs sem. anterior</span>');
+            }
+            if (typeof ws.becameTask === 'number') {
+                tags.push('<span class="weekly-tag">' + ws.becameTask + ' viraram tarefa</span>');
+            }
+            if (ws.periodLabel) {
+                tags.push('<span class="weekly-tag weekly-tag--accent">predomínio · ' + Utils.escapeHtml(ws.periodLabel) + '</span>');
+            }
+            tagsEl.innerHTML = tags.join('');
+        }
+    },
+
+    // Convert **bold** markdown to <strong> for editorial copy
+    formatMarkdownInline(s) {
+        if (!s) return '';
+        const escaped = Utils.escapeHtml(String(s));
+        return escaped.replace(/\*\*([^*]+)\*\*/g, '<strong>$1</strong>');
+    },
+
+    // Inbox banner: weekly summary on Mondays (dispensable per session)
+    renderWeeklySummaryBanner() {
+        const stats = AppState.stats;
+        if (!stats || !stats.weekSummary || !stats.weekSummary.text) return;
+        const isMonday = new Date().getDay() === 1;
+        if (!isMonday) return;
+        const weekKey = stats.weekSummary.weekStart || '';
+        if (!weekKey) return;
+        const dismissedKey = 'savit_summary_dismissed_' + weekKey;
+        try { if (localStorage.getItem(dismissedKey)) return; } catch { /* ignore */ }
+
+        const container = DOM.messagesContainer;
+        if (!container) return;
+        if (container.querySelector('.feed-banner')) return; // already rendered
+
+        const banner = document.createElement('div');
+        banner.className = 'feed-banner';
+        banner.dataset.weekKey = weekKey;
+        banner.innerHTML = '<span class="feed-banner__eyebrow">Resumo da semana</span>'
+            + '<p class="feed-banner__text">' + this.formatMarkdownInline(stats.weekSummary.text) + '</p>'
+            + '<button type="button" class="feed-banner__close" aria-label="Dispensar resumo">×</button>';
+        const closeBtn = banner.querySelector('.feed-banner__close');
+        if (closeBtn) {
+            closeBtn.addEventListener('click', () => {
+                try { localStorage.setItem(dismissedKey, '1'); } catch { /* ignore */ }
+                banner.remove();
+            });
+        }
+        container.insertBefore(banner, container.firstChild);
     },
 
     renderActivityChart(data) {
@@ -5111,6 +5274,11 @@ const App = {
 
         // Add event listeners
         this.attachMessageEventListeners(container);
+
+        // S4 — Inject weekly summary banner on Mondays (Inbox only)
+        if (container === DOM.messagesContainer) {
+            this.renderWeeklySummaryBanner();
+        }
     },
 
     renderMessageBubble(msg) {

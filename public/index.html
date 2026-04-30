@@ -176,6 +176,51 @@
                         </header>
 
                         <div class="page-content">
+                            <!-- S4 — Editorial dashboard -->
+                            <section class="dash-kpi" aria-label="Indicadores principais">
+                                <div class="dash-kpi__cell">
+                                    <span class="dash-kpi__num" id="kpiCaptured">0</span>
+                                    <span class="dash-kpi__label">Capturadas</span>
+                                </div>
+                                <div class="dash-kpi__cell">
+                                    <span class="dash-kpi__num" id="kpiCompleted">0</span>
+                                    <span class="dash-kpi__label">Concluídas</span>
+                                </div>
+                                <div class="dash-kpi__cell">
+                                    <span class="dash-kpi__num" id="kpiPending">0</span>
+                                    <span class="dash-kpi__label">Pendentes</span>
+                                </div>
+                                <div class="dash-kpi__cell">
+                                    <span class="dash-kpi__num" id="kpiStreak">0</span>
+                                    <span class="dash-kpi__label">Streak</span>
+                                </div>
+                            </section>
+
+                            <section class="weekly-summary" id="weeklySummary" aria-label="Resumo da semana" hidden>
+                                <span class="weekly-summary__eyebrow">Resumo da semana</span>
+                                <p class="weekly-summary__text" id="weeklySummaryText">—</p>
+                                <div class="weekly-summary__tags" id="weeklySummaryTags"></div>
+                            </section>
+
+                            <div class="dash-row">
+                                <section class="dash-card activity-30" aria-label="Atividade dos últimos 30 dias">
+                                    <h3 class="dash-card__title">Atividade · 30 dias</h3>
+                                    <div class="activity-30__chart" id="activity30Chart"></div>
+                                </section>
+
+                                <section class="dash-card top-cats" aria-label="Top categorias">
+                                    <h3 class="dash-card__title">Top categorias</h3>
+                                    <div class="top-cats__list" id="topCatsList"></div>
+                                </section>
+                            </div>
+
+                            <section class="dash-card heatmap" aria-label="Quando você captura">
+                                <h3 class="dash-card__title">Quando você captura</h3>
+                                <div class="heatmap__grid" id="heatmapGrid"></div>
+                            </section>
+
+                            <!-- Legacy dashboard (hidden, kept for backward-compat with renderDashboard helpers) -->
+                            <div class="dash-legacy" id="dashLegacy" hidden>
                             <!-- Quick Stats -->
                             <div class="stats-grid">
                             <div class="stat-card">
@@ -350,6 +395,8 @@
                                     <!-- Upcoming tasks will be rendered here -->
                                 </div>
                             </div>
+                        </div>
+                            </div> <!-- /dashLegacy -->
                         </div>
                     </div>
 

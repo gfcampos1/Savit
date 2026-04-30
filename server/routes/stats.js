@@ -222,6 +222,126 @@ router.get('/dashboard', readHeavyLimiter, async (req, res) => {
             if (streak >= 365) break;
         }
 
+        // ---------------------------------------------------------------
+        // S4 — Editorial dashboard additions
+        // ---------------------------------------------------------------
+
+        // daily30: counts per day for the last 30 days
+        const daily30 = [];
+        for (let i = 29; i >= 0; i--) {
+            const dayStart = new Date(todayStart);
+            dayStart.setDate(dayStart.getDate() - i);
+            const dayEnd = new Date(dayStart);
+            dayEnd.setDate(dayEnd.getDate() + 1);
+            const count = await prisma.message.count({
+                where: { userId, createdAt: { gte: dayStart, lt: dayEnd } }
+            });
+            daily30.push({ date: dayStart.toISOString().split('T')[0], count });
+        }
+
+        // byCategory: all categories with count + pct
+        const allCats = await prisma.category.findMany({
+            where: { userId },
+            select: {
+                id: true,
+                name: true,
+                color: true,
+                _count: { select: { messages: true } }
+            }
+        });
+        const totalCatMessages = allCats.reduce((s, c) => s + c._count.messages, 0);
+        const byCategory = allCats
+            .map(c => ({
+                id: c.id,
+                name: decryptString(c.name),
+                color: c.color,
+                count: c._count.messages,
+                pct: totalCatMessages > 0
+                    ? Math.round((c._count.messages / totalCatMessages) * 100)
+                    : 0
+            }))
+            .sort((a, b) => b.count - a.count);
+
+        // Heatmap: dow × hour for last 30 days (sparse)
+        const heatmapStart = new Date(todayStart);
+        heatmapStart.setDate(heatmapStart.getDate() - 30);
+        const heatmapMessages = await prisma.message.findMany({
+            where: { userId, createdAt: { gte: heatmapStart } },
+            select: { createdAt: true }
+        });
+        const cells = {};
+        for (const m of heatmapMessages) {
+            const d = new Date(m.createdAt);
+            const key = d.getDay() + ':' + d.getHours();
+            cells[key] = (cells[key] || 0) + 1;
+        }
+        const byHourDay = Object.entries(cells).map(([k, count]) => {
+            const [dow, hour] = k.split(':').map(n => parseInt(n, 10));
+            return { dow, hour, count };
+        });
+
+        // weekSummary (F6): editorial text + meta
+        const lastWeekStart = new Date(weekStart);
+        lastWeekStart.setDate(lastWeekStart.getDate() - 7);
+        const capturedLastWeek = await prisma.message.count({
+            where: { userId, createdAt: { gte: lastWeekStart, lt: weekStart } }
+        });
+        const becameTask = await prisma.message.count({
+            where: { userId, isTask: true, createdAt: { gte: weekStart } }
+        });
+
+        const thisWeekMessages = await prisma.message.findMany({
+            where: { userId, createdAt: { gte: weekStart } },
+            select: { createdAt: true, categoryId: true }
+        });
+        const periods = { manha: 0, tarde: 0, noite: 0 };
+        const catWeekCount = {};
+        for (const m of thisWeekMessages) {
+            const h = new Date(m.createdAt).getHours();
+            if (h >= 5 && h < 12) periods.manha++;
+            else if (h >= 12 && h < 18) periods.tarde++;
+            else periods.noite++;
+            if (m.categoryId) catWeekCount[m.categoryId] = (catWeekCount[m.categoryId] || 0) + 1;
+        }
+        const dominantPeriodKey = Object.entries(periods).sort((a, b) => b[1] - a[1])[0][0];
+        const periodLabelText = { manha: 'manhã', tarde: 'tarde', noite: 'noite' }[dominantPeriodKey];
+        let topCatName = null;
+        const topCatEntry = Object.entries(catWeekCount).sort((a, b) => b[1] - a[1])[0];
+        if (topCatEntry) {
+            const found = byCategory.find(c => c.id === topCatEntry[0]);
+            if (found) topCatName = found.name;
+        }
+        const deltaPct = capturedLastWeek === 0
+            ? null
+            : Math.round(((messagesThisWeek - capturedLastWeek) / capturedLastWeek) * 100);
+
+        let summaryText = '';
+        if (messagesThisWeek === 0) {
+            summaryText = 'Você ainda não capturou nada essa semana. Que tal começar agora?';
+        } else {
+            summaryText = 'Você capturou **' + messagesThisWeek + ' ideia'
+                + (messagesThisWeek === 1 ? '' : 's') + '** essa semana';
+            if (periods[dominantPeriodKey] > 0 && periodLabelText) {
+                summaryText += ' — quase tudo de ' + periodLabelText;
+            }
+            if (topCatName) {
+                summaryText += ', principalmente de **' + topCatName + '**';
+            }
+            summaryText += '. ';
+            summaryText += becameTask + (becameTask === 1 ? ' virou tarefa.' : ' viraram tarefa.');
+        }
+
+        const weekSummary = {
+            weekStart: weekStart.toISOString(),
+            capturedThisWeek: messagesThisWeek,
+            capturedLastWeek,
+            becameTask,
+            topCategoryName: topCatName,
+            periodLabel: periodLabelText,
+            deltaVsLastWeek: deltaPct,
+            text: summaryText
+        };
+
         res.json({
             stats: {
                 messages: {
@@ -255,7 +375,12 @@ router.get('/dashboard', readHeavyLimiter, async (req, res) => {
                 recent: {
                     messages: recentMessages.map(decryptMessage),
                     upcomingTasks: upcomingTasks.map(decryptMessage)
-                }
+                },
+                // S4 additions
+                daily30,
+                byCategory,
+                byHourDay,
+                weekSummary
             }
         });
     } catch (error) {
