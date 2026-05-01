@@ -7106,7 +7106,8 @@ const App = {
         });
     },
 
-    // Tasks: mobile grouped list + Focus card (S3)
+    // Tasks: 6-bucket list (P-C) — was 4-bucket S3 mobile-only render.
+    // Now always visible; matches prototype groupTasksByDue spec.
     renderTaskListMobile() {
         const root = document.getElementById('taskListMobile');
         if (!root) return;
@@ -7114,25 +7115,30 @@ const App = {
         const now = new Date();
         const today0 = new Date(now); today0.setHours(0, 0, 0, 0);
         const tomorrow0 = new Date(today0); tomorrow0.setDate(tomorrow0.getDate() + 1);
-        const weekEnd = new Date(today0); weekEnd.setDate(weekEnd.getDate() + 7);
+        const dayAfterTomorrow0 = new Date(today0); dayAfterTomorrow0.setDate(today0.getDate() + 2);
+        const weekEnd = new Date(today0); weekEnd.setDate(today0.getDate() + 7);
 
-        const showCompleted = (typeof S5Polish !== 'undefined') && S5Polish.showCompletedEnabled();
-        const pending = (AppState.messages || []).filter(m => m.isTask && (showCompleted || !m.taskCompleted));
+        const allTasks = (AppState.messages || []).filter(m => m.isTask);
+        const pending = allTasks.filter(m => !m.taskCompleted);
+        const completed = allTasks.filter(m => m.taskCompleted);
 
+        // Six buckets per prototype spec.
         const groups = {
             today:    { label: 'Hoje',          items: [] },
             tomorrow: { label: 'Amanhã',        items: [] },
             week:     { label: 'Esta semana',   items: [] },
+            later:    { label: 'Depois',        items: [] },
             none:     { label: 'Sem prazo',     items: [] },
+            done:     { label: 'Concluídas',    items: completed },
         };
 
         for (const m of pending) {
             if (!m.taskDate) { groups.none.items.push(m); continue; }
             const d = new Date(m.taskDate + 'T00:00:00');
             if (d < tomorrow0) groups.today.items.push(m);
-            else if (d < new Date(today0.getTime() + 2 * 86400000)) groups.tomorrow.items.push(m);
+            else if (d < dayAfterTomorrow0) groups.tomorrow.items.push(m);
             else if (d < weekEnd) groups.week.items.push(m);
-            else groups.none.items.push(m); // far future, treat as no near deadline
+            else groups.later.items.push(m);
         }
 
         const renderGroup = (g) => {
@@ -7164,10 +7170,15 @@ const App = {
                 + '</div>';
             out += renderGroup(groups.today);
         } else {
+            // P-C′: render all six buckets in fixed order. Only emit a section
+            // if it has items (avoids dead "Concluídas — vazio" noise on a
+            // fresh account); Hoje is always visible to give an entry point.
             out += renderGroup(groups.today);
-            out += renderGroup(groups.tomorrow);
-            out += renderGroup(groups.week);
+            if (groups.tomorrow.items.length) out += renderGroup(groups.tomorrow);
+            if (groups.week.items.length) out += renderGroup(groups.week);
+            if (groups.later.items.length) out += renderGroup(groups.later);
             if (groups.none.items.length) out += renderGroup(groups.none);
+            if (groups.done.items.length) out += renderGroup(groups.done);
         }
         root.innerHTML = out;
 
