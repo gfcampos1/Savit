@@ -1,7 +1,8 @@
 /* =============================================
-   Savit Design Tokens — S0
-   3 themes: paper (default) · playful · linear
-   Applied via [data-theme="..."] on <html>
+   Savit Design Tokens — Paper desktop
+   Theme: Paper (single)
+   Variants: data-accent (6), data-density (2)
+   Source: Refactor/Savit (1)/prototype/styles.css
    ============================================= */
 
 /* 1. Theme-agnostic tokens ---------------------- */
@@ -15,7 +16,7 @@
     --fs-md: 14px;
     --fs-lg: 17px;
     --fs-xl: 22px;
-    --fs-display: 36px;
+    --fs-display: 38px;
 
     --spacing-xs: 4px;
     --spacing-sm: 8px;
@@ -36,95 +37,60 @@
     --z-toast: 500;
 }
 
-/* 2. PAPER (default) — calmo, mobile-first ------ */
-:root,
-[data-theme="paper"] {
+/* 2. Paper palette + core tokens ---------------- */
+:root {
     --bg: #f6f1e8;
     --surface: #fdfaf3;
-    --surface-2: #f0e8d8;
+    --surface-2: #f0e9da;
     --ink: #1d1a14;
     --ink-2: #5b5448;
     --ink-3: #8a8270;
     --hair: rgba(29, 26, 20, 0.10);
+    --hair-strong: rgba(29, 26, 20, 0.18);
 
     --accent: #c0563a;
+    --accent-soft: rgba(192, 86, 58, 0.10);
     --accent-2: #e6b540;
+    --green: #3a8a6a;
+    --amber: #c9931f;
     --success: #3a8a6a;
     --danger: #c0563a;
 
-    --shadow-card: 0 1px 0 rgba(29, 26, 20, 0.04), 0 12px 24px -16px rgba(29, 26, 20, 0.18);
-    --shadow-sm: 0 1px 2px rgba(29, 26, 20, 0.06);
-    --shadow-md: 0 4px 12px -4px rgba(29, 26, 20, 0.12);
-    --shadow-lg: 0 12px 32px -8px rgba(29, 26, 20, 0.20);
+    --shadow-sm: 0 1px 0 rgba(29, 26, 20, 0.04);
+    --shadow-md: 0 1px 0 rgba(29, 26, 20, 0.04), 0 12px 24px -16px rgba(29, 26, 20, 0.18);
+    --shadow-lg: 0 6px 24px -8px rgba(29, 26, 20, 0.18), 0 1px 0 rgba(29, 26, 20, 0.04);
+    --shadow-card: var(--shadow-md);
 
-    --radius-sm: 8px;
-    --radius-md: 12px;
+    --radius-sm: 10px;
+    --radius-md: 14px;
     --radius-lg: 18px;
     --radius-pill: 999px;
 }
 
-/* 3. PLAYFUL — vibrante, dark roxo -------------- */
-[data-theme="playful"] {
-    --bg: #0e0a1a;
-    --surface: #181228;
-    --surface-2: #221a36;
-    --ink: #f5f0ff;
-    --ink-2: #a89cc4;
-    --ink-3: #6b5e8a;
-    --hair: rgba(255, 255, 255, 0.08);
+/* 3. Accent variants ---------------------------- */
+[data-accent="citrus"]  { --accent: #c0563a; --accent-soft: rgba(192, 86, 58, 0.10); }
+[data-accent="terra"]   { --accent: #b8472d; --accent-soft: rgba(184, 71, 45, 0.10); }
+[data-accent="amber"]   { --accent: #d4a128; --accent-soft: rgba(212, 161, 40, 0.10); }
+[data-accent="mint"]    { --accent: #3a8a6a; --accent-soft: rgba(58, 138, 106, 0.10); }
+[data-accent="purple"]  { --accent: #7a5cc7; --accent-soft: rgba(122, 92, 199, 0.10); }
+[data-accent="blue"]    { --accent: #2a5fb8; --accent-soft: rgba(42, 95, 184, 0.10); }
 
-    --accent: #ff6b9d;
-    --accent-2: #7c5cff;
-    --accent-3: #5cd6c0;
-    --accent-4: #ffb84a;
-    --success: #5cd6c0;
-    --danger: #ff6b9d;
-
-    --grad-primary: linear-gradient(135deg, #7c5cff 0%, #ff6b9d 100%);
-    --grad-secondary: linear-gradient(135deg, #5cd6c0 0%, #7c5cff 100%);
-
-    --shadow-card: 0 8px 24px -6px rgba(255, 107, 157, 0.25);
-    --shadow-sm: 0 2px 4px rgba(0, 0, 0, 0.30);
-    --shadow-md: 0 6px 16px -4px rgba(124, 92, 255, 0.20);
-    --shadow-lg: 0 16px 36px -8px rgba(255, 107, 157, 0.30);
-
-    --radius-sm: 10px;
-    --radius-md: 14px;
-    --radius-lg: 22px;
-    --radius-pill: 999px;
+/* 4. Density variants --------------------------- */
+:root,
+[data-density="comfortable"] {
+    --row-pad-y: 12px;
+    --row-pad-x: 14px;
+    --card-pad: 16px;
+    --gap: 10px;
+}
+[data-density="compact"] {
+    --row-pad-y: 9px;
+    --row-pad-x: 12px;
+    --card-pad: 12px;
+    --gap: 8px;
 }
 
-/* 4. LINEAR — denso, dark blue-gray ------------- */
-[data-theme="linear"] {
-    --bg: #0a0c10;
-    --surface: #0f1218;
-    --surface-2: #161922;
-    --surface-hi: #1c2030;
-    --ink: #e6e8ec;
-    --ink-2: #9097a6;
-    --ink-3: #5a6172;
-    --hair: rgba(255, 255, 255, 0.06);
-    --hair-hi: rgba(255, 255, 255, 0.10);
-
-    --accent: #7c8bf5;
-    --accent-dim: #4d5db5;
-    --accent-2: #f0b95c;
-    --success: #5cd49c;
-    --warning: #f0b95c;
-    --danger: #f06c7c;
-
-    --shadow-card: none;
-    --shadow-sm: 0 0 0 1px var(--hair);
-    --shadow-md: 0 0 0 1px var(--hair-hi);
-    --shadow-lg: 0 0 0 1px var(--hair-hi);
-
-    --radius-sm: 4px;
-    --radius-md: 6px;
-    --radius-lg: 10px;
-    --radius-pill: 999px;
-}
-
-/* 5. Legacy aliases — keep styles.css working --- */
+/* 5. Legacy aliases (backwards compat — to remove in P-E) */
 :root {
     --primary-green: var(--accent);
     --secondary-green: var(--accent);

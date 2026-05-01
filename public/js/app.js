@@ -26,6 +26,8 @@ const AppState = {
     viewingCategoryId: null,
     isLoading: false,
     theme: 'paper',
+    accent: 'citrus',
+    density: 'comfortable',
     pendingImages: [],
     categoryPendingImages: [],
     drawingForCategory: false,
@@ -347,53 +349,87 @@ const SpeechToText = {
 // Theme Manager
 // =============================================
 
+// Paper-only theme; data-accent (6) + data-density (2) drive variant.
+// ThemeManager is preserved as the public API so legacy callers keep working,
+// but it now internally manages accent + density. The classic theme buttons
+// (paper/playful/linear) map to accent presets for backward compat.
 const ThemeManager = {
-    VALID: ['paper', 'playful', 'linear'],
-    DEFAULT: 'paper',
-    LABELS: { paper: 'Papel', playful: 'Vibrante', linear: 'Linear' },
-    META_BG: { paper: '#f6f1e8', playful: '#0e0a1a', linear: '#0a0c10' },
+    ACCENTS: ['citrus', 'terra', 'amber', 'mint', 'purple', 'blue'],
+    DENSITIES: ['comfortable', 'compact'],
+    DEFAULT_ACCENT: 'citrus',
+    DEFAULT_DENSITY: 'comfortable',
+    LABELS: { citrus: 'Citrus', terra: 'Terra', amber: 'Amber', mint: 'Mint', purple: 'Purple', blue: 'Blue' },
+    META_BG: '#f6f1e8',
+    // Legacy theme name -> accent equivalent (so old buttons still feel right)
+    LEGACY_THEME_TO_ACCENT: { paper: 'citrus', playful: 'purple', linear: 'blue' },
 
     init() {
-        this.migrateLegacyKey();
-        const stored = localStorage.getItem('savit_theme');
-        const theme = this.VALID.includes(stored) ? stored : this.DEFAULT;
-        this.setTheme(theme);
+        this.migrateLegacyKeys();
+        const accent = this.readStored('savit_accent', this.ACCENTS, this.DEFAULT_ACCENT);
+        const density = this.readStored('savit_density', this.DENSITIES, this.DEFAULT_DENSITY);
+        this.setAccent(accent);
+        this.setDensity(density);
     },
 
-    migrateLegacyKey() {
+    readStored(key, valid, fallback) {
         try {
-            const legacy = localStorage.getItem('savit-theme');
-            const current = localStorage.getItem('savit_theme');
-            if (legacy && !current) {
-                const map = { light: 'paper', dark: 'linear', system: 'paper' };
-                localStorage.setItem('savit_theme', map[legacy] || this.DEFAULT);
-            }
-            if (legacy) localStorage.removeItem('savit-theme');
-        } catch {
-            // ignore storage errors
-        }
+            const v = localStorage.getItem(key);
+            return valid.includes(v) ? v : fallback;
+        } catch { return fallback; }
     },
 
-    setTheme(theme) {
-        if (!this.VALID.includes(theme)) theme = this.DEFAULT;
-        AppState.theme = theme;
-        try { localStorage.setItem('savit_theme', theme); } catch { /* ignore */ }
-        this.applyTheme(theme);
+    migrateLegacyKeys() {
+        try {
+            const legacyTheme = localStorage.getItem('savit_theme');
+            const newAccent = localStorage.getItem('savit_accent');
+            if (legacyTheme && !newAccent) {
+                const accent = this.LEGACY_THEME_TO_ACCENT[legacyTheme] || this.DEFAULT_ACCENT;
+                localStorage.setItem('savit_accent', accent);
+            }
+            if (legacyTheme) localStorage.removeItem('savit_theme');
+            const olderTheme = localStorage.getItem('savit-theme');
+            if (olderTheme) localStorage.removeItem('savit-theme');
+        } catch { /* ignore */ }
+    },
+
+    setAccent(accent) {
+        if (!this.ACCENTS.includes(accent)) accent = this.DEFAULT_ACCENT;
+        AppState.accent = accent;
+        try { localStorage.setItem('savit_accent', accent); } catch { /* ignore */ }
+        document.documentElement.dataset.accent = accent;
+        const meta = document.querySelector('meta[name="theme-color"]');
+        if (meta) meta.setAttribute('content', this.META_BG);
         this.updateButtons();
     },
 
-    applyTheme(theme) {
-        document.documentElement.dataset.theme = theme;
-        const meta = document.querySelector('meta[name="theme-color"]');
-        if (meta) meta.setAttribute('content', this.META_BG[theme] || this.META_BG.paper);
+    setDensity(density) {
+        if (!this.DENSITIES.includes(density)) density = this.DEFAULT_DENSITY;
+        AppState.density = density;
+        try { localStorage.setItem('savit_density', density); } catch { /* ignore */ }
+        document.documentElement.dataset.density = density;
+    },
+
+    // Backward-compat: old buttons still call setTheme('paper'|'playful'|'linear');
+    // map to accent preset.
+    setTheme(theme) {
+        const accent = this.LEGACY_THEME_TO_ACCENT[theme] || this.DEFAULT_ACCENT;
+        this.setAccent(accent);
     },
 
     updateButtons() {
         document.querySelectorAll('.theme-option').forEach(btn => {
-            btn.classList.toggle('active', btn.dataset.theme === AppState.theme);
+            const themeAttr = btn.dataset.theme;
+            const expectedAccent = this.LEGACY_THEME_TO_ACCENT[themeAttr];
+            btn.classList.toggle('active', expectedAccent === AppState.accent);
+        });
+        document.querySelectorAll('[data-accent-pill]').forEach(btn => {
+            btn.classList.toggle('on', btn.dataset.accentPill === AppState.accent);
+        });
+        document.querySelectorAll('[data-density-pill]').forEach(btn => {
+            btn.classList.toggle('on', btn.dataset.densityPill === AppState.density);
         });
         if (DOM.themeCurrentLabel) {
-            DOM.themeCurrentLabel.textContent = this.LABELS[AppState.theme] || this.LABELS[this.DEFAULT];
+            DOM.themeCurrentLabel.textContent = this.LABELS[AppState.accent] || this.LABELS[this.DEFAULT_ACCENT];
         }
     }
 };
@@ -2720,8 +2756,7 @@ const MindMapUI = {
     },
 
     getTheme() {
-        const isLight = document.documentElement.getAttribute('data-theme') === 'light';
-        return isLight ? window.MindElixirLite.THEME : window.MindElixirLite.DARK_THEME;
+        return window.MindElixirLite.THEME;
     },
 
     defaultData(topic = 'Ideia') {

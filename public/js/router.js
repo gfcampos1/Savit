@@ -28,7 +28,7 @@
         categoryMessages: null, // built dynamically from id
     };
 
-    const DEFAULT_HASH = '#/dashboard';
+    const DEFAULT_HASH = '#/inbox';
 
     let suppressNext = false; // avoid feedback loop when navigateTo triggered by hashchange
 
