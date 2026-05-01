@@ -887,10 +887,10 @@
 
         <!-- Modals -->
         <!-- Category Selector Modal -->
-        <div class="modal" id="categorySelectorModal">
+        <div class="modal" id="categorySelectorModal" role="dialog" aria-modal="true" aria-labelledby="categorySelectorTitle">
             <div class="modal-content">
                 <div class="modal-header">
-                    <h3>Selecionar Categoria</h3>
+                    <h3 id="categorySelectorTitle">Selecionar Categoria</h3>
                     <button class="close-modal" id="closeCategorySelectorModal">
                         <i class="fas fa-times"></i>
                     </button>
@@ -904,7 +904,7 @@
         </div>
 
         <!-- New/Edit Category Modal -->
-        <div class="modal" id="categoryModal">
+        <div class="modal" id="categoryModal" role="dialog" aria-modal="true" aria-labelledby="categoryModalTitle">
             <div class="modal-content">
                 <div class="modal-header">
                     <h3 id="categoryModalTitle">Nova Categoria</h3>
@@ -941,10 +941,10 @@
         </div>
 
         <!-- Manage Sections Modal -->
-        <div class="modal" id="sectionsModal">
+        <div class="modal" id="sectionsModal" role="dialog" aria-modal="true" aria-labelledby="sectionsModalTitle">
             <div class="modal-content">
                 <div class="modal-header">
-                    <h3>Seções</h3>
+                    <h3 id="sectionsModalTitle">Seções</h3>
                     <button class="close-modal" id="closeSectionsModal">
                         <i class="fas fa-times"></i>
                     </button>
@@ -994,10 +994,10 @@
         </div>
 
         <!-- Move Category Modal -->
-        <div class="modal" id="moveCategoryModal">
+        <div class="modal" id="moveCategoryModal" role="dialog" aria-modal="true" aria-labelledby="moveCategoryModalTitle">
             <div class="modal-content">
                 <div class="modal-header">
-                    <h3>Mover tema</h3>
+                    <h3 id="moveCategoryModalTitle">Mover tema</h3>
                     <button class="close-modal" id="closeMoveCategoryModal">
                         <i class="fas fa-times"></i>
                     </button>
@@ -1030,10 +1030,10 @@
         </div>
 
         <!-- Edit Section Modal -->
-        <div class="modal" id="renameSectionModal">
+        <div class="modal" id="renameSectionModal" role="dialog" aria-modal="true" aria-labelledby="renameSectionModalTitle">
             <div class="modal-content">
                 <div class="modal-header">
-                    <h3>Editar seção</h3>
+                    <h3 id="renameSectionModalTitle">Editar seção</h3>
                     <button class="close-modal" id="closeRenameSectionModal">
                         <i class="fas fa-times"></i>
                     </button>
@@ -1070,10 +1070,10 @@
         </div>
 
         <!-- Delete Section Modal -->
-        <div class="modal" id="deleteSectionModal">
+        <div class="modal" id="deleteSectionModal" role="alertdialog" aria-modal="true" aria-labelledby="deleteSectionModalTitle">
             <div class="modal-content">
                 <div class="modal-header">
-                    <h3>Excluir seção</h3>
+                    <h3 id="deleteSectionModalTitle">Excluir seção</h3>
                     <button class="close-modal" id="closeDeleteSectionModal">
                         <i class="fas fa-times"></i>
                     </button>
@@ -1094,10 +1094,10 @@
         </div>
 
         <!-- Edit Message Modal -->
-        <div class="modal" id="editMessageModal">
+        <div class="modal" id="editMessageModal" role="dialog" aria-modal="true" aria-labelledby="editMessageModalTitle">
             <div class="modal-content">
                 <div class="modal-header">
-                    <h3>Editar Mensagem</h3>
+                    <h3 id="editMessageModalTitle">Editar Mensagem</h3>
                     <button class="close-modal" id="closeEditMessageModal">
                         <i class="fas fa-times"></i>
                     </button>
@@ -1165,10 +1165,10 @@
         </div>
 
         <!-- Mind Map Modal -->
-        <div class="modal" id="mindMapModal">
+        <div class="modal" id="mindMapModal" role="dialog" aria-modal="true" aria-labelledby="mindMapModalTitle">
             <div class="modal-content mindmap-modal">
                 <div class="modal-header">
-                    <h3>Mapa Mental</h3>
+                    <h3 id="mindMapModalTitle">Mapa Mental</h3>
                     <button class="close-modal" id="closeMindMapModal">
                         <i class="fas fa-times"></i>
                     </button>
@@ -1230,10 +1230,10 @@
         </div>
 
         <!-- Edit Profile Modal -->
-        <div class="modal" id="editProfileModal">
+        <div class="modal" id="editProfileModal" role="dialog" aria-modal="true" aria-labelledby="editProfileModalTitle">
             <div class="modal-content">
                 <div class="modal-header">
-                    <h3>Editar Perfil</h3>
+                    <h3 id="editProfileModalTitle">Editar Perfil</h3>
                     <button class="close-modal" id="closeEditProfileModal">
                         <i class="fas fa-times"></i>
                     </button>
@@ -1252,10 +1252,10 @@
         </div>
 
         <!-- Change Password Modal -->
-        <div class="modal" id="changePasswordModal">
+        <div class="modal" id="changePasswordModal" role="dialog" aria-modal="true" aria-labelledby="changePasswordModalTitle">
             <div class="modal-content">
                 <div class="modal-header">
-                    <h3>Alterar Senha</h3>
+                    <h3 id="changePasswordModalTitle">Alterar Senha</h3>
                     <button class="close-modal" id="closeChangePasswordModal">
                         <i class="fas fa-times"></i>
                     </button>
@@ -1459,7 +1459,7 @@
         </div>
     </div>
 
-    <div id="toastRoot" class="toast-root" aria-live="polite"></div>
+    <div id="toastRoot" class="toast-root"></div>
     <script src="vendor/MindElixirLite.iife.js?v=20260115-1"></script>
     <script src="js/api.js?v=20260115-1"></script>
     <script src="js/router.js?v=20260115-1"></script>

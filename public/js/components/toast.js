@@ -11,8 +11,12 @@
             root = document.createElement('div');
             root.id = 'toastRoot';
             root.className = 'toast-root';
-            root.setAttribute('aria-live', 'polite');
+            // A3 — aria-live moved to individual toasts (so screen readers
+            // announce one at a time, with proper urgency per type).
             document.body.appendChild(root);
+        } else {
+            // Strip any legacy root-level aria-live to avoid duplicate announcements
+            root.removeAttribute('aria-live');
         }
         return root;
     }
@@ -50,7 +54,15 @@
 
         const toast = document.createElement('div');
         toast.className = 'toast toast--' + type;
-        toast.setAttribute('role', 'status');
+        // A3 — per-toast a11y: errors are assertive (interrupt), others polite
+        if (type === 'error' || type === 'danger') {
+            toast.setAttribute('role', 'alert');
+            toast.setAttribute('aria-live', 'assertive');
+        } else {
+            toast.setAttribute('role', 'status');
+            toast.setAttribute('aria-live', 'polite');
+        }
+        toast.setAttribute('aria-atomic', 'true');
 
         const msg = document.createElement('span');
         msg.className = 'toast__msg';

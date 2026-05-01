@@ -5320,6 +5320,20 @@ body {
     letter-spacing: 0.12em;
 }
 
+/* U7 — warning chip for past-date detected by parser */
+.composer-chip--warn {
+    background: color-mix(in srgb, var(--accent-2) 14%, var(--surface-2));
+    color: var(--accent-2);
+    border-color: color-mix(in srgb, var(--accent-2) 30%, var(--hair));
+    text-transform: uppercase;
+    letter-spacing: 0.12em;
+    font-weight: 600;
+}
+
+.composer-chip--warn i {
+    color: var(--accent-2);
+}
+
 .composer-chip__remove {
     background: none;
     border: none;
@@ -7209,6 +7223,60 @@ body {
     .modal-content,
     .nav-item--capture {
         transition: none !important;
+    }
+}
+
+/* =============================================
+   P2 — A11y: focus-visible + theme transition
+   ============================================= */
+
+/* A1 — keyboard focus ring vence overrides legacy de outline:none */
+button:focus-visible,
+[role="button"]:focus-visible,
+a:focus-visible,
+input:focus-visible,
+select:focus-visible,
+textarea:focus-visible,
+[contenteditable="true"]:focus-visible,
+.message:focus-visible,
+.nav-item:focus-visible,
+.sidebar-nav-item:focus-visible,
+.sidebar-cat-item:focus-visible,
+.option-btn:focus-visible,
+.color-option:focus-visible,
+.composer-chip:focus-visible {
+    outline: 2px solid var(--accent) !important;
+    outline-offset: 2px;
+    border-radius: 6px;
+}
+
+/* Para FAB e elementos pill (já round), outline-offset maior pra não cortar */
+.nav-item--capture:focus-visible,
+.send-btn:focus-visible,
+.cat-space-add:focus-visible,
+.feed-empty__cta:focus-visible {
+    outline-offset: 4px;
+}
+
+/* U8 — theme switching transition (suave, não jarring) */
+@media (prefers-reduced-motion: no-preference) {
+    body,
+    .page,
+    .sidebar,
+    .bottom-nav,
+    .modal-content,
+    .focus-page,
+    .cat-space-header,
+    .page-header,
+    .dash-card,
+    .focus-card,
+    .feed-banner,
+    .toast,
+    .message,
+    .composer-chip,
+    .nav-item--capture,
+    .send-btn {
+        transition: background-color 200ms ease, color 200ms ease, border-color 200ms ease;
     }
 }
 

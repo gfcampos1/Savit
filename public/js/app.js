@@ -453,6 +453,14 @@ const SmartCapture = {
         let html = '';
         if (isTask) {
             html += '<span class="composer-chip composer-chip--task"><i class="fas fa-list-check" aria-hidden="true"></i>Tarefa</span>';
+            // U7 — warn when parsed dueAt is in the past (>1h ago)
+            const dueAt = this.last && this.last.dueAt;
+            if (dueAt instanceof Date && dueAt.getTime() < Date.now() - 60 * 60 * 1000) {
+                html += '<span class="composer-chip composer-chip--warn" title="O prazo detectado já passou">'
+                    + '<i class="fas fa-triangle-exclamation" aria-hidden="true"></i>'
+                    + 'No passado'
+                    + '</span>';
+            }
         }
         for (const p of parts) {
             const label = ParseNatural.chipLabel(p);
@@ -4145,11 +4153,19 @@ const App = {
             AppState.user = user;
             this.showMainApp();
             await this.loadInitialData();
+            // N6 — restore search state from ?q= before first render
+            if (typeof restoreSearchFromUrl === 'function' && restoreSearchFromUrl()) {
+                this.renderMessages();
+            }
             // P0-N2 — initialize router only after data is loaded so deep-link
             // routes like #/category/:id can find the category in AppState.
             if (typeof Router !== 'undefined') Router.init();
         } catch (error) {
             console.error('Auth check failed:', error);
+            // N7 — preserve hash so we can restore destination after login
+            if (location.hash && location.hash !== '#' && location.hash !== '#/') {
+                AppState.pendingHash = location.hash;
+            }
             this.showAuthScreen();
         }
     },
@@ -7287,6 +7303,11 @@ const App = {
             AppState.user = user;
             this.showMainApp();
             await this.loadInitialData();
+            // N7 — restore pendingHash captured before auth (e.g., shared link)
+            if (AppState.pendingHash) {
+                history.replaceState(null, '', location.pathname + location.search + AppState.pendingHash);
+                AppState.pendingHash = null;
+            }
             if (typeof Router !== 'undefined') Router.init();
             showToast('Bem-vindo de volta!');
 
@@ -8506,11 +8527,47 @@ function resetInputOptions() {
     DOM.taskTime.value = '';
 }
 
+// N6 — sync search state to URL (?q=...&cat=...&date=...) so reload preserves
+function syncSearchToUrl() {
+    try {
+        const params = new URLSearchParams(location.search);
+        const q = AppState.searchQuery || '';
+        const cat = AppState.searchCategory || '';
+        const d = AppState.searchDate || '';
+        if (q) params.set('q', q); else params.delete('q');
+        if (cat) params.set('cat', cat); else params.delete('cat');
+        if (d) params.set('d', d); else params.delete('d');
+        const qs = params.toString();
+        const newUrl = location.pathname + (qs ? '?' + qs : '') + location.hash;
+        history.replaceState(null, '', newUrl);
+    } catch { /* ignore */ }
+}
+
+// N6 — read search state from URL on load (called once at boot)
+function restoreSearchFromUrl() {
+    try {
+        const params = new URLSearchParams(location.search);
+        const q = params.get('q') || '';
+        const cat = params.get('cat') || '';
+        const d = params.get('d') || '';
+        if (!q && !cat && !d) return false;
+        AppState.searchQuery = q;
+        AppState.searchCategory = cat;
+        AppState.searchDate = d;
+        if (DOM.searchInput) DOM.searchInput.value = q;
+        if (DOM.searchCategoryFilter) DOM.searchCategoryFilter.value = cat;
+        if (DOM.searchDateFilter) DOM.searchDateFilter.value = d;
+        if (DOM.searchBar) DOM.searchBar.classList.add('active');
+        return true;
+    } catch { return false; }
+}
+
 function performSearch() {
     AppState.searchQuery = DOM.searchInput.value;
     AppState.searchCategory = DOM.searchCategoryFilter.value;
     AppState.searchDate = DOM.searchDateFilter.value;
 
+    syncSearchToUrl();
     App.renderMessages();
 }
 
@@ -8522,6 +8579,7 @@ function clearSearch() {
     AppState.searchCategory = '';
     AppState.searchDate = '';
 
+    syncSearchToUrl();
     App.renderMessages();
 }
 
