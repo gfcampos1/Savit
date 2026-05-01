@@ -91,53 +91,60 @@
 
         <!-- Main App -->
         <div class="main-app" id="mainApp" style="display: none;">
-            <!-- Desktop Sidebar -->
+            <!-- Mobile sidebar trigger (visible only <1024px) -->
+            <button class="sidebar-menu-trigger" id="sidebarMenuTrigger" type="button" aria-label="Abrir menu lateral" onclick="window.Sidebar && Sidebar.toggleDrawer()">
+                <i class="fas fa-bars" aria-hidden="true"></i>
+            </button>
+            <!-- Sidebar (desktop: column 1 of 3-col grid; mobile: slide-in drawer) -->
             <aside class="sidebar" id="sidebar">
-                <div class="sidebar-header">
-                    <div class="sidebar-brand">
-                        <span class="sidebar-mark">S</span>
-                        <span class="sidebar-name">Savit</span>
-                    </div>
-                    <span class="sidebar-version">v2</span>
+                <div class="brand">
+                    <div class="logo">S</div>
+                    <div class="name">Savit</div>
+                    <div class="v mono">v3</div>
                 </div>
-                <button class="sidebar-cmd" id="sidebarCmdBtn" type="button" aria-label="Abrir paleta de comandos">
-                    <i class="fas fa-magnifying-glass" aria-hidden="true"></i>
-                    <span>Buscar ou capturar</span>
-                    <kbd class="sidebar-kbd">⌘K</kbd>
-                </button>
-                <nav class="sidebar-nav" aria-label="Navegação principal">
-                    <button class="sidebar-nav-item active" data-page="home">
-                        <i class="fas fa-chart-simple" aria-hidden="true"></i>
-                        <span>Dashboard</span>
-                    </button>
-                    <button class="sidebar-nav-item" data-page="chat">
-                        <i class="fas fa-inbox" aria-hidden="true"></i>
+
+                <nav class="nav-group" aria-label="Navegação principal">
+                    <button class="nav-item active" data-page="chat" data-tab="inbox">
+                        <span class="ico"><i class="fas fa-inbox" aria-hidden="true"></i></span>
                         <span>Inbox</span>
+                        <span class="count mono" id="navCountInbox"></span>
                     </button>
-                    <button class="sidebar-nav-item" data-page="kanban">
-                        <i class="fas fa-list-check" aria-hidden="true"></i>
+                    <button class="nav-item" data-page="kanban" data-tab="tasks">
+                        <span class="ico"><i class="fas fa-list-check" aria-hidden="true"></i></span>
                         <span>Tarefas</span>
+                        <span class="count mono" id="navCountTasks"></span>
                     </button>
-                    <button class="sidebar-nav-item" data-page="categories">
-                        <i class="fas fa-folder-open" aria-hidden="true"></i>
+                    <button class="nav-item" data-page="categories" data-tab="cats">
+                        <span class="ico"><i class="fas fa-hashtag" aria-hidden="true"></i></span>
                         <span>Categorias</span>
+                        <span class="count mono" id="navCountCats"></span>
+                    </button>
+                    <button class="nav-item" data-page="profile" data-tab="profile">
+                        <span class="ico"><i class="fas fa-user" aria-hidden="true"></i></span>
+                        <span>Perfil</span>
                     </button>
                 </nav>
-                <div class="sidebar-section">
-                    <div class="sidebar-section-label">Categorias</div>
+
+                <div class="nav-group" id="sidebarCatsGroup">
+                    <div class="label mono">CATEGORIAS</div>
                     <div class="sidebar-section-list" id="sidebarCategoryList">
-                        <!-- populated dynamically in S3 -->
+                        <!-- populated dynamically -->
                     </div>
                 </div>
-                <div class="sidebar-footer">
-                    <button class="sidebar-user" data-page="profile" type="button">
-                        <div class="sidebar-avatar" id="sidebarAvatar">G</div>
-                        <div class="sidebar-user-meta">
-                            <span class="sidebar-username" id="sidebarUsername">Usuário</span>
-                            <span class="sidebar-userplan">Conta</span>
-                        </div>
-                    </button>
-                </div>
+
+                <button class="search-btn" id="sidebarCmdBtn" type="button" aria-label="Abrir paleta de comandos">
+                    <i class="fas fa-magnifying-glass" aria-hidden="true"></i>
+                    <span>Buscar…</span>
+                    <kbd class="sidebar-kbd kbd mono">⌘K</kbd>
+                </button>
+
+                <button class="user-pill" data-page="profile" type="button" aria-label="Abrir perfil">
+                    <div class="av" id="sidebarAvatar">G</div>
+                    <div class="user-pill-meta">
+                        <span class="name" id="sidebarUsername">Usuário</span>
+                        <span class="email" id="sidebarUserEmail"></span>
+                    </div>
+                </button>
             </aside>
 
             <!-- Main Content Area -->
@@ -880,6 +887,62 @@
             <!-- End Pages Container -->
             </div>
             <!-- End Main Content -->
+
+            <!-- Detail Panel (desktop: column 3 of 3-col grid; mobile: bottom-sheet) -->
+            <aside class="detail-panel" id="detailPanel" data-state="empty" aria-label="Detalhes do item selecionado">
+                <div class="detail-empty" id="detailEmpty">
+                    <div class="detail-empty__glyph serif">"</div>
+                    <div class="detail-empty__head serif">Selecione algo<br>para editar.</div>
+                    <div class="detail-empty__sub">Toque em qualquer nota ou tarefa pra abrir os detalhes aqui.</div>
+                </div>
+                <div class="detail-content" id="detailContent" hidden>
+                    <div class="detail-headbar">
+                        <span class="detail-badge mono" id="detailBadge">NOTA</span>
+                        <span class="detail-priority" id="detailPriority" hidden>· P0</span>
+                        <span class="detail-id mono" id="detailId"></span>
+                        <button class="detail-close" id="detailCloseBtn" type="button" aria-label="Fechar painel de detalhes">
+                            <i class="fas fa-times" aria-hidden="true"></i>
+                        </button>
+                    </div>
+                    <div class="detail-body" id="detailBody">
+                        <div class="detail-seg" role="tablist" aria-label="Tipo do item">
+                            <button class="detail-seg__btn on" data-kind="note" type="button" role="tab">Nota</button>
+                            <button class="detail-seg__btn" data-kind="task" type="button" role="tab">Tarefa</button>
+                        </div>
+                        <textarea class="detail-text" id="detailText" rows="3" placeholder="Escreva…"></textarea>
+                        <div class="detail-fields" id="detailFields">
+                            <button class="detail-field" data-field="cat" type="button">
+                                <span class="detail-field__lbl">Categoria</span>
+                                <span class="detail-field__val" id="detailFieldCat"><span class="detail-field__muted">— sem categoria</span></span>
+                                <i class="fas fa-chevron-right detail-field__chev" aria-hidden="true"></i>
+                            </button>
+                            <button class="detail-field detail-field--task" data-field="due" type="button" hidden>
+                                <span class="detail-field__lbl">Quando</span>
+                                <span class="detail-field__val" id="detailFieldDue"><span class="detail-field__muted">— sem prazo</span></span>
+                                <i class="fas fa-chevron-right detail-field__chev" aria-hidden="true"></i>
+                            </button>
+                            <button class="detail-field detail-field--task" data-field="priority" type="button" hidden>
+                                <span class="detail-field__lbl">Prioridade</span>
+                                <span class="detail-field__val" id="detailFieldPriority"><span class="detail-field__muted">— normal</span></span>
+                                <i class="fas fa-chevron-right detail-field__chev" aria-hidden="true"></i>
+                            </button>
+                        </div>
+                        <div class="detail-activity" id="detailActivity">
+                            <div class="detail-activity__lbl mono">ATIVIDADE</div>
+                            <div class="detail-activity__row" id="detailCreatedRow"></div>
+                            <div class="detail-activity__row" id="detailDoneRow" hidden></div>
+                        </div>
+                    </div>
+                    <div class="detail-footer">
+                        <button class="detail-action detail-action--ghost" id="detailArchiveBtn" type="button">
+                            <i class="fas fa-box-archive" aria-hidden="true"></i> Arquivar
+                        </button>
+                        <button class="detail-action detail-action--danger" id="detailDeleteBtn" type="button">
+                            <i class="fas fa-trash" aria-hidden="true"></i> Excluir
+                        </button>
+                    </div>
+                </div>
+            </aside>
         </div>
         <!-- End Main App -->
 
@@ -1464,6 +1527,8 @@
     <script src="js/utils/parse-natural.js?v=20260115-1"></script>
     <script src="js/components/toast.js?v=20260115-1"></script>
     <script src="js/components/command-palette.js?v=20260115-1"></script>
+    <script src="js/components/sidebar.js?v=20260501-1"></script>
+    <script src="js/components/detail-panel.js?v=20260501-1"></script>
     <script src="js/app.js?v=20260115-1"></script>
 </body>
 </html>

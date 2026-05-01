@@ -4339,9 +4339,10 @@ const App = {
             btn.classList.toggle('active', btn.dataset.page === page);
         });
 
-        // Update sidebar nav (desktop)
+        // Update sidebar nav (desktop) — prototype uses .nav-item; legacy
+        // .sidebar-nav-item kept as fallback during migration.
         if (DOM.sidebar) {
-            DOM.sidebar.querySelectorAll('.sidebar-nav-item').forEach(btn => {
+            DOM.sidebar.querySelectorAll('.sidebar-nav-item, .sidebar > .nav-group .nav-item').forEach(btn => {
                 btn.classList.toggle('active', btn.dataset.page === page);
             });
         }
@@ -5543,6 +5544,10 @@ const App = {
     // Render messages
     renderMessages(messages = null, container = DOM.messagesContainer) {
         const messagesToRender = messages || this.getFilteredMessages();
+
+        // P-B: refresh sidebar counts + detail panel when feed re-renders
+        if (typeof Sidebar !== 'undefined' && Sidebar.refresh) Sidebar.refresh();
+        if (typeof DetailPanel !== 'undefined' && DetailPanel.refresh) DetailPanel.refresh();
 
         const isMainChat = container === DOM.messagesContainer;
         const prevGapFromBottom = isMainChat ? this.getScrollGapFromBottom(container) : 0;
@@ -7238,9 +7243,18 @@ const App = {
     },
 
     // Modal handlers
-    openEditMessageModal(id) {
+    openEditMessageModal(id, opts) {
         const message = AppState.messages.find(m => m.id === id);
         if (!message) return;
+
+        // P-B: by default route row clicks to DetailPanel (right column on
+        // desktop / bottom sheet on mobile). The legacy modal stays as a
+        // deeper-edit fallback that DetailPanel field-rows reach for.
+        const force = opts && opts.force;
+        if (!force && typeof DetailPanel !== 'undefined' && DetailPanel.open) {
+            DetailPanel.open(id);
+            return;
+        }
 
         AppState.editingMessageId = id;
 
