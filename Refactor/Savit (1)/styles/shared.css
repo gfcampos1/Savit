@@ -1,0 +1,22 @@
+/* Shared base resets for Savit redesigns */
+*, *::before, *::after { box-sizing: border-box; margin: 0; padding: 0; }
+button { font-family: inherit; cursor: pointer; border: none; background: none; }
+input, textarea, select { font-family: inherit; }
+::-webkit-scrollbar { width: 0; height: 0; }
+* { scrollbar-width: none; }
+input[type="text"], input[type="email"], input[type="password"], textarea {
+  -webkit-appearance: none;
+  appearance: none;
+}
+
+/* Stripe placeholder util */
+.placeholder-stripes {
+  background-image: repeating-linear-gradient(
+    135deg,
+    rgba(0,0,0,0.04) 0 8px,
+    rgba(0,0,0,0.00) 8px 16px
+  );
+}
+
+/* Mono utility */
+.mono { font-family: "JetBrains Mono", ui-monospace, "SF Mono", Menlo, monospace; }
