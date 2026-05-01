@@ -718,30 +718,15 @@
                         </div>
 
                         <div class="profile-menu">
-                            <!-- Theme Selector (collapsible) -->
-                            <div class="theme-selector is-collapsed" id="themeSection">
-                                <button class="theme-selector-header" id="themeSectionToggle" type="button">
-                                    <span class="theme-selector-title">Tema do aplicativo</span>
-                                    <span class="theme-selector-current" id="themeCurrentLabel">Papel</span>
-                                    <i class="fas fa-chevron-down" aria-hidden="true"></i>
-                                </button>
-                                <div class="theme-selector-content" id="themeSectionContent">
-                                    <div class="theme-options">
-                                        <button class="theme-option active" data-theme="paper" id="themePaperBtn">
-                                            <i class="fas fa-file-lines"></i>
-                                            <span>Papel</span>
-                                        </button>
-                                        <button class="theme-option" data-theme="playful" id="themePlayfulBtn">
-                                            <i class="fas fa-wand-magic-sparkles"></i>
-                                            <span>Vibrante</span>
-                                        </button>
-                                        <button class="theme-option" data-theme="linear" id="themeLinearBtn">
-                                            <i class="fas fa-grip-lines"></i>
-                                            <span>Linear</span>
-                                        </button>
-                                    </div>
-                                </div>
-                            </div>
+                            <!-- Aparência: hint apontando para o painel de Ajustes (cog top-right).
+                                 O seletor de tema legacy (Papel/Vibrante/Linear) foi removido em
+                                 P-E — o sistema agora é Paper-only com 6 accents + 2 densidades. -->
+                            <button class="menu-item" id="openTweaksFromProfileBtn" type="button">
+                                <i class="fas fa-sliders"></i>
+                                <span>Aparência</span>
+                                <span class="menu-item-aux" id="appearanceHint">accent + densidade</span>
+                                <i class="fas fa-chevron-right"></i>
+                            </button>
 
                             <button class="menu-item" id="editProfileBtn">
                                 <i class="fas fa-edit"></i>

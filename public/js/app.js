@@ -1168,53 +1168,11 @@ const S5Polish = {
     }
 };
 
-function initThemeSectionCollapsible() {
-    if (!DOM.themeSection || !DOM.themeSectionToggle) return;
-
-    const storageKey = 'savit.themeSectionCollapsed';
-
-    const readPref = () => {
-        try {
-            const v = localStorage.getItem(storageKey);
-            if (v === '0') return false;
-            if (v === '1') return true;
-        } catch {
-            // ignore
-        }
-        return true;
-    };
-
-    const writePref = (collapsed) => {
-        try {
-            localStorage.setItem(storageKey, collapsed ? '1' : '0');
-        } catch {
-            // ignore
-        }
-    };
-
-    const setCollapsed = (collapsed) => {
-        DOM.themeSection.classList.toggle('is-collapsed', !!collapsed);
-        writePref(!!collapsed);
-
-        if (!collapsed) {
-            setTimeout(() => {
-                try {
-                    const activeBtn = DOM.themeSection.querySelector('.theme-option.active');
-                    activeBtn?.focus?.();
-                } catch {
-                    // ignore
-                }
-            }, 0);
-        }
-    };
-
-    setCollapsed(readPref());
-
-    DOM.themeSectionToggle.addEventListener('click', () => {
-        const isCollapsed = DOM.themeSection.classList.contains('is-collapsed');
-        setCollapsed(!isCollapsed);
-    });
-}
+// initThemeSectionCollapsible was removed in P-E. The legacy 3-theme
+// selector (Papel/Vibrante/Linear) is gone — accent and density now live
+// in the TweaksPanel (cog top-right). The "Aparência" entry in profile
+// just opens that panel.
+function initThemeSectionCollapsible() { /* no-op */ }
 
 // =============================================
 // Drawing Canvas
@@ -7787,19 +7745,10 @@ const App = {
             });
         }
 
-        // Sidebar command button — placeholder for command palette (S5).
-        // For now, navigate to inbox + focus composer.
-        const sidebarCmdBtn = document.getElementById('sidebarCmdBtn');
-        if (sidebarCmdBtn) {
-            sidebarCmdBtn.addEventListener('click', () => {
-                this.navigateTo('chat');
-                requestAnimationFrame(() => {
-                    if (DOM.messageInput && typeof DOM.messageInput.focus === 'function') {
-                        DOM.messageInput.focus();
-                    }
-                });
-            });
-        }
+        // (Sidebar #sidebarCmdBtn click is wired in App.bindCmdLaunchers,
+        //  which clones the node and binds CommandPalette.open. Earlier we
+        //  had a pre-S5 placeholder here that just focused the composer; it
+        //  was always shadowed by bindCmdLaunchers. Removed in P-E.)
 
         DOM.viewAllMessages.addEventListener('click', (e) => {
             e.preventDefault();
@@ -8345,15 +8294,16 @@ const App = {
             DOM.categoryVoiceStopBtn.addEventListener('click', () => SpeechToText.stop());
         }
 
-        // Theme buttons
-        if (DOM.themePaperBtn) {
-            DOM.themePaperBtn.addEventListener('click', () => ThemeManager.setTheme('paper'));
-        }
-        if (DOM.themePlayfulBtn) {
-            DOM.themePlayfulBtn.addEventListener('click', () => ThemeManager.setTheme('playful'));
-        }
-        if (DOM.themeLinearBtn) {
-            DOM.themeLinearBtn.addEventListener('click', () => ThemeManager.setTheme('linear'));
+        // P-E: legacy 3-theme buttons (themePaperBtn/themePlayfulBtn/
+        // themeLinearBtn) were removed from the profile markup. The
+        // "Aparência" menu item in profile now opens the TweaksPanel.
+        const openTweaksFromProfile = document.getElementById('openTweaksFromProfileBtn');
+        if (openTweaksFromProfile) {
+            openTweaksFromProfile.addEventListener('click', () => {
+                if (typeof TweaksPanel !== 'undefined' && TweaksPanel.open) {
+                    TweaksPanel.open();
+                }
+            });
         }
 
         // Image attachment - Main chat
