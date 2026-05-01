@@ -7687,3 +7687,286 @@ textarea:focus-visible,
     .main-app > .sidebar { transition: none; }
 }
 
+/* =====================================================================
+   P-C — Inbox feed: NoteRow (serif) + TaskCard (sans) + day dividers
+   Source: Refactor/Savit (1)/prototype/feed.jsx + styles.css 159-308
+   Strategy: re-skin existing .message DOM (which now carries
+   .message--note / .message--task modifier classes) without rewriting
+   the JS render path.
+   ===================================================================== */
+
+/* Reset legacy bubble appearance for messages inside the inbox feed */
+#chatPage .messages-container {
+    padding: 8px 32px 200px;
+    gap: 0;
+}
+
+/* Day divider (was .date-separator) */
+#chatPage .messages-container .date-separator {
+    display: flex;
+    align-items: center;
+    gap: 10px;
+    padding: 22px 0 10px;
+    background: none;
+    border: none;
+    margin: 0;
+}
+#chatPage .messages-container .date-separator > span {
+    font-family: var(--font-mono);
+    font-size: 10px;
+    letter-spacing: 0.14em;
+    color: var(--ink-3);
+    text-transform: uppercase;
+    background: none;
+    padding: 0;
+    border-radius: 0;
+}
+#chatPage .messages-container .date-separator::after {
+    content: '';
+    flex: 1;
+    height: 1px;
+    background: var(--hair);
+}
+
+/* Generic message — neutralize legacy bubble look */
+#chatPage .messages-container .message {
+    background: none;
+    border: none;
+    box-shadow: none;
+    border-radius: 6px;
+    margin: 0 -8px;
+    padding: 12px 12px;
+    cursor: pointer;
+    transition: background 120ms ease;
+    position: relative;
+    color: var(--ink);
+    max-width: none;
+    align-self: stretch;
+}
+#chatPage .messages-container .message:hover { background: rgba(29,26,20,0.025); }
+#chatPage .messages-container .message.selected { background: var(--accent-soft); }
+
+/* Message text */
+#chatPage .messages-container .message .message-text {
+    color: var(--ink);
+    font-size: 14px;
+    line-height: 1.5;
+}
+#chatPage .messages-container .message--note .message-text {
+    font-family: var(--font-display);
+    font-size: 19px;
+    line-height: 1.35;
+    letter-spacing: -0.005em;
+    color: var(--ink);
+}
+
+/* Note variant — dashed bottom border, no card chrome */
+#chatPage .messages-container .message--note {
+    border-bottom: 1px dashed var(--hair);
+    display: flex;
+    flex-direction: column;
+    gap: 6px;
+    padding: 12px;
+}
+
+/* Task variant — card with hairline border + soft shadow + lift on hover */
+#chatPage .messages-container .message--task {
+    background: var(--surface);
+    border: 1px solid var(--hair);
+    border-radius: var(--radius-md);
+    padding: var(--row-pad-y, 12px) var(--row-pad-x, 14px);
+    margin: 8px 0;
+    box-shadow: var(--shadow-md);
+    display: flex;
+    flex-direction: column;
+    gap: 8px;
+    transition: transform 200ms cubic-bezier(.22,1,.36,1), box-shadow 200ms ease, opacity 240ms ease, background 120ms ease;
+}
+#chatPage .messages-container .message--task:hover {
+    transform: translateY(-1px);
+    box-shadow: 0 1px 0 rgba(29,26,20,0.04), 0 18px 32px -20px rgba(29,26,20,0.22);
+    background: var(--surface);
+}
+#chatPage .messages-container .message--task.selected {
+    border-color: var(--accent);
+    background: var(--accent-soft);
+}
+#chatPage .messages-container .message--task.task-completed { opacity: 0.5; }
+#chatPage .messages-container .message--task.task-completed .message-text { text-decoration: line-through; }
+
+/* Category badge — small swatch + label (replaces colored pill) */
+#chatPage .messages-container .message .message-category {
+    background: none !important;
+    color: var(--ink-2) !important;
+    padding: 0;
+    border-radius: 0;
+    font-size: 11.5px;
+    font-weight: 400;
+    display: inline-flex;
+    align-items: center;
+    gap: 5px;
+    box-shadow: none;
+    text-transform: none;
+    letter-spacing: 0;
+}
+#chatPage .messages-container .message .message-category::before {
+    content: '';
+    display: inline-block;
+    width: 7px;
+    height: 7px;
+    border-radius: 2px;
+    background: currentColor; /* falls back; overridden inline by colored badge */
+    flex-shrink: 0;
+}
+/* Override: when message-category has its own background-color set inline,
+   we still want the small dot, so we surface the color through a CSS var. */
+#chatPage .messages-container .message .message-category[style*="background"] {
+    /* keep inline bg only on the ::before dot via filter trick — simpler: just show name in muted, dot uses the badge bg */
+}
+
+/* Task checkbox — bigger, square-rounded, ink border, animated tick */
+#chatPage .messages-container .message--task .message-task {
+    display: flex;
+    gap: 12px;
+    align-items: flex-start;
+    background: none;
+    border: none;
+    padding: 0;
+    margin: 0;
+}
+#chatPage .messages-container .message--task .task-checkbox {
+    width: 20px;
+    height: 20px;
+    border-radius: 6px;
+    border: 1.5px solid var(--ink);
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    flex-shrink: 0;
+    margin-top: 2px;
+    background: transparent;
+    color: var(--ink);
+    cursor: pointer;
+    transition: background 200ms cubic-bezier(.22,1,.36,1), border-color 200ms ease, transform 220ms cubic-bezier(.34,1.56,.64,1);
+}
+#chatPage .messages-container .message--task .task-checkbox:hover { transform: scale(1.08); }
+#chatPage .messages-container .message--task .task-checkbox.completed {
+    background: var(--ink);
+    border-color: var(--ink);
+    color: #fff;
+}
+#chatPage .messages-container .message--task .task-checkbox.completed i { font-size: 11px; }
+
+/* Task info row — drop legacy "Tarefa pendente" label, just the datetime */
+#chatPage .messages-container .message--task .task-info {
+    flex: 1;
+    min-width: 0;
+}
+#chatPage .messages-container .message--task .task-info .task-label {
+    display: none;
+}
+#chatPage .messages-container .message--task .task-info .task-datetime {
+    margin-top: 0;
+    display: flex;
+    align-items: center;
+    gap: 12px;
+    font-size: 11.5px;
+    color: var(--ink-2);
+    background: none;
+    padding: 0;
+    border-radius: 0;
+}
+#chatPage .messages-container .message--task .task-info .task-datetime span {
+    display: inline-flex;
+    align-items: center;
+    gap: 4px;
+    color: var(--ink-2);
+    background: none;
+    padding: 0;
+    font-weight: 400;
+}
+#chatPage .messages-container .message--task .task-info .task-datetime span i {
+    color: var(--ink-3);
+    font-size: 10px;
+}
+
+/* Urgent flag — derived from .task-overdue / aria for now */
+#chatPage .messages-container .message--task.task-overdue::before {
+    content: 'URGENTE';
+    display: inline-block;
+    font-family: var(--font-mono);
+    font-size: 9.5px;
+    letter-spacing: 0.12em;
+    color: var(--accent);
+    background: var(--accent-soft);
+    padding: 2px 6px;
+    border-radius: 4px;
+    width: fit-content;
+    margin-bottom: -4px;
+}
+
+/* Message footer — keep timestamp small, mono, muted */
+#chatPage .messages-container .message .message-footer {
+    display: flex;
+    align-items: center;
+    gap: 10px;
+    font-size: 11.5px;
+    color: var(--ink-2);
+    margin-top: 0;
+    padding: 0;
+    background: none;
+}
+#chatPage .messages-container .message .message-footer .message-time {
+    color: var(--ink-3);
+    font-family: var(--font-mono);
+    font-size: 10.5px;
+    background: none;
+    padding: 0;
+}
+
+/* Reorder: meta row (category + footer) at the bottom of note */
+#chatPage .messages-container .message--note .message-text { order: 1; }
+#chatPage .messages-container .message--note .message-category { order: 2; }
+#chatPage .messages-container .message--note .message-footer { order: 3; }
+
+/* Task internal layout: text on top, then task-info row, then meta footer */
+#chatPage .messages-container .message--task .message-text { order: 1; }
+#chatPage .messages-container .message--task .message-task { order: 2; }
+#chatPage .messages-container .message--task .message-category { order: 3; }
+#chatPage .messages-container .message--task .message-footer { order: 4; }
+
+/* Page header — match prototype's .page-head (mono sub line + serif h1) */
+#chatPage .page-header,
+#kanbanPage .page-header,
+#categoriesPage .page-header,
+#profilePage .page-header {
+    padding: 22px 32px 10px;
+    background: none;
+    border-bottom: none;
+    align-items: flex-end;
+}
+#chatPage .page-header h1,
+#kanbanPage .page-header h1,
+#categoriesPage .page-header h1,
+#profilePage .page-header h1 {
+    font-family: var(--font-display);
+    font-size: 38px;
+    line-height: 1;
+    letter-spacing: -0.015em;
+    font-weight: 500;
+    color: var(--ink);
+}
+
+/* On mobile, page header padding accounts for the menu trigger button */
+@media (max-width: 1023.98px) {
+    #chatPage .messages-container,
+    #kanbanPage .page-content,
+    #categoriesPage .page-content,
+    #profilePage .page-content {
+        padding-left: 16px;
+        padding-right: 16px;
+    }
+    #chatPage .messages-container { padding-bottom: 200px; }
+}
+
+

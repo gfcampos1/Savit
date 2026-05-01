@@ -5639,8 +5639,14 @@ const App = {
         const isOverdue = Utils.isTaskOverdue(msg.taskDate, msg.taskTime, msg.taskCompleted);
 
         let classNames = ['message'];
+        // P-C: explicit modifier classes so prototype CSS can target note vs task
+        // without relying on :has(). Selected state visually mirrors DetailPanel.
+        classNames.push(msg.isTask ? 'message--task' : 'message--note');
         if (msg.isTask && msg.taskCompleted) classNames.push('task-completed');
         if (isOverdue) classNames.push('task-overdue');
+        if (typeof AppState !== 'undefined' && AppState.editingMessageId === msg.id) {
+            classNames.push('selected');
+        }
 
         let html = `<div class="${classNames.join(' ')}" data-id="${msg.id}" tabindex="0">`;
 
