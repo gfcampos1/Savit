@@ -17,6 +17,8 @@
         return root;
     }
 
+    const MAX_VISIBLE = 3;
+
     function show(text, opts) {
         opts = opts || {};
         const type = opts.type || 'info';
@@ -26,6 +28,25 @@
             : (action ? 5000 : 3000);
 
         const root = ensureRoot();
+
+        // Dedupe: if a toast with the same text + type is already visible, just
+        // reset its timer (avoids spam from rapid identical actions).
+        const existing = Array.from(root.children).find((el) => {
+            const m = el.querySelector('.toast__msg');
+            return m && m.textContent === text && el.classList.contains('toast--' + type);
+        });
+        if (existing && existing.__resetTimer) {
+            existing.__resetTimer(duration);
+            return { dismiss: existing.__dismiss };
+        }
+
+        // Cap visible toasts at MAX_VISIBLE — drop oldest non-leaving one.
+        while (root.children.length >= MAX_VISIBLE) {
+            const oldest = Array.from(root.children).find((el) => !el.classList.contains('toast--leaving'));
+            if (!oldest) break;
+            oldest.classList.add('toast--leaving');
+            setTimeout(() => oldest.remove(), 200);
+        }
 
         const toast = document.createElement('div');
         toast.className = 'toast toast--' + type;
@@ -45,6 +66,13 @@
             toast.classList.add('toast--leaving');
             setTimeout(() => toast.remove(), 200);
         };
+        const resetTimer = (ms) => {
+            if (timer) clearTimeout(timer);
+            timer = setTimeout(() => dismiss(false), ms);
+        };
+        // Expose for dedupe path
+        toast.__resetTimer = resetTimer;
+        toast.__dismiss = dismiss;
 
         if (action && action.label && typeof action.onClick === 'function') {
             const btn = document.createElement('button');

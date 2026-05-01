@@ -1335,6 +1335,16 @@ body {
     padding: var(--spacing-xs);
 }
 
+/* P1-U4 — search hint linking text input to filters below */
+.search-hint {
+    margin: 8px 4px 0;
+    padding: 0;
+    font-family: var(--font-mono);
+    font-size: var(--fs-xs);
+    color: var(--ink-3);
+    letter-spacing: 0.06em;
+}
+
 #searchInput {
     flex: 1;
     border: none;
@@ -5848,6 +5858,51 @@ body {
     gap: var(--spacing-sm);
 }
 
+/* P1-N5 — filter bar shown when tasksFilter is set (e.g., #/today) */
+.tasks-filter-bar {
+    display: flex;
+    align-items: center;
+    gap: var(--spacing-sm);
+    padding: 6px 0 12px;
+}
+
+.tasks-filter-bar__chip {
+    display: inline-flex;
+    align-items: center;
+    gap: 6px;
+    padding: 5px 8px 5px 12px;
+    background: color-mix(in srgb, var(--accent) 12%, var(--surface));
+    color: var(--accent);
+    border: 1px solid color-mix(in srgb, var(--accent) 30%, var(--hair));
+    border-radius: var(--radius-pill);
+    font-family: var(--font-mono);
+    font-size: var(--fs-xs);
+    text-transform: uppercase;
+    letter-spacing: 0.12em;
+    font-weight: 600;
+}
+
+.tasks-filter-bar__chip i {
+    font-size: 11px;
+}
+
+.tasks-filter-bar__clear {
+    background: transparent;
+    border: none;
+    color: var(--accent);
+    font-size: 14px;
+    line-height: 1;
+    padding: 0 2px;
+    cursor: pointer;
+    margin-left: 2px;
+    border-left: 1px solid color-mix(in srgb, var(--accent) 30%, transparent);
+    padding-left: 6px;
+}
+
+.tasks-filter-bar__clear:hover {
+    color: var(--ink);
+}
+
 .task-group__empty {
     font-family: var(--font-mono);
     font-size: var(--fs-xs);
@@ -6804,6 +6859,32 @@ body {
 }
 
 [data-theme="linear"] .show-completed-toggle.is-on {
+    color: #fff;
+}
+
+.show-completed-toggle__badge {
+    display: inline-flex;
+    align-items: center;
+    justify-content: center;
+    min-width: 18px;
+    height: 18px;
+    padding: 0 5px;
+    margin-left: 4px;
+    background: var(--surface);
+    color: var(--ink);
+    border-radius: 999px;
+    font-family: var(--font-mono);
+    font-size: 10px;
+    font-weight: 600;
+    letter-spacing: 0;
+}
+
+.show-completed-toggle.is-on .show-completed-toggle__badge {
+    background: rgba(255,255,255,0.22);
+    color: var(--surface);
+}
+
+[data-theme="linear"] .show-completed-toggle.is-on .show-completed-toggle__badge {
     color: #fff;
 }
 

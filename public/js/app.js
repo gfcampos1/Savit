@@ -827,6 +827,38 @@ const S5Polish = {
         this.bindCategoryChipReopen();
         this.bindShowCompletedToggle();
         this.restoreScrollOnNavigate();
+        this.bindPopstateGuard();
+    },
+
+    // P0-N1 — close any open modal/sheet/focus before browser navigates back.
+    // Without this, back-button leaves the modal floating over a different page.
+    bindPopstateGuard() {
+        window.addEventListener('popstate', (e) => {
+            // Close any open .modal.active (it intercepts back, doesn't navigate)
+            const openModal = document.querySelector('.modal.active');
+            if (openModal) {
+                openModal.classList.remove('active');
+                // Push the current state back so the next "back" actually navigates
+                history.pushState(null, '', location.href);
+                e.preventDefault?.();
+                return;
+            }
+            // Close focus mode overlay if open
+            const focusEl = document.getElementById('focusPage');
+            if (focusEl && focusEl.dataset.active === '1') {
+                focusEl.dataset.active = '';
+                focusEl.hidden = true;
+                if (typeof FocusMode !== 'undefined' && FocusMode.unbindKeys) FocusMode.unbindKeys();
+                history.pushState(null, '', location.href);
+                return;
+            }
+            // Close command palette if open
+            if (typeof CommandPalette !== 'undefined' && CommandPalette.isOpen && CommandPalette.isOpen()) {
+                CommandPalette.close();
+                history.pushState(null, '', location.href);
+                return;
+            }
+        });
     },
 
     // §7.17 — Sticky offline banner
@@ -934,24 +966,38 @@ const S5Polish = {
         const btn = document.createElement('button');
         btn.type = 'button';
         btn.className = 'show-completed-toggle';
-        btn.innerHTML = '<i class="fas fa-eye" aria-hidden="true"></i><span>Concluídas</span>';
+        // P1-U3 — include badge with completed count, updated on apply
+        btn.innerHTML = '<i class="fas fa-eye" aria-hidden="true"></i>'
+            + '<span class="show-completed-toggle__label">Concluídas</span>'
+            + '<span class="show-completed-toggle__badge" id="showCompletedCount">0</span>';
         const STORAGE = 'savit_show_completed';
+        const updateBadge = () => {
+            const badge = btn.querySelector('#showCompletedCount');
+            if (!badge) return;
+            const count = (typeof AppState !== 'undefined' && Array.isArray(AppState.messages))
+                ? AppState.messages.filter(m => m.isTask && m.taskCompleted).length
+                : 0;
+            badge.textContent = count;
+            btn.style.display = count > 0 ? '' : 'none';
+        };
         const apply = () => {
             const on = localStorage.getItem(STORAGE) === '1';
             btn.classList.toggle('is-on', on);
             kanbanPage.dataset.showCompleted = on ? '1' : '0';
+            updateBadge();
         };
         btn.addEventListener('click', () => {
             const on = localStorage.getItem(STORAGE) === '1';
             try { localStorage.setItem(STORAGE, on ? '0' : '1'); } catch { /* ignore */ }
             apply();
-            // Force re-render of mobile list to respect new preference
             if (typeof App !== 'undefined' && typeof App.renderTaskListMobile === 'function') {
                 App.renderTaskListMobile();
             }
         });
         filtersRow.appendChild(btn);
         apply();
+        // Re-update badge whenever messages change — hook into renderKanban
+        S5Polish.__updateCompletedBadge = updateBadge;
     },
 
     showCompletedEnabled() {
@@ -4099,6 +4145,9 @@ const App = {
             AppState.user = user;
             this.showMainApp();
             await this.loadInitialData();
+            // P0-N2 — initialize router only after data is loaded so deep-link
+            // routes like #/category/:id can find the category in AppState.
+            if (typeof Router !== 'undefined') Router.init();
         } catch (error) {
             console.error('Auth check failed:', error);
             this.showAuthScreen();
@@ -4127,17 +4176,21 @@ const App = {
 
         // Update UI with user info
         if (AppState.user) {
-            const firstName = AppState.user.name.split(' ')[0];
-            const initial = AppState.user.name.charAt(0).toUpperCase();
+            // P1-U6 — robust derivation: trim, fallback to email local-part, then 'S'
+            const rawName = (AppState.user.name || '').trim();
+            const firstName = rawName.split(/\s+/)[0] || (AppState.user.email || '').split('@')[0] || 'Você';
+            const initialFromName = rawName.charAt(0).toUpperCase();
+            const initialFromEmail = (AppState.user.email || '').charAt(0).toUpperCase();
+            const initial = initialFromName || initialFromEmail || 'S';
 
             DOM.userName.textContent = firstName;
-            DOM.profileName.textContent = AppState.user.name;
-            DOM.profileEmail.textContent = AppState.user.email;
+            DOM.profileName.textContent = rawName || firstName;
+            DOM.profileEmail.textContent = AppState.user.email || '';
 
-            // Profile avatar letter (V1.2)
+            // Profile avatar letter (V1.2 + P1-U6 fallback)
             const profileAvatarLetter = document.getElementById('profileAvatarLetter');
             if (profileAvatarLetter) {
-                profileAvatarLetter.textContent = initial || 'S';
+                profileAvatarLetter.textContent = initial;
             }
 
             // Update sidebar (desktop)
@@ -4163,10 +4216,7 @@ const App = {
         // Initialize collapsible UI sections
         initThemeSectionCollapsible();
 
-        // Initialize hash router (after DOM/state are ready)
-        if (typeof Router !== 'undefined') {
-            Router.init();
-        }
+        // Router.init() moved to checkAuth (after loadInitialData) — P0-N2
 
         // Initialize Smart Capture (parser + chip preview)
         if (typeof SmartCapture !== 'undefined') {
@@ -6349,6 +6399,10 @@ const App = {
         this.renderFocusCard();
         // S6: render calendar (only visible when view-toggle is on calendar)
         this.renderTaskCalendar();
+        // P1-U3: refresh "Concluídas" badge count
+        if (typeof S5Polish !== 'undefined' && typeof S5Polish.__updateCompletedBadge === 'function') {
+            S5Polish.__updateCompletedBadge();
+        }
 
         const search = AppState.kanbanSearch.toLowerCase();
         const categoryFilter = AppState.kanbanCategory;
@@ -6987,14 +7041,37 @@ const App = {
             return html;
         };
 
+        // P1-N5 — when tasksFilter === 'today', only show Hoje group + filter chip
+        const todayOnly = AppState.tasksFilter === 'today';
+
         let out = '';
-        out += renderGroup(groups.today);
-        out += renderGroup(groups.tomorrow);
-        out += renderGroup(groups.week);
-        if (groups.none.items.length) out += renderGroup(groups.none);
+        if (todayOnly) {
+            out += '<div class="tasks-filter-bar">'
+                + '<span class="tasks-filter-bar__chip">'
+                +   '<i class="fas fa-sun" aria-hidden="true"></i>'
+                +   'Apenas hoje'
+                +   '<button type="button" class="tasks-filter-bar__clear" id="clearTasksFilterBtn" aria-label="Limpar filtro">×</button>'
+                + '</span>'
+                + '</div>';
+            out += renderGroup(groups.today);
+        } else {
+            out += renderGroup(groups.today);
+            out += renderGroup(groups.tomorrow);
+            out += renderGroup(groups.week);
+            if (groups.none.items.length) out += renderGroup(groups.none);
+        }
         root.innerHTML = out;
 
         this.attachMessageEventListeners(root);
+
+        // Wire clear-filter button
+        const clearBtn = document.getElementById('clearTasksFilterBtn');
+        if (clearBtn) {
+            clearBtn.addEventListener('click', () => {
+                AppState.tasksFilter = null;
+                if (typeof Router !== 'undefined') Router.go('#/tasks');
+            });
+        }
     },
 
     // S6 — Task calendar (desktop only)
@@ -7105,7 +7182,15 @@ const App = {
     closeCategoryMessages() {
         AppState.viewingCategoryId = null;
         DOM.categoryMessagesPage.classList.remove('active');
-        this.navigateTo('categories');
+        // P0-N3 — prefer browser back (returns to wherever user came from);
+        // fallback to /categories if there's no in-app history.
+        const hasInAppHistory = history.length > 1
+            && (!document.referrer || document.referrer.includes(location.host));
+        if (hasInAppHistory) {
+            history.back();
+        } else {
+            this.navigateTo('categories');
+        }
     },
 
     // Modal handlers
@@ -7202,6 +7287,7 @@ const App = {
             AppState.user = user;
             this.showMainApp();
             await this.loadInitialData();
+            if (typeof Router !== 'undefined') Router.init();
             showToast('Bem-vindo de volta!');
 
             if (DOM.loginMfaGroup) DOM.loginMfaGroup.style.display = 'none';
@@ -7234,6 +7320,7 @@ const App = {
             AppState.user = response.user;
             this.showMainApp();
             await this.loadInitialData();
+            if (typeof Router !== 'undefined') Router.init();
             showToast('Conta criada com sucesso!');
         } catch (error) {
             showToast(error.message);
@@ -7532,6 +7619,15 @@ const App = {
         DOM.bottomNav.querySelectorAll('.nav-item[data-page]').forEach(btn => {
             btn.addEventListener('click', () => {
                 this.navigateTo(btn.dataset.page);
+            });
+        });
+
+        // P1-N5 — items with data-route use the router directly (e.g., #/today)
+        DOM.bottomNav.querySelectorAll('.nav-item[data-route]').forEach(btn => {
+            btn.addEventListener('click', () => {
+                if (typeof Router !== 'undefined' && typeof Router.go === 'function') {
+                    Router.go(btn.dataset.route);
+                }
             });
         });
 
@@ -7957,6 +8053,18 @@ const App = {
 
         // Category messages page
         DOM.backFromCategoryBtn.addEventListener('click', () => this.closeCategoryMessages());
+
+        // P0-U1 — Empty state "Capturar primeira ideia" CTA focuses composer
+        const emptyCaptureBtn = document.getElementById('emptyStateCaptureBtn');
+        if (emptyCaptureBtn) {
+            emptyCaptureBtn.addEventListener('click', () => {
+                requestAnimationFrame(() => {
+                    if (DOM.messageInput && typeof DOM.messageInput.focus === 'function') {
+                        DOM.messageInput.focus();
+                    }
+                });
+            });
+        }
 
         // Category space "+ Adicionar nota" (S3 / F4)
         const catSpaceAddBtn = document.getElementById('catSpaceAddBtn');

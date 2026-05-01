@@ -148,11 +148,11 @@
                         <i class="fas fa-inbox" aria-hidden="true"></i>
                         <span>Inbox</span>
                     </button>
-                    <button class="nav-item" data-page="home">
-                        <i class="fas fa-chart-simple" aria-hidden="true"></i>
+                    <button class="nav-item" data-route="#/today">
+                        <i class="fas fa-sun" aria-hidden="true"></i>
                         <span>Hoje</span>
                     </button>
-                    <button class="nav-item nav-item--capture" id="captureFab" type="button" aria-label="Capturar nova ideia">
+                    <button class="nav-item nav-item--capture" id="captureFab" type="button" aria-label="Capturar nova ideia (mantenha pressionado para abrir busca)" title="Toque: capturar · Manter pressionado: buscar">
                         <i class="fas fa-plus" aria-hidden="true"></i>
                     </button>
                     <button class="nav-item" data-page="kanban">
@@ -423,9 +423,10 @@
                     <div class="search-bar" id="searchBar">
                         <div class="search-input-wrapper">
                             <i class="fas fa-arrow-left" id="closeSearchBtn"></i>
-                            <input type="text" id="searchInput" placeholder="Buscar mensagens...">
+                            <input type="text" id="searchInput" placeholder="Buscar no texto…">
                             <i class="fas fa-times" id="clearSearchBtn"></i>
                         </div>
+                        <p class="search-hint">Use os filtros pra categoria e data</p>
                         <div class="search-filters">
                             <select id="searchCategoryFilter">
                                 <option value="">Todas categorias</option>
@@ -440,6 +441,9 @@
                             <div class="empty-state feed-empty" id="emptyState">
                                 <h2 class="feed-empty__title">Sua primeira ideia<br><em>mora aqui.</em></h2>
                                 <p class="feed-empty__hint">Capture qualquer pensamento — vira nota ou tarefa</p>
+                                <button type="button" class="feed-empty__cta" id="emptyStateCaptureBtn">
+                                    Capturar primeira ideia
+                                </button>
                             </div>
                         </div>
 

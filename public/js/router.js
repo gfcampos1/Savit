@@ -38,7 +38,7 @@
         const m = hash.match(/^#\/category\/(.+)$/);
         if (m) return { page: 'categoryMessages', params: { categoryId: decodeURIComponent(m[1]) } };
         const route = ROUTES.find(r => r.hash === hash);
-        if (route) return { page: route.page, params: route.meta || {} };
+        if (route) return { page: route.page, params: route.meta ? { ...route.meta } : {} };
         return null;
     }
 
@@ -52,7 +52,17 @@
     function applyHash(force) {
         const parsed = parseHash(location.hash);
         if (!parsed) {
-            if (force) location.replace(location.pathname + location.search + DEFAULT_HASH);
+            // P1-N4 — unknown hash: redirect to default + toast.
+            // On boot (force=true), replace silently. On runtime hashchange, notify.
+            if (force) {
+                location.replace(location.pathname + location.search + DEFAULT_HASH);
+            } else if (location.hash && location.hash !== '#' && location.hash !== '#/') {
+                if (window.Toast && typeof Toast.show === 'function') {
+                    Toast.show('Página não encontrada', { type: 'info' });
+                }
+                history.replaceState(null, '', location.pathname + location.search + DEFAULT_HASH);
+                applyHash(true);
+            }
             return;
         }
         // Special-case: focus mode is an overlay, not a regular page
@@ -76,6 +86,10 @@
                     App.openCategoryMessages(parsed.params.categoryId);
                     return;
                 }
+            }
+            // P1-N5 — propagate route meta (e.g., #/today → tasksFilter="today")
+            if (typeof AppState !== 'undefined') {
+                AppState.tasksFilter = (parsed.params && parsed.params.filter) || null;
             }
             App.navigateTo(parsed.page);
         } finally {
