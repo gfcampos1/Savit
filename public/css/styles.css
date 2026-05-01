@@ -1228,36 +1228,10 @@ body {
 }
 
 /* =============================================
-   Chat Page Header
+   Header utility classes (legacy .header/.app-title removed —
+   pages now use .page-header. .header-btn kept for action buttons
+   reused by perfil/categorias/chat headers.)
    ============================================= */
-.header {
-    display: flex;
-    align-items: center;
-    justify-content: space-between;
-    padding: var(--spacing-md) var(--spacing-lg);
-    padding-top: calc(var(--spacing-md) + env(safe-area-inset-top));
-    background: var(--header-bg);
-    min-height: 56px;
-}
-
-.header-left {
-    display: flex;
-    align-items: center;
-    gap: var(--spacing-md);
-}
-
-.app-title {
-    font-size: var(--font-size-xl);
-    font-weight: 600;
-    color: var(--text-primary);
-}
-
-.header-right {
-    display: flex;
-    align-items: center;
-    gap: var(--spacing-xs);
-}
-
 .header-btn {
     width: 40px;
     height: 40px;
@@ -1274,11 +1248,7 @@ body {
 }
 
 .header-btn:hover {
-    background: rgba(255, 255, 255, 0.1);
-}
-
-[data-theme="light"] .header-btn:hover {
-    background: rgba(0, 0, 0, 0.08);
+    background: var(--surface-2);
 }
 
 .header-btn-primary {

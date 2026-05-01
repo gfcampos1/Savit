@@ -52,17 +52,26 @@
     function applyHash(force) {
         const parsed = parseHash(location.hash);
         if (!parsed) {
-            // P1-N4 — unknown hash: redirect to default + toast.
-            // On boot (force=true), replace silently. On runtime hashchange, notify.
+            const isEmpty = !location.hash || location.hash === '#' || location.hash === '#/';
             if (force) {
-                location.replace(location.pathname + location.search + DEFAULT_HASH);
-            } else if (location.hash && location.hash !== '#' && location.hash !== '#/') {
-                if (window.Toast && typeof Toast.show === 'function') {
-                    Toast.show('Página não encontrada', { type: 'info' });
-                }
+                // Boot path with empty hash → silently replace to default
                 history.replaceState(null, '', location.pathname + location.search + DEFAULT_HASH);
                 applyHash(true);
+                return;
             }
+            // B3 — runtime hashchange with empty hash (e.g., back-beyond-app):
+            // recover silently, no toast.
+            if (isEmpty) {
+                history.replaceState(null, '', location.pathname + location.search + DEFAULT_HASH);
+                applyHash(true);
+                return;
+            }
+            // P1-N4 — truly unknown hash → toast + redirect
+            if (window.Toast && typeof Toast.show === 'function') {
+                Toast.show('Página não encontrada', { type: 'info' });
+            }
+            history.replaceState(null, '', location.pathname + location.search + DEFAULT_HASH);
+            applyHash(true);
             return;
         }
         // Special-case: focus mode is an overlay, not a regular page
@@ -100,12 +109,13 @@
     const Router = {
         init() {
             window.addEventListener('hashchange', () => applyHash(false));
-            // First load
+            // B2 — initial hash setup uses replaceState (not location.hash =) so
+            // we don't add an extra history entry. Back from /dashboard exits
+            // the app naturally instead of getting stuck on an empty URL.
             if (!location.hash || location.hash === '#' || location.hash === '#/') {
-                location.hash = DEFAULT_HASH;
-            } else {
-                applyHash(true);
+                history.replaceState(null, '', location.pathname + location.search + DEFAULT_HASH);
             }
+            applyHash(true);
         },
 
         // Called from App.navigateTo to mirror current page in URL

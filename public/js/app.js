@@ -838,34 +838,27 @@ const S5Polish = {
         this.bindPopstateGuard();
     },
 
-    // P0-N1 — close any open modal/sheet/focus before browser navigates back.
-    // Without this, back-button leaves the modal floating over a different page.
+    // B1 — close any open overlay on browser-back, but DO NOT re-push state.
+    // Re-pushing creates duplicate history entries that make subsequent backs
+    // a no-op. Instead, let hashchange continue and navigate normally; the
+    // back gesture closes the overlay AND moves to the previous page in one
+    // motion (matches iOS/Android pattern).
     bindPopstateGuard() {
-        window.addEventListener('popstate', (e) => {
-            // Close any open .modal.active (it intercepts back, doesn't navigate)
+        window.addEventListener('popstate', () => {
             const openModal = document.querySelector('.modal.active');
-            if (openModal) {
-                openModal.classList.remove('active');
-                // Push the current state back so the next "back" actually navigates
-                history.pushState(null, '', location.href);
-                e.preventDefault?.();
-                return;
-            }
-            // Close focus mode overlay if open
+            if (openModal) openModal.classList.remove('active');
+
             const focusEl = document.getElementById('focusPage');
             if (focusEl && focusEl.dataset.active === '1') {
                 focusEl.dataset.active = '';
                 focusEl.hidden = true;
                 if (typeof FocusMode !== 'undefined' && FocusMode.unbindKeys) FocusMode.unbindKeys();
-                history.pushState(null, '', location.href);
-                return;
             }
-            // Close command palette if open
+
             if (typeof CommandPalette !== 'undefined' && CommandPalette.isOpen && CommandPalette.isOpen()) {
                 CommandPalette.close();
-                history.pushState(null, '', location.href);
-                return;
             }
+            // hashchange will fire next and handle the actual page navigation.
         });
     },
 
