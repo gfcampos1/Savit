@@ -95,6 +95,39 @@
             <button class="sidebar-menu-trigger" id="sidebarMenuTrigger" type="button" aria-label="Abrir menu lateral" onclick="window.Sidebar && Sidebar.toggleDrawer()">
                 <i class="fas fa-bars" aria-hidden="true"></i>
             </button>
+
+            <!-- Tweaks launcher (cog top-right) — opens accent+density panel -->
+            <button class="tweaks-launcher" id="tweaksLauncher" type="button" aria-label="Ajustes de aparência" aria-expanded="false">
+                <i class="fas fa-sliders" aria-hidden="true"></i>
+            </button>
+
+            <!-- Tweaks panel (accent + density toggles) -->
+            <div class="tweaks-panel" id="tweaksPanel" hidden role="dialog" aria-label="Ajustes de aparência">
+                <div class="tweaks-panel__head">
+                    <span class="tweaks-panel__title serif">Ajustes</span>
+                    <button class="tweaks-panel__close" id="tweaksCloseBtn" type="button" aria-label="Fechar ajustes">
+                        <i class="fas fa-times" aria-hidden="true"></i>
+                    </button>
+                </div>
+                <div class="tweak-section">
+                    <div class="tweak-section__lbl mono">ACCENT</div>
+                    <div class="tweak-section__row">
+                        <button class="tweak-pill" type="button" data-accent-pill="citrus"><span class="tweak-swatch" style="background:#c0563a"></span>Citrus</button>
+                        <button class="tweak-pill" type="button" data-accent-pill="terra"><span class="tweak-swatch" style="background:#b8472d"></span>Terra</button>
+                        <button class="tweak-pill" type="button" data-accent-pill="amber"><span class="tweak-swatch" style="background:#d4a128"></span>Amber</button>
+                        <button class="tweak-pill" type="button" data-accent-pill="mint"><span class="tweak-swatch" style="background:#3a8a6a"></span>Mint</button>
+                        <button class="tweak-pill" type="button" data-accent-pill="purple"><span class="tweak-swatch" style="background:#7a5cc7"></span>Purple</button>
+                        <button class="tweak-pill" type="button" data-accent-pill="blue"><span class="tweak-swatch" style="background:#2a5fb8"></span>Blue</button>
+                    </div>
+                </div>
+                <div class="tweak-section">
+                    <div class="tweak-section__lbl mono">DENSIDADE</div>
+                    <div class="tweak-section__row">
+                        <button class="tweak-pill" type="button" data-density-pill="comfortable">Confortável</button>
+                        <button class="tweak-pill" type="button" data-density-pill="compact">Compacta</button>
+                    </div>
+                </div>
+            </div>
             <!-- Sidebar (desktop: column 1 of 3-col grid; mobile: slide-in drawer) -->
             <aside class="sidebar" id="sidebar">
                 <div class="brand">
@@ -1529,6 +1562,7 @@
     <script src="js/components/command-palette.js?v=20260115-1"></script>
     <script src="js/components/sidebar.js?v=20260501-1"></script>
     <script src="js/components/detail-panel.js?v=20260501-1"></script>
+    <script src="js/components/tweaks-panel.js?v=20260501-1"></script>
     <script src="js/app.js?v=20260115-1"></script>
 </body>
 </html>

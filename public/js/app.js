@@ -917,16 +917,70 @@ const S5Polish = {
 
     // §7.20 — Global keyboard shortcuts (Esc/arrows). ⌘K is in CommandPalette.
     bindGlobalKeys() {
+        // P-D: g-prefix Linear-style nav state
+        let gPrefixTimer = null;
+        let gPrefixActive = false;
+        const cancelGPrefix = () => {
+            gPrefixActive = false;
+            if (gPrefixTimer) { clearTimeout(gPrefixTimer); gPrefixTimer = null; }
+        };
+
         document.addEventListener('keydown', (e) => {
             // Ignore if typing in a field or editor
             const t = e.target;
             const isEditable = t && (t.tagName === 'INPUT' || t.tagName === 'TEXTAREA' || t.isContentEditable);
 
+            // P-D: `/` (when not typing) opens the command palette / search
+            if (e.key === '/' && !isEditable && !e.metaKey && !e.ctrlKey && !e.altKey) {
+                if (typeof CommandPalette !== 'undefined' && CommandPalette.open) {
+                    e.preventDefault();
+                    CommandPalette.open();
+                    return;
+                }
+            }
+
+            // P-D: `g` then `i|t|c|p` navigates Linear-style.
+            //   g i → Inbox    g t → Tarefas    g c → Categorias    g p → Perfil
+            if (!isEditable && !e.metaKey && !e.ctrlKey && !e.altKey) {
+                if (gPrefixActive) {
+                    const map = { i: 'chat', t: 'kanban', c: 'categories', p: 'profile' };
+                    const target = map[e.key];
+                    if (target) {
+                        e.preventDefault();
+                        cancelGPrefix();
+                        if (typeof Router !== 'undefined' && Router.go) {
+                            const hashMap = { chat: '#/inbox', kanban: '#/tasks', categories: '#/categories', profile: '#/profile' };
+                            Router.go(hashMap[target]);
+                        } else {
+                            this.navigateTo(target);
+                        }
+                        return;
+                    }
+                    // Any other key cancels the g-prefix.
+                    cancelGPrefix();
+                }
+                if (e.key === 'g' && !gPrefixActive) {
+                    gPrefixActive = true;
+                    gPrefixTimer = setTimeout(cancelGPrefix, 1500);
+                    return;
+                }
+            }
+
             // Esc closes any open modal (.modal.active)
             if (e.key === 'Escape' && !isEditable) {
+                if (typeof TweaksPanel !== 'undefined' && TweaksPanel.isOpen && TweaksPanel.isOpen()) {
+                    TweaksPanel.close();
+                    e.preventDefault();
+                    return;
+                }
                 const openModal = document.querySelector('.modal.active');
                 if (openModal) {
                     openModal.classList.remove('active');
+                    e.preventDefault();
+                    return;
+                }
+                if (typeof DetailPanel !== 'undefined' && DetailPanel.isOpen && DetailPanel.isOpen()) {
+                    DetailPanel.close();
                     e.preventDefault();
                     return;
                 }
