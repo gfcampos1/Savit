@@ -13,6 +13,11 @@ const DrawingCanvas = lazy(() =>
   import('@/components/editor/DrawingCanvas').then((m) => ({ default: m.DrawingCanvas })),
 );
 
+// React Flow também só carrega sob demanda.
+const MindMap = lazy(() =>
+  import('@/components/editor/MindMap').then((m) => ({ default: m.MindMap })),
+);
+
 export function NoteDetailPage() {
   const params = useParams();
   const id = params.id;
@@ -46,6 +51,25 @@ export function NoteDetailPage() {
       if (!id) return;
       try {
         await patch.mutateAsync({ id, contentJson: snapshot });
+        setSavedAt(Date.now());
+        setSaveError(null);
+      } catch (err) {
+        setSaveError(err instanceof Error ? err.message : 'erro ao salvar');
+      }
+    },
+    [id, patch],
+  );
+
+  // Para MINDMAP: { nodes, edges } e contentText concat dos textos pra busca.
+  const saveMindmap = useCallback(
+    async (doc: { nodes: { data: { text?: string } }[]; edges: unknown[] }) => {
+      if (!id) return;
+      try {
+        const contentText = doc.nodes
+          .map((n) => n.data?.text ?? '')
+          .filter(Boolean)
+          .join(' · ');
+        await patch.mutateAsync({ id, contentJson: doc, contentText });
         setSavedAt(Date.now());
         setSaveError(null);
       } catch (err) {
@@ -123,6 +147,20 @@ export function NoteDetailPage() {
           <DrawingCanvas
             initialSnapshot={initial.json}
             onChange={(snap) => void saveDrawing(snap)}
+          />
+        </Suspense>
+      ) : n.type === 'MINDMAP' ? (
+        <Suspense
+          fallback={
+            <p className="font-mono text-[11px] uppercase tracking-mono text-ink-3 py-10 text-center">
+              carregando mapa…
+            </p>
+          }
+        >
+          <MindMap
+            initial={initial.json}
+            defaultColor={n.category?.color ?? null}
+            onChange={(doc) => void saveMindmap(doc)}
           />
         </Suspense>
       ) : (

@@ -103,6 +103,15 @@ export function Composer({ categories, defaultCategoryId = null }: ComposerProps
     navigate(`/notes/${note.id}`);
   }
 
+  async function createMindMapNote() {
+    const note = await createNote.mutateAsync({
+      type: 'MINDMAP',
+      contentText: '',
+      categoryId: effectiveCategoryId ?? null,
+    });
+    navigate(`/notes/${note.id}`);
+  }
+
   /**
    * Cria nota tipo PHOTO e dispara o file picker. Tem que criar a nota primeiro
    * pra associar os anexos. Como o file picker é síncrono via DOM, usamos uma
@@ -245,6 +254,15 @@ export function Composer({ categories, defaultCategoryId = null }: ComposerProps
         </button>
         <button
           type="button"
+          onClick={() => void createMindMapNote()}
+          aria-label="mapa mental"
+          title="mapa mental"
+          className="grid place-items-center h-10 w-10 rounded-pill border hairline text-ink-2 hover:text-accent hover:border-accent transition-colors"
+        >
+          <MindIcon />
+        </button>
+        <button
+          type="button"
           onClick={() => void submit()}
           disabled={!text.trim() || submitting}
           aria-label="enviar"
@@ -308,6 +326,24 @@ function PenIcon() {
         strokeLinejoin="round"
       />
       <path d="M13 5l6 6" stroke="currentColor" strokeWidth="1.8" />
+    </svg>
+  );
+}
+
+function MindIcon() {
+  return (
+    <svg width="18" height="18" viewBox="0 0 24 24" fill="none" aria-hidden>
+      <circle cx="12" cy="12" r="2.5" stroke="currentColor" strokeWidth="1.8" />
+      <circle cx="4" cy="6" r="2" stroke="currentColor" strokeWidth="1.8" />
+      <circle cx="20" cy="6" r="2" stroke="currentColor" strokeWidth="1.8" />
+      <circle cx="4" cy="18" r="2" stroke="currentColor" strokeWidth="1.8" />
+      <circle cx="20" cy="18" r="2" stroke="currentColor" strokeWidth="1.8" />
+      <path
+        d="M10 11L6 7M14 11l4-4M10 13l-4 4M14 13l4 4"
+        stroke="currentColor"
+        strokeWidth="1.8"
+        strokeLinecap="round"
+      />
     </svg>
   );
 }
