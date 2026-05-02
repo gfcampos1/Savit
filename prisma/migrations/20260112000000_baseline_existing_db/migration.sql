@@ -1,5 +1,0 @@
--- Baseline migration for existing production databases.
---
--- This migration is intentionally a no-op.
--- It's used to initialize Prisma's migration history ("_prisma_migrations")
--- for databases that already have tables created outside of Prisma Migrate.
