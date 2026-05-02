@@ -1,4 +1,5 @@
 import { useState } from 'react';
+import { Link } from 'react-router-dom';
 import { CATEGORY_COLORS, type Category, type CategoryColor } from '@savit/shared';
 import {
   useCategories,
@@ -43,25 +44,44 @@ export function CategoriesPage() {
       ) : (
         <ul className="rounded-md border hairline bg-surface divide-y divide-hair shadow-card">
           {cats.data?.map((c) => (
-            <li
-              key={c.id}
-              className="flex items-center gap-3 px-4 py-3 hover:bg-surface-2/40 cursor-pointer"
-              onClick={() => setEditing(c)}
-            >
-              <span
-                className="grid place-items-center h-10 w-10 rounded-md display-serif text-lg text-bg"
-                style={{ background: c.color }}
-                aria-hidden
+            <li key={c.id} className="flex items-center gap-3 px-4 py-3 hover:bg-surface-2/40">
+              <Link
+                to={`/?cat=${c.id}`}
+                className="flex items-center gap-3 flex-1 min-w-0"
+                aria-label={`abrir ${c.name} no inbox`}
               >
-                {c.name.charAt(0).toUpperCase()}
-              </span>
-              <div className="flex-1 min-w-0">
-                <p className="text-md text-ink truncate">{c.name}</p>
-                <p className="font-mono text-[10px] uppercase tracking-mono text-ink-3 mt-0.5">
-                  {c.color}
-                </p>
-              </div>
-              <span className="text-ink-3 text-lg">›</span>
+                <span
+                  className="grid place-items-center h-10 w-10 rounded-md display-serif text-lg text-bg shrink-0"
+                  style={{ background: c.color }}
+                  aria-hidden
+                >
+                  {c.name.charAt(0).toUpperCase()}
+                </span>
+                <div className="flex-1 min-w-0">
+                  <p className="text-md text-ink truncate">{c.name}</p>
+                  <p className="font-mono text-[10px] uppercase tracking-mono text-ink-3 mt-0.5">
+                    {c.noteCount ?? 0} {plural(c.noteCount ?? 0, 'nota', 'notas')}
+                    {(c.taskCount ?? 0) > 0
+                      ? ` · ${c.taskCount} ${plural(c.taskCount ?? 0, 'tarefa pendente', 'tarefas pendentes')}`
+                      : ''}
+                  </p>
+                </div>
+              </Link>
+              <Link
+                to={`/tasks?cat=${c.id}`}
+                aria-label={`abrir tarefas de ${c.name}`}
+                className="text-xs font-mono uppercase tracking-mono text-ink-3 hover:text-accent px-2 py-1"
+              >
+                tarefas →
+              </Link>
+              <button
+                type="button"
+                onClick={() => setEditing(c)}
+                aria-label="editar"
+                className="text-ink-3 hover:text-ink text-sm px-2 py-1"
+              >
+                editar
+              </button>
             </li>
           ))}
         </ul>
@@ -211,4 +231,8 @@ function CategoryEditor({ category, onClose }: CategoryEditorProps) {
       ) : null}
     </Sheet>
   );
+}
+
+function plural(n: number, one: string, many: string): string {
+  return n === 1 ? one : many;
 }

@@ -1,16 +1,40 @@
+import { useMemo } from 'react';
+import { useSearchParams } from 'react-router-dom';
 import { useTasks } from '@/hooks/useTasks';
 import { useCategories } from '@/hooks/useCategories';
 import { Composer } from '@/components/composer/Composer';
+import { CategoryFilter } from '@/components/CategoryFilter';
 import { Board } from '@/components/kanban/Board';
 
 export function TasksPage() {
   const tasks = useTasks({ includeDone: true });
   const cats = useCategories();
+  const [searchParams, setSearchParams] = useSearchParams();
+  const categoryId = searchParams.get('cat');
+
+  function setCategoryId(id: string | null) {
+    setSearchParams(
+      (prev) => {
+        const next = new URLSearchParams(prev);
+        if (id) next.set('cat', id);
+        else next.delete('cat');
+        return next;
+      },
+      { replace: true },
+    );
+  }
 
   const items = tasks.data?.items ?? [];
-  const total = items.length;
-  const done = items.filter((t) => t.status === 'DONE').length;
+  const filtered = useMemo(
+    () => (categoryId ? items.filter((t) => t.categoryId === categoryId) : items),
+    [items, categoryId],
+  );
+
+  const total = filtered.length;
+  const done = filtered.filter((t) => t.status === 'DONE').length;
   const pending = total - done;
+
+  const activeCat = categoryId ? cats.data?.find((c) => c.id === categoryId) ?? null : null;
 
   return (
     <div className="max-w-2xl md:max-w-7xl mx-auto px-6 pt-8 pb-32">
@@ -26,22 +50,49 @@ export function TasksPage() {
         </div>
       </header>
 
-      <p className="text-xs text-ink-3 mb-6">
-        Arraste cartões pra mudar de coluna — em <em>Hoje/Amanhã/Semana</em> o prazo ajusta
-        sozinho; <em>Concluídas</em> marca como feito.
-      </p>
+      <div className="mb-4">
+        <CategoryFilter
+          categories={cats.data ?? []}
+          value={categoryId}
+          onChange={setCategoryId}
+          countKind="tasks"
+        />
+      </div>
+
+      {activeCat ? (
+        <p className="text-xs text-ink-2 mb-4">
+          mostrando só tarefas de{' '}
+          <span className="inline-flex items-center gap-1.5">
+            <span className="h-2 w-2 rounded-sm" style={{ background: activeCat.color }} aria-hidden />
+            <strong className="text-ink">{activeCat.name}</strong>
+          </span>{' '}
+          ·{' '}
+          <button
+            type="button"
+            onClick={() => setCategoryId(null)}
+            className="text-accent hover:underline underline-offset-2"
+          >
+            limpar
+          </button>
+        </p>
+      ) : (
+        <p className="text-xs text-ink-3 mb-6">
+          Arraste cartões pra mudar de coluna — em <em>Hoje/Amanhã/Semana</em> o prazo ajusta
+          sozinho; <em>Concluídas</em> marca como feito.
+        </p>
+      )}
 
       {tasks.isLoading ? (
         <p className="font-mono text-[11px] uppercase tracking-mono text-ink-3 py-10 text-center">
           carregando…
         </p>
       ) : (
-        <Board tasks={items} />
+        <Board tasks={filtered} />
       )}
 
       <div className="fixed inset-x-0 bottom-0 z-20 bg-gradient-to-t from-bg via-bg to-transparent px-6 pt-6 pb-6">
         <div className="max-w-2xl mx-auto">
-          <Composer categories={cats.data ?? []} />
+          <Composer categories={cats.data ?? []} defaultCategoryId={categoryId} />
         </div>
       </div>
     </div>

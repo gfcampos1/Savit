@@ -1,10 +1,12 @@
-import { useEffect, useState } from 'react';
+import { useEffect, useMemo, useState } from 'react';
+import { useSearchParams } from 'react-router-dom';
 import { useAuthStore } from '@/stores/auth';
 import { useCategories } from '@/hooks/useCategories';
 import { useNotes } from '@/hooks/useNotes';
 import { useTasks } from '@/hooks/useTasks';
 import { useWeekly } from '@/hooks/useStats';
 import { Composer } from '@/components/composer/Composer';
+import { CategoryFilter } from '@/components/CategoryFilter';
 import { Feed } from '@/components/feed/Feed';
 import { WeeklySummaryCard } from '@/components/dashboard/WeeklySummaryCard';
 
@@ -13,10 +15,40 @@ type FilterTab = 'all' | 'tasks' | 'notes';
 export function InboxPage() {
   const user = useAuthStore((s) => s.user);
   const [filter, setFilter] = useState<FilterTab>('all');
+  const [searchParams, setSearchParams] = useSearchParams();
+  const categoryId = searchParams.get('cat');
 
   const cats = useCategories();
+  // Não passamos categoryId pra hooks: é mais barato filtrar local (pois já
+  // temos o feed completo) e mantém a contagem total no header sempre.
   const notes = useNotes();
   const tasks = useTasks({ includeDone: true });
+
+  function setCategoryId(id: string | null) {
+    setSearchParams(
+      (prev) => {
+        const next = new URLSearchParams(prev);
+        if (id) next.set('cat', id);
+        else next.delete('cat');
+        return next;
+      },
+      { replace: true },
+    );
+  }
+
+  const filteredNotes = useMemo(() => {
+    const all = notes.data?.items ?? [];
+    return categoryId ? all.filter((n) => n.categoryId === categoryId) : all;
+  }, [notes.data, categoryId]);
+
+  const filteredTasks = useMemo(() => {
+    const all = tasks.data?.items ?? [];
+    return categoryId ? all.filter((t) => t.categoryId === categoryId) : all;
+  }, [tasks.data, categoryId]);
+
+  const activeCat = categoryId
+    ? cats.data?.find((c) => c.id === categoryId) ?? null
+    : null;
   const weekly = useWeekly();
   const [weeklyDismissed, setWeeklyDismissed] = useState<boolean>(() => {
     try {
@@ -37,8 +69,8 @@ export function InboxPage() {
   const isMonday = new Date().getDay() === 1;
   const showWeekly = isMonday && weekly.data && !weeklyDismissed;
 
-  const noteCount = notes.data?.items.length ?? 0;
-  const taskCount = tasks.data?.items.length ?? 0;
+  const noteCount = filteredNotes.length;
+  const taskCount = filteredTasks.length;
 
   const isLoading = cats.isLoading || notes.isLoading || tasks.isLoading;
 
@@ -58,8 +90,8 @@ export function InboxPage() {
         </p>
       </header>
 
-      <nav className="sticky top-[57px] z-10 -mx-6 px-6 py-3 bg-bg/85 backdrop-blur border-b hairline mb-6">
-        <div className="inline-flex gap-1 rounded-pill bg-surface-2 p-1">
+      <nav className="sticky top-[57px] z-10 -mx-6 px-6 py-3 bg-bg/85 backdrop-blur border-b hairline mb-6 flex flex-col gap-3">
+        <div className="inline-flex gap-1 rounded-pill bg-surface-2 p-1 self-start">
           <Tab active={filter === 'all'} onClick={() => setFilter('all')} count={noteCount + taskCount}>
             Tudo
           </Tab>
@@ -70,7 +102,33 @@ export function InboxPage() {
             Notas
           </Tab>
         </div>
+        <CategoryFilter
+          categories={cats.data ?? []}
+          value={categoryId}
+          onChange={setCategoryId}
+          countKind="notes"
+        />
       </nav>
+
+      {activeCat ? (
+        <div className="mb-4 inline-flex items-center gap-2 text-xs text-ink-2">
+          <span>filtrando por</span>
+          <span
+            className="inline-flex items-center gap-1.5 rounded-pill bg-surface px-2 py-1 border hairline"
+          >
+            <span className="h-2 w-2 rounded-sm" style={{ background: activeCat.color }} aria-hidden />
+            <span className="text-ink">{activeCat.name}</span>
+            <button
+              type="button"
+              onClick={() => setCategoryId(null)}
+              aria-label="limpar filtro"
+              className="ml-0.5 text-ink-3 hover:text-ink"
+            >
+              ×
+            </button>
+          </span>
+        </div>
+      ) : null}
 
       {showWeekly ? (
         <div className="mb-6">
@@ -87,16 +145,15 @@ export function InboxPage() {
           carregando…
         </p>
       ) : (
-        <Feed
-          notes={notes.data?.items ?? []}
-          tasks={tasks.data?.items ?? []}
-          filter={filter}
-        />
+        <Feed notes={filteredNotes} tasks={filteredTasks} filter={filter} />
       )}
 
       <div className="fixed inset-x-0 bottom-0 z-20 bg-gradient-to-t from-bg via-bg to-transparent px-6 pt-6 pb-6">
         <div className="max-w-2xl mx-auto">
-          <Composer categories={cats.data ?? []} />
+          <Composer
+            categories={cats.data ?? []}
+            defaultCategoryId={categoryId}
+          />
         </div>
       </div>
     </div>

@@ -11,9 +11,18 @@ categoriesRouter.use(requireAuth);
 
 categoriesRouter.get('/', async (req, res, next) => {
   try {
+    // Conta tasks pendentes (não DONE/ARCHIVED) — métrica mais útil que total
     const items = await prisma.category.findMany({
       where: { userId: req.user!.id },
       orderBy: [{ sortOrder: 'asc' }, { createdAt: 'asc' }],
+      include: {
+        _count: {
+          select: {
+            notes: { where: { archivedAt: null } },
+            tasks: { where: { status: { notIn: ['DONE', 'ARCHIVED'] } } },
+          },
+        },
+      },
     });
     res.json({
       items: items.map((c) => ({
@@ -22,6 +31,8 @@ categoriesRouter.get('/', async (req, res, next) => {
         color: c.color,
         icon: c.icon,
         sortOrder: c.sortOrder,
+        noteCount: c._count.notes,
+        taskCount: c._count.tasks,
         createdAt: c.createdAt.toISOString(),
         updatedAt: c.updatedAt.toISOString(),
       })),

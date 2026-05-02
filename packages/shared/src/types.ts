@@ -12,6 +12,10 @@ export interface Category {
   color: CategoryColor;
   icon: string | null;
   sortOrder: number;
+  /** Notas não arquivadas. Presente em GET /api/categories. */
+  noteCount?: number;
+  /** Tarefas não DONE/ARCHIVED (pendentes). Presente em GET /api/categories. */
+  taskCount?: number;
   createdAt: Iso;
   updatedAt: Iso;
 }
