@@ -10,7 +10,9 @@ import { existsSync } from 'node:fs';
 import { env } from './lib/env.js';
 import { logger } from './lib/logger.js';
 import { errorHandler, notFoundHandler } from './middleware/error.js';
+import { authRouter } from './routes/auth.js';
 import { healthRouter } from './routes/health.js';
+import { meRouter } from './routes/me.js';
 
 const __filename = fileURLToPath(import.meta.url);
 const __dirname = path.dirname(__filename);
@@ -47,6 +49,8 @@ export function buildServer(): Express {
 
   // ----- API routes -----
   app.use('/api/health', healthRouter);
+  app.use('/api/auth', authRouter);
+  app.use('/api/me', meRouter);
 
   // ----- Static frontend (produção) -----
   // Em prod o build do web está em apps/web/dist; servimos como SPA fallback.
