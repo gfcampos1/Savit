@@ -4,12 +4,7 @@
 
 import { useEffect, useRef, useState } from 'react';
 import { useQueryClient } from '@tanstack/react-query';
-import {
-  sendMessageStream,
-  useChatModels,
-  useThread,
-  type StreamEvent,
-} from '@/hooks/useChat';
+import { sendMessageStream, useThread, type StreamEvent } from '@/hooks/useChat';
 import { Message } from './Message';
 import type { ToolEvent } from './ToolCallCard';
 
@@ -24,21 +19,14 @@ interface PendingAssistant {
 
 export function Conversation({ threadId }: ConversationProps) {
   const thread = useThread(threadId);
-  const models = useChatModels();
   const qc = useQueryClient();
 
   const [draft, setDraft] = useState('');
-  const [model, setModel] = useState<string | undefined>(undefined);
   const [pending, setPending] = useState<PendingAssistant | null>(null);
   const [streaming, setStreaming] = useState(false);
   const [error, setError] = useState<string | null>(null);
   const abortRef = useRef<AbortController | null>(null);
   const scrollerRef = useRef<HTMLDivElement | null>(null);
-
-  // sincroniza o modelo selecionado com o da thread carregada
-  useEffect(() => {
-    if (thread.data?.model) setModel(thread.data.model);
-  }, [thread.data?.model]);
 
   // auto-scroll quando mensagens mudam ou stream chega
   useEffect(() => {
@@ -60,7 +48,6 @@ export function Conversation({ threadId }: ConversationProps) {
 
     try {
       for await (const ev of sendMessageStream(threadId, content, {
-        model,
         signal: controller.signal,
       })) {
         applyEvent(ev);
@@ -137,17 +124,6 @@ export function Conversation({ threadId }: ConversationProps) {
         <h2 className="display-serif text-lg flex-1 truncate">
           {thread.data.title ?? 'Nova conversa'}
         </h2>
-        <select
-          value={model ?? thread.data.model}
-          onChange={(e) => setModel(e.target.value)}
-          className="text-xs bg-surface border hairline rounded px-2 py-1 text-ink-2 focus:outline-none focus:border-accent"
-        >
-          {models.data?.items.map((m) => (
-            <option key={m.id} value={m.id}>
-              {m.label}
-            </option>
-          ))}
-        </select>
       </header>
 
       <div ref={scrollerRef} className="flex-1 overflow-y-auto px-4 py-4">

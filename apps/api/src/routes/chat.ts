@@ -32,27 +32,8 @@ import { SAVIT_TOOLS, runTool } from '../services/ai-tools.js';
 export const chatRouter: Router = Router();
 chatRouter.use(requireAuth);
 
-// ---------- whitelist de modelos ----------
-
-const ALLOWED_MODELS = [
-  'anthropic/claude-sonnet-4-6',
-  'anthropic/claude-opus-4-7',
-  'openai/gpt-5',
-  'google/gemini-2.5-pro',
-  'meta-llama/llama-3.3-70b-instruct',
-];
-
-chatRouter.get('/models', (_req, res) => {
-  res.json({
-    items: ALLOWED_MODELS.map((id) => ({ id, label: humanize(id) })),
-    default: env.OPENROUTER_DEFAULT_MODEL,
-    fallback: env.OPENROUTER_FALLBACK_MODEL,
-  });
-});
-
-function humanize(id: string): string {
-  return id.split('/').pop()?.replace(/-/g, ' ') ?? id;
-}
+// O modelo é fixado por env (OPENROUTER_DEFAULT_MODEL). Trocar aqui exige
+// redeploy — usuários não escolhem modelo na UI por design.
 
 // ---------- threads ----------
 
@@ -88,17 +69,17 @@ chatRouter.get('/threads', async (req, res, next) => {
 
 const CreateThread = z.object({
   title: z.string().min(1).max(120).optional(),
-  model: z.string().max(120).optional(),
 });
 
 chatRouter.post('/threads', async (req, res, next) => {
   try {
     const input = CreateThread.parse(req.body ?? {});
-    const model = input.model && ALLOWED_MODELS.includes(input.model)
-      ? input.model
-      : env.OPENROUTER_DEFAULT_MODEL;
     const thread = await prisma.chatThread.create({
-      data: { userId: req.user!.id, title: input.title ?? null, model },
+      data: {
+        userId: req.user!.id,
+        title: input.title ?? null,
+        model: env.OPENROUTER_DEFAULT_MODEL,
+      },
     });
     res.status(201).json({
       id: thread.id,
@@ -184,7 +165,9 @@ chatRouter.post('/threads/:id/messages', async (req, res, next) => {
       throw new HttpError(429, 'daily_token_limit_reached');
     }
 
-    const model = input.model && ALLOWED_MODELS.includes(input.model) ? input.model : thread.model;
+    // Modelo é sempre o do env atual — ignoramos qualquer override do client.
+    // Threads antigas com modelo diferente são re-rotuladas pra o atual.
+    const model = env.OPENROUTER_DEFAULT_MODEL;
 
     // Persiste a mensagem do usuário
     await prisma.chatMessage.create({

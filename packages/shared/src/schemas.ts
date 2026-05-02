@@ -76,7 +76,6 @@ export const TaskMoveInput = z.object({
 
 export const ChatMessageInput = z.object({
   content: z.string().min(1).max(20_000),
-  model: z.string().max(120).optional(),
 });
 
 // ---------- Upload ----------

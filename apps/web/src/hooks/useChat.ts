@@ -33,11 +33,6 @@ export interface ThreadDetail {
   messages: PersistedMessage[];
 }
 
-export interface ModelOption {
-  id: string;
-  label: string;
-}
-
 export type StreamEvent =
   | { type: 'delta'; content: string }
   | { type: 'tool_call'; id: string; name: string; args: unknown }
@@ -72,21 +67,12 @@ export function useThread(id: string | undefined) {
   });
 }
 
-export function useChatModels() {
-  return useQuery({
-    queryKey: ['chat', 'models'],
-    queryFn: () =>
-      api<{ items: ModelOption[]; default: string; fallback: string }>('/api/chat/models'),
-    staleTime: 60 * 60 * 1000,
-  });
-}
-
 // ----- mutations -----
 
 export function useCreateThread() {
   const qc = useQueryClient();
   return useMutation({
-    mutationFn: (input: { title?: string; model?: string } = {}) =>
+    mutationFn: (input: { title?: string } = {}) =>
       api<ThreadSummary>('/api/chat/threads', { method: 'POST', body: input }),
     onSuccess: () => {
       void qc.invalidateQueries({ queryKey: TKEY });
@@ -107,14 +93,16 @@ export function useDeleteThread() {
 /**
  * Envia uma mensagem e consome o stream SSE.
  * Retorna o iterador — quem chama renderiza incrementalmente.
+ *
+ * O modelo é fixado pelo backend (env). Não passamos do cliente.
  */
 export async function* sendMessageStream(
   threadId: string,
   content: string,
-  opts: { model?: string; signal?: AbortSignal } = {},
+  opts: { signal?: AbortSignal } = {},
 ): AsyncGenerator<StreamEvent, void, void> {
   for await (const ev of streamSSE<StreamEvent>(`/api/chat/threads/${threadId}/messages`, {
-    body: { content, ...(opts.model && { model: opts.model }) },
+    body: { content },
     signal: opts.signal,
   })) {
     yield ev;
