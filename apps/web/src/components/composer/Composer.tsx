@@ -13,6 +13,8 @@ import { VoiceRecorder, type RecordedClip } from '@/components/editor/VoiceRecor
 interface ComposerProps {
   categories: Category[];
   defaultCategoryId?: string | null;
+  /** Texto inicial pré-preenchido (ex: vindo do share target). */
+  initialText?: string;
 }
 
 /**
@@ -23,8 +25,19 @@ interface ComposerProps {
  * - Cmd/Ctrl+Enter envia, Esc colapsa.
  * - Cria nota OU tarefa baseado no parser; se houver dueAt → tarefa.
  */
-export function Composer({ categories, defaultCategoryId = null }: ComposerProps) {
-  const [text, setText] = useState('');
+export function Composer({
+  categories,
+  defaultCategoryId = null,
+  initialText = '',
+}: ComposerProps) {
+  const [text, setText] = useState(initialText);
+
+  // se o initialText mudar (ex: novo share-target enquanto app está aberto),
+  // sobrescrevemos o draft local — mais útil que ignorar.
+  useEffect(() => {
+    if (initialText) setText(initialText);
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, [initialText]);
   const [pinnedCategoryId, setPinnedCategoryId] = useState<string | null>(defaultCategoryId);
   const [submitting, setSubmitting] = useState(false);
   const [error, setError] = useState<string | null>(null);

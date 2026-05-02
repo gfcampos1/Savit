@@ -3,6 +3,7 @@ import { BrowserRouter, Navigate, Route, Routes } from 'react-router-dom';
 
 import { AuthBootstrap, RequireAuth, RequireGuest } from '@/components/auth/AuthGuard';
 import { AppShell } from '@/components/AppShell';
+import { PWAStatus } from '@/components/PWAStatus';
 import { LoginPage } from '@/routes/auth/login';
 import { RegisterPage } from '@/routes/auth/register';
 import { CategoriesPage } from '@/routes/categories';
@@ -31,6 +32,7 @@ export function App() {
   return (
     <QueryClientProvider client={queryClient}>
       <BrowserRouter>
+        <PWAStatus />
         <AuthBootstrap>
           <Routes>
             <Route element={<RequireGuest />}>

@@ -18,6 +18,29 @@ export function InboxPage() {
   const [searchParams, setSearchParams] = useSearchParams();
   const categoryId = searchParams.get('cat');
 
+  // Share Target API (PWA): ao instalar e compartilhar do navegador, o sistema
+  // abre o app com title/text/url no query string. Pré-preenche o composer e
+  // limpa os params da URL pra não disparar de novo no reload.
+  const [sharedDraft, setSharedDraft] = useState('');
+  useEffect(() => {
+    const title = searchParams.get('title');
+    const sharedText = searchParams.get('text');
+    const url = searchParams.get('url');
+    const parts = [title, sharedText, url].filter(Boolean) as string[];
+    if (parts.length === 0) return;
+    setSharedDraft(parts.join('\n').trim());
+    setSearchParams(
+      (prev) => {
+        const next = new URLSearchParams(prev);
+        next.delete('title');
+        next.delete('text');
+        next.delete('url');
+        return next;
+      },
+      { replace: true },
+    );
+  }, [searchParams, setSearchParams]);
+
   const cats = useCategories();
   // Não passamos categoryId pra hooks: é mais barato filtrar local (pois já
   // temos o feed completo) e mantém a contagem total no header sempre.
@@ -132,6 +155,7 @@ export function InboxPage() {
           <Composer
             categories={cats.data ?? []}
             defaultCategoryId={categoryId}
+            initialText={sharedDraft}
           />
         </div>
       </div>
