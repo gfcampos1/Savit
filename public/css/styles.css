@@ -3777,40 +3777,48 @@ body {
     }
 }
 
-/* Desktop (1024px+) */
+/* Desktop (1024px+) — pre-P-B layout rules.
+   `.main-app` itself is now governed by P-B (display: grid 248px|1fr|380px),
+   so we no longer set flex-direction here — the grid wins by source order
+   anyway, but mixing them was confusing. We keep main-content + sub-layout
+   tweaks because they shape the middle column. */
 @media (min-width: 1024px) {
     .main-app {
         max-width: 100%;
         width: 100%;
-        flex-direction: row;
         border: none;
         margin: 0;
     }
-    
+
     /* Show sidebar, hide bottom nav */
     .sidebar {
         display: flex;
         height: 100%;
     }
-    
+
     .bottom-nav {
         display: none;
     }
-    
-    /* Adjust main content */
+
+    /* Middle column — must be position:relative so the floating composer
+       (P-C′ uses position:absolute) anchors to it instead of the viewport. */
     .main-content {
         flex: 1;
         max-width: none;
         height: 100%;
+        min-height: 0;
         display: flex;
         flex-direction: column;
         border-left: 1px solid var(--border-color);
         border-right: none;
+        position: relative;
+        overflow: hidden;
     }
-    
+
     .pages-container {
         flex: 1;
         overflow: hidden;
+        position: relative;
     }
     
     .page-content {

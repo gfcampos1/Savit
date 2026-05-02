@@ -6461,14 +6461,21 @@ const App = {
 
     // Kanban
     renderKanban() {
-        // S3: render mobile grouped list and focus card alongside the desktop board
+        // P-C′: bucket list is now the only visible Tasks view. The kanban
+        // board + calendar markup remains for back-compat but is hidden via
+        // CSS, so skip the heavy populate work.
         this.renderTaskListMobile();
         this.renderFocusCard();
-        // S6: render calendar (only visible when view-toggle is on calendar)
-        this.renderTaskCalendar();
         // P1-U3: refresh "Concluídas" badge count
         if (typeof S5Polish !== 'undefined' && typeof S5Polish.__updateCompletedBadge === 'function') {
             S5Polish.__updateCompletedBadge();
+        }
+
+        // Cheap visibility check: if the kanban-board element is detached or
+        // hidden via CSS (display: none), bail before sorting/innerHTML work.
+        const board = document.querySelector('#kanbanPage .kanban-board');
+        if (!board || board.offsetParent === null) {
+            return;
         }
 
         const search = AppState.kanbanSearch.toLowerCase();
@@ -6489,9 +6496,9 @@ const App = {
         const pending = tasks.filter(t => !t.taskCompleted);
         const completed = tasks.filter(t => t.taskCompleted);
 
-        // Update counts
-        DOM.kanbanPendingCount.textContent = pending.length;
-        DOM.kanbanCompletedCount.textContent = completed.length;
+        // Update counts (defensive: kanban DOM refs may not be present)
+        if (DOM.kanbanPendingCount) DOM.kanbanPendingCount.textContent = pending.length;
+        if (DOM.kanbanCompletedCount) DOM.kanbanCompletedCount.textContent = completed.length;
 
         // Render pending
         if (pending.length === 0) {
@@ -7152,10 +7159,12 @@ const App = {
         }
     },
 
-    // S6 — Task calendar (desktop only)
+    // S6 — Task calendar (desktop only). P-C′ hid the calendar markup;
+    // skip the populate when its grid is detached or display:none.
     renderTaskCalendar() {
         const grid = document.getElementById('calGrid');
         const titleEl = document.getElementById('calTitle');
+        if (!grid || grid.offsetParent === null) return;
         if (!grid || !titleEl) return;
 
         const ref = AppState.calendarDate instanceof Date ? AppState.calendarDate : new Date();
