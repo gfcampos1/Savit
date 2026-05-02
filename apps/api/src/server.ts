@@ -11,8 +11,11 @@ import { env } from './lib/env.js';
 import { logger } from './lib/logger.js';
 import { errorHandler, notFoundHandler } from './middleware/error.js';
 import { authRouter } from './routes/auth.js';
+import { categoriesRouter } from './routes/categories.js';
 import { healthRouter } from './routes/health.js';
 import { meRouter } from './routes/me.js';
+import { notesRouter } from './routes/notes.js';
+import { tasksRouter } from './routes/tasks.js';
 
 const __filename = fileURLToPath(import.meta.url);
 const __dirname = path.dirname(__filename);
@@ -51,6 +54,9 @@ export function buildServer(): Express {
   app.use('/api/health', healthRouter);
   app.use('/api/auth', authRouter);
   app.use('/api/me', meRouter);
+  app.use('/api/categories', categoriesRouter);
+  app.use('/api/notes', notesRouter);
+  app.use('/api/tasks', tasksRouter);
 
   // ----- Static frontend (produção) -----
   // Em prod o build do web está em apps/web/dist; servimos como SPA fallback.

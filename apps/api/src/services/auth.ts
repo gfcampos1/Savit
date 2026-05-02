@@ -8,6 +8,7 @@ import {
   signAccessToken,
 } from '../lib/jwt.js';
 import { HttpError } from '../middleware/error.js';
+import { ensureDefaultCategories } from './categories.js';
 
 export interface AuthResult {
   user: { id: string; email: string; name: string | null; createdAt: Date };
@@ -33,6 +34,8 @@ export async function register(input: {
     data: { email, passwordHash, name: input.name?.trim() || null },
     select: { id: true, email: true, name: true, createdAt: true },
   });
+
+  await ensureDefaultCategories(user.id);
 
   return issueTokens(user, input.deviceInfo);
 }

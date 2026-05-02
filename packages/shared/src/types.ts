@@ -16,6 +16,14 @@ export interface Category {
   updatedAt: Iso;
 }
 
+/** Subset embutido em Note/Task quando o backend faz `include: { category: true }`. */
+export interface CategoryRef {
+  id: string;
+  name: string;
+  color: CategoryColor;
+  icon: string | null;
+}
+
 export interface Note {
   id: string;
   type: NoteType;
@@ -28,6 +36,7 @@ export interface Note {
   createdAt: Iso;
   updatedAt: Iso;
   categoryId: string | null;
+  category?: CategoryRef | null;
   attachments?: Attachment[];
 }
 
@@ -35,6 +44,7 @@ export interface Task {
   id: string;
   noteId: string | null;
   categoryId: string | null;
+  category?: CategoryRef | null;
   title: string;
   description: string | null;
   status: TaskStatus;
