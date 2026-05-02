@@ -56,12 +56,16 @@ function TaskCardBody({ task, elevated }: TaskCardBodyProps) {
   const del = useDeleteTask();
   const done = task.status === 'DONE';
   const overdue = !done && task.dueAt && new Date(task.dueAt).getTime() < Date.now();
+  const stripeColor = task.category?.color;
 
   return (
     <article
-      className={`rounded-md border hairline bg-surface p-3 ${
+      className={`rounded-md border hairline bg-surface p-3 pl-[11px] ${
         elevated ? 'shadow-lg ring-2 ring-accent/20' : 'shadow-card'
       } ${done ? 'opacity-60' : ''}`}
+      style={
+        stripeColor ? { borderLeft: `3px solid ${stripeColor}` } : undefined
+      }
     >
       <div className="flex items-start gap-2.5">
         <button

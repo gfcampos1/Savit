@@ -13,11 +13,15 @@ export function TaskCard({ task }: TaskCardProps) {
   const done = task.status === 'DONE';
   const overdue = !done && task.dueAt && new Date(task.dueAt).getTime() < Date.now();
 
+  const stripeColor = task.category?.color;
   return (
     <article
-      className={`rounded-md border hairline bg-surface p-4 shadow-card relative group ${
+      className={`rounded-md border hairline bg-surface p-4 pl-[14px] shadow-card relative group ${
         done ? 'opacity-60' : ''
       }`}
+      style={
+        stripeColor ? { borderLeft: `3px solid ${stripeColor}` } : undefined
+      }
       data-task-id={task.id}
     >
       <div className="flex items-start gap-3">

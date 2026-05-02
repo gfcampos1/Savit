@@ -48,9 +48,13 @@ export function NoteCard({ note }: NoteCardProps) {
     }
   }
 
+  const stripeColor = note.category?.color;
   return (
     <article
-      className="rounded-md border hairline bg-surface p-4 shadow-card relative group cursor-pointer hover:bg-surface-2/30 transition-colors"
+      className="rounded-md border hairline bg-surface p-4 pl-[14px] shadow-card relative group cursor-pointer hover:bg-surface-2/30 transition-colors"
+      style={
+        stripeColor ? { borderLeft: `3px solid ${stripeColor}` } : undefined
+      }
       data-note-id={note.id}
       onClick={() => navigate(`/notes/${note.id}`)}
       role="link"
