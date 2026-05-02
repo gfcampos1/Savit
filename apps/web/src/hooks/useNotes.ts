@@ -21,6 +21,34 @@ export function useNotes(opts?: { categoryId?: string; q?: string }) {
   });
 }
 
+export function useNote(id: string | undefined) {
+  return useQuery({
+    enabled: Boolean(id),
+    queryKey: [...KEY, 'one', id],
+    queryFn: () => api<Note>(`/api/notes/${id}`),
+  });
+}
+
+export interface PatchNoteInput {
+  title?: string;
+  contentText?: string;
+  contentJson?: unknown;
+  categoryId?: string | null;
+  priority?: 'low' | 'med' | 'high';
+}
+
+export function usePatchNote() {
+  const qc = useQueryClient();
+  return useMutation({
+    mutationFn: ({ id, ...patch }: { id: string } & PatchNoteInput) =>
+      api<Note>(`/api/notes/${id}`, { method: 'PATCH', body: patch }),
+    onSuccess: (data) => {
+      qc.setQueryData([...KEY, 'one', data.id], data);
+      void qc.invalidateQueries({ queryKey: KEY });
+    },
+  });
+}
+
 export interface CreateNoteInput {
   type?: 'TEXT' | 'VOICE' | 'DRAWING' | 'MINDMAP' | 'PHOTO' | 'MIXED';
   title?: string;

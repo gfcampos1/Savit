@@ -5,6 +5,7 @@ import { NoteInput, NotePatch } from '@savit/shared';
 import { prisma } from '../lib/prisma.js';
 import { requireAuth } from '../middleware/auth.js';
 import { HttpError } from '../middleware/error.js';
+import { publicUrlFor } from '../services/r2.js';
 
 export const notesRouter: Router = Router();
 notesRouter.use(requireAuth);
@@ -169,6 +170,7 @@ function serialize(note: Partial<SerializableNote> & SerializableBase) {
       ? note.attachments.map((a) => ({
           id: a.id,
           kind: a.kind,
+          url: publicUrlFor(a.r2Key),
           mimeType: a.mimeType,
           sizeBytes: a.sizeBytes,
           durationMs: a.durationMs,

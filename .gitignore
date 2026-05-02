@@ -50,6 +50,9 @@ prisma/*.db-journal
 # pnpm
 .pnpm-store/
 
+# Local uploads (dev fallback storage)
+apps/api/.uploads/
+
 # PWA generated
 apps/web/dev-dist/
 apps/web/public/sw.js

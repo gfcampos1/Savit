@@ -66,3 +66,91 @@
     border-color: var(--hair);
   }
 }
+
+/* ===== TipTap rich-text styling (Paper-tuned) ===== */
+.prose-savit .tiptap {
+  font-family: 'Instrument Serif', ui-serif, Georgia, serif;
+  font-size: 19px;
+  line-height: 1.55;
+  color: var(--ink);
+}
+.prose-savit .tiptap p {
+  margin: 0 0 0.85em;
+}
+.prose-savit .tiptap p:last-child {
+  margin-bottom: 0;
+}
+.prose-savit .tiptap h1,
+.prose-savit .tiptap h2,
+.prose-savit .tiptap h3 {
+  font-family: 'Instrument Serif', ui-serif, Georgia, serif;
+  letter-spacing: -0.02em;
+  color: var(--ink);
+  font-weight: 400;
+  margin: 1.5em 0 0.4em;
+  line-height: 1.15;
+}
+.prose-savit .tiptap h1 { font-size: 32px; }
+.prose-savit .tiptap h2 { font-size: 24px; }
+.prose-savit .tiptap h3 { font-size: 19px; }
+.prose-savit .tiptap a {
+  color: var(--accent);
+  text-decoration: underline;
+  text-underline-offset: 2px;
+}
+.prose-savit .tiptap blockquote {
+  border-left: 3px solid var(--accent);
+  margin: 1em 0;
+  padding: 0.2em 0 0.2em 1em;
+  color: var(--ink-2);
+  font-style: italic;
+}
+.prose-savit .tiptap code {
+  font-family: 'JetBrains Mono', ui-monospace, monospace;
+  font-size: 14px;
+  background: var(--surface-2);
+  padding: 0.1em 0.35em;
+  border-radius: 4px;
+}
+.prose-savit .tiptap pre {
+  font-family: 'JetBrains Mono', ui-monospace, monospace;
+  font-size: 13px;
+  background: var(--surface-2);
+  padding: 12px 14px;
+  border-radius: 8px;
+  overflow-x: auto;
+  margin: 1em 0;
+}
+.prose-savit .tiptap ul,
+.prose-savit .tiptap ol {
+  padding-left: 1.5em;
+  margin: 0 0 0.85em;
+}
+.prose-savit .tiptap ul[data-type='taskList'] {
+  list-style: none;
+  padding-left: 0;
+}
+.prose-savit .tiptap ul[data-type='taskList'] li {
+  display: flex;
+  gap: 0.5em;
+  align-items: flex-start;
+  margin: 0.2em 0;
+}
+.prose-savit .tiptap ul[data-type='taskList'] li > label {
+  user-select: none;
+  margin-top: 0.25em;
+}
+.prose-savit .tiptap img {
+  max-width: 100%;
+  height: auto;
+  border-radius: 8px;
+  margin: 1em 0;
+  border: 1px solid var(--hair);
+}
+.prose-savit .tiptap p.is-editor-empty:first-child::before {
+  content: attr(data-placeholder);
+  float: left;
+  color: var(--ink-3);
+  pointer-events: none;
+  height: 0;
+}
