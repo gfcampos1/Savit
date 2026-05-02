@@ -11,6 +11,7 @@ export function AppShell() {
           <ShellLink to="/">Inbox</ShellLink>
           <ShellLink to="/tasks">Tarefas</ShellLink>
           <ShellLink to="/chat">Chat ✦</ShellLink>
+          <ShellLink to="/dashboard">Dashboard</ShellLink>
           <ShellLink to="/profile">Perfil</ShellLink>
         </nav>
       </header>

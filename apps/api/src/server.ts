@@ -14,8 +14,10 @@ import { authRouter } from './routes/auth.js';
 import { categoriesRouter } from './routes/categories.js';
 import { chatRouter } from './routes/chat.js';
 import { healthRouter } from './routes/health.js';
+import { jobsRouter } from './routes/jobs.js';
 import { meRouter } from './routes/me.js';
 import { notesRouter } from './routes/notes.js';
+import { statsRouter, weeklyRouter } from './routes/stats.js';
 import { tasksRouter } from './routes/tasks.js';
 import { uploadsRouter } from './routes/uploads.js';
 import { voiceRouter } from './routes/voice.js';
@@ -63,6 +65,9 @@ export function buildServer(): Express {
   app.use('/api/uploads', uploadsRouter);
   app.use('/api/voice', voiceRouter);
   app.use('/api/chat', chatRouter);
+  app.use('/api/stats', statsRouter);
+  app.use('/api/weekly', weeklyRouter);
+  app.use('/api/jobs', jobsRouter);
 
   // ----- Static frontend (produção) -----
   // Em prod o build do web está em apps/web/dist; servimos como SPA fallback.

@@ -6,6 +6,7 @@ import { AppShell } from '@/components/AppShell';
 import { LoginPage } from '@/routes/auth/login';
 import { RegisterPage } from '@/routes/auth/register';
 import { ChatPage } from '@/routes/chat/index';
+import { DashboardPage } from '@/routes/dashboard';
 import { InboxPage } from '@/routes/inbox';
 import { NoteDetailPage } from '@/routes/notes/detail';
 import { ProfilePage } from '@/routes/profile';
@@ -43,6 +44,7 @@ export function App() {
                 <Route path="/notes/:id" element={<NoteDetailPage />} />
                 <Route path="/chat" element={<ChatPage />} />
                 <Route path="/chat/:threadId" element={<ChatPage />} />
+                <Route path="/dashboard" element={<DashboardPage />} />
                 <Route path="/profile" element={<ProfilePage />} />
               </Route>
             </Route>

@@ -1,10 +1,12 @@
-import { useState } from 'react';
+import { useEffect, useState } from 'react';
 import { useAuthStore } from '@/stores/auth';
 import { useCategories } from '@/hooks/useCategories';
 import { useNotes } from '@/hooks/useNotes';
 import { useTasks } from '@/hooks/useTasks';
+import { useWeekly } from '@/hooks/useStats';
 import { Composer } from '@/components/composer/Composer';
 import { Feed } from '@/components/feed/Feed';
+import { WeeklySummaryCard } from '@/components/dashboard/WeeklySummaryCard';
 
 type FilterTab = 'all' | 'tasks' | 'notes';
 
@@ -15,6 +17,25 @@ export function InboxPage() {
   const cats = useCategories();
   const notes = useNotes();
   const tasks = useTasks({ includeDone: true });
+  const weekly = useWeekly();
+  const [weeklyDismissed, setWeeklyDismissed] = useState<boolean>(() => {
+    try {
+      return localStorage.getItem('savit_weekly_dismissed') === isoMonday();
+    } catch {
+      return false;
+    }
+  });
+  useEffect(() => {
+    if (weeklyDismissed) {
+      try {
+        localStorage.setItem('savit_weekly_dismissed', isoMonday());
+      } catch {
+        /* ignore */
+      }
+    }
+  }, [weeklyDismissed]);
+  const isMonday = new Date().getDay() === 1;
+  const showWeekly = isMonday && weekly.data && !weeklyDismissed;
 
   const noteCount = notes.data?.items.length ?? 0;
   const taskCount = tasks.data?.items.length ?? 0;
@@ -50,6 +71,16 @@ export function InboxPage() {
           </Tab>
         </div>
       </nav>
+
+      {showWeekly ? (
+        <div className="mb-6">
+          <WeeklySummaryCard
+            data={weekly.data ?? null}
+            dismissable
+            onDismiss={() => setWeeklyDismissed(true)}
+          />
+        </div>
+      ) : null}
 
       {isLoading ? (
         <p className="font-mono text-[11px] uppercase tracking-mono text-ink-3 py-10 text-center">
@@ -107,4 +138,14 @@ function firstName(name: string | null | undefined): string | null {
 
 function plural(n: number, one: string, many: string): string {
   return n === 1 ? one : many;
+}
+
+/** ISO da segunda da semana atual — chave de "dispensei o card desta semana". */
+function isoMonday(): string {
+  const d = new Date();
+  d.setHours(0, 0, 0, 0);
+  const dow = d.getDay();
+  const diff = (dow + 6) % 7;
+  d.setDate(d.getDate() - diff);
+  return d.toISOString().slice(0, 10);
 }
