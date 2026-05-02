@@ -34,7 +34,7 @@
     "helmet": "^7.1.0",
     "jsonwebtoken": "^9.0.2",
     "mind-elixir": "^5.5.0",
-    "pino": "^10.1.1",
+    "pino": "^10.2.1",
     "pino-http": "^11.0.0",
     "prisma": "^5.7.0",
     "rate-limit-redis": "^4.3.1",
