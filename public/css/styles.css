@@ -7250,3 +7250,20 @@ textarea:focus-visible,
     }
 }
 
+
+/* Backup button highlight — make the export entry visually obvious so
+   the user finds it quickly to migrate data to a new app. */
+.menu-item--accent {
+    background: var(--accent-soft, rgba(192, 86, 58, 0.10));
+    border-radius: 12px;
+    margin: 6px 0;
+}
+.menu-item--accent i:first-child { color: var(--accent, #c0563a); }
+.menu-item--accent span {
+    color: var(--accent, #c0563a);
+    font-weight: 600;
+}
+.menu-item--accent:hover { background: rgba(192, 86, 58, 0.18); }
+.menu-item--accent[disabled] { opacity: 0.6; pointer-events: none; }
+.menu-item--accent[aria-busy="true"] i:first-child { animation: backup-spin 1.2s linear infinite; }
+@keyframes backup-spin { to { transform: rotate(360deg); } }

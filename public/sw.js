@@ -1,4 +1,4 @@
-const CACHE_NAME = 'savit-v32';
+const CACHE_NAME = 'savit-backup-v1';
 
 // Keep this list same-origin only; cross-origin precache can fail (CORS) and break install.
 const STATIC_ASSETS = [

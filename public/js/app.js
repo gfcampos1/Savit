@@ -7408,28 +7408,116 @@ const App = {
         }
     },
 
-    // Export data
+    // Export data — full server-side backup (paginated). The previous
+    // implementation only serialized AppState.messages, which is paginated
+    // on the client and may miss old items. This fetches everything so the
+    // JSON can be re-imported into a fresh app.
     async exportData() {
+        const button = document.getElementById('exportDataBtn');
+        const originalLabel = button ? button.querySelector('span')?.textContent : null;
+        const setLabel = (txt) => {
+            if (button) {
+                const span = button.querySelector('span');
+                if (span) span.textContent = txt;
+                button.setAttribute('aria-busy', 'true');
+                button.disabled = true;
+            }
+        };
+        const restoreLabel = () => {
+            if (button) {
+                const span = button.querySelector('span');
+                if (originalLabel && span) span.textContent = originalLabel;
+                button.removeAttribute('aria-busy');
+                button.disabled = false;
+            }
+        };
+
         try {
-            const data = {
-                user: AppState.user,
-                messages: AppState.messages,
-                categories: AppState.categories,
-                exportedAt: new Date().toISOString()
+            setLabel('Coletando dados…');
+
+            // 1. Profile
+            let user = null;
+            try {
+                const me = await API.auth.me();
+                user = me && (me.user || me); // shape: { user: {...} } or direct
+            } catch (e) {
+                user = AppState.user; // fallback
+            }
+
+            // 2. All messages — paginate with limit=200 (server cap), step
+            //    by offset until the page comes back short.
+            const PAGE_SIZE = 200;
+            const allMessages = [];
+            let offset = 0;
+            let pageNumber = 0;
+            while (true) {
+                pageNumber += 1;
+                setLabel(`Coletando mensagens… (${allMessages.length})`);
+                const res = await API.messages.getAll({ limit: PAGE_SIZE, offset });
+                const page = (res && res.messages) || (Array.isArray(res) ? res : []);
+                if (!page.length) break;
+                allMessages.push(...page);
+                if (page.length < PAGE_SIZE) break; // last page
+                offset += PAGE_SIZE;
+                if (pageNumber > 500) break; // safety against runaway loops (= 100k items)
+            }
+
+            // 3. Categories + sections
+            setLabel('Coletando categorias…');
+            let categories = [];
+            try {
+                const c = await API.categories.getAll();
+                categories = (c && c.categories) || (Array.isArray(c) ? c : []);
+            } catch (e) {
+                categories = AppState.categories || [];
+            }
+
+            let sections = [];
+            try {
+                const s = await API.categories.getSections();
+                sections = (s && s.sections) || (Array.isArray(s) ? s : []);
+            } catch (e) {
+                sections = AppState.categorySections || [];
+            }
+
+            // 4. Bundle
+            setLabel('Gerando arquivo…');
+            const bundle = {
+                schemaVersion: 1,
+                app: 'Savit',
+                exportedAt: new Date().toISOString(),
+                source: location.origin,
+                counts: {
+                    messages: allMessages.length,
+                    categories: categories.length,
+                    sections: sections.length,
+                },
+                user: user || null,
+                sections,
+                categories,
+                messages: allMessages,
             };
 
-            const blob = new Blob([JSON.stringify(data, null, 2)], { type: 'application/json' });
+            const json = JSON.stringify(bundle, null, 2);
+            const blob = new Blob([json], { type: 'application/json' });
             const url = URL.createObjectURL(blob);
 
+            const ts = new Date().toISOString().replace(/[:.]/g, '-').replace('T', '_').slice(0, 19);
             const a = document.createElement('a');
             a.href = url;
-            a.download = `savit_backup_${new Date().toISOString().split('T')[0]}.json`;
+            a.download = `savit_backup_${ts}.json`;
+            document.body.appendChild(a);
             a.click();
-
+            document.body.removeChild(a);
             URL.revokeObjectURL(url);
-            showToast('Dados exportados!');
+
+            const sizeKb = Math.max(1, Math.round(blob.size / 1024));
+            showToast(`Backup salvo: ${allMessages.length} mensagens · ${sizeKb} KB`);
         } catch (error) {
-            showToast('Erro ao exportar dados');
+            console.error('exportData failed:', error);
+            showToast('Erro ao exportar dados — tente novamente');
+        } finally {
+            restoreLabel();
         }
     },
 
