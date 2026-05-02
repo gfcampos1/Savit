@@ -12,6 +12,7 @@ import { logger } from './lib/logger.js';
 import { errorHandler, notFoundHandler } from './middleware/error.js';
 import { authRouter } from './routes/auth.js';
 import { categoriesRouter } from './routes/categories.js';
+import { chatRouter } from './routes/chat.js';
 import { healthRouter } from './routes/health.js';
 import { meRouter } from './routes/me.js';
 import { notesRouter } from './routes/notes.js';
@@ -61,6 +62,7 @@ export function buildServer(): Express {
   app.use('/api/tasks', tasksRouter);
   app.use('/api/uploads', uploadsRouter);
   app.use('/api/voice', voiceRouter);
+  app.use('/api/chat', chatRouter);
 
   // ----- Static frontend (produção) -----
   // Em prod o build do web está em apps/web/dist; servimos como SPA fallback.

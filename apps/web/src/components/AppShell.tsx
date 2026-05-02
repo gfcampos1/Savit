@@ -10,6 +10,7 @@ export function AppShell() {
           <div className="flex-1" />
           <ShellLink to="/">Inbox</ShellLink>
           <ShellLink to="/tasks">Tarefas</ShellLink>
+          <ShellLink to="/chat">Chat ✦</ShellLink>
           <ShellLink to="/profile">Perfil</ShellLink>
         </nav>
       </header>

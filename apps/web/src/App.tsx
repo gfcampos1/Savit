@@ -5,6 +5,7 @@ import { AuthBootstrap, RequireAuth, RequireGuest } from '@/components/auth/Auth
 import { AppShell } from '@/components/AppShell';
 import { LoginPage } from '@/routes/auth/login';
 import { RegisterPage } from '@/routes/auth/register';
+import { ChatPage } from '@/routes/chat/index';
 import { InboxPage } from '@/routes/inbox';
 import { NoteDetailPage } from '@/routes/notes/detail';
 import { ProfilePage } from '@/routes/profile';
@@ -40,6 +41,8 @@ export function App() {
                 <Route path="/" element={<InboxPage />} />
                 <Route path="/tasks" element={<TasksPage />} />
                 <Route path="/notes/:id" element={<NoteDetailPage />} />
+                <Route path="/chat" element={<ChatPage />} />
+                <Route path="/chat/:threadId" element={<ChatPage />} />
                 <Route path="/profile" element={<ProfilePage />} />
               </Route>
             </Route>
