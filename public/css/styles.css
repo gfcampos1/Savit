@@ -4,24 +4,6 @@
    ============================================= */
 
 /* CSS Variables — non-color tokens (legacy redundant declarations
-   removed;/* =============================================
-   SAVIT - Design System & Styles
-   Mobile-First WhatsApp-Inspired UI with Dashboard
-   ============================================= */
-
-/* CSS Variables — non-color tokens (legacy redundant declarations
-   removed;/* =============================================
-   SAVIT - Design System & Styles
-   Mobile-First WhatsApp-Inspired UI with Dashboard
-   ============================================= */
-
-/* CSS Variables — non-color tokens (legacy redundant declarations
-   removed;/* =============================================
-   SAVIT - Design System & Styles
-   Mobile-First WhatsApp-Inspired UI with Dashboard
-   ============================================= */
-
-/* CSS Variables — non-color tokens (legacy redundant declarations
    removed;cores agora cascadam de tokens.css per-theme via aliases) */
 :root {
     /* Spacing */
@@ -313,7 +295,11 @@ body {
     order: 2;
 }
 
-.nav-item {
+/* Legacy bottom-nav .nav-item rules — scoped to .bottom-nav so they
+   don't bleed into the sidebar's .nav-item (which P-B styles as a flex
+   row). The bottom-nav itself is now display:none in Fix-3, so these
+   are dormant; kept only for the case where bottom-nav is re-enabled. */
+.bottom-nav .nav-item {
     flex: 1;
     display: flex;
     flex-direction: column;
@@ -327,17 +313,9 @@ body {
     transition: color var(--transition-fast);
 }
 
-.nav-item i {
-    font-size: 20px;
-}
-
-.nav-item span {
-    font-size: var(--font-size-xs);
-}
-
-.nav-item.active {
-    color: var(--teal-green);
-}
+.bottom-nav .nav-item i { font-size: 20px; }
+.bottom-nav .nav-item span { font-size: var(--font-size-xs); }
+.bottom-nav .nav-item.active { color: var(--teal-green); }
 
 /* =============================================
    Page Header
@@ -6694,19 +6672,18 @@ textarea:focus-visible,
 }
 
 /* =====================================================================
+   Fix-3 — Mobile shell: bottom-nav unconditionally hidden.
+   Sidebar drawer (#sidebarMenuTrigger → Sidebar.toggleDrawer) is now the
+   sole primary navigation on <1024px. Composer stays fixed at the
+   bottom of #chatPage so the capture FAB on bottom-nav is redundant.
+   ===================================================================== */
+.bottom-nav { display: none !important; }
+
+/* =====================================================================
    P-B — Prototype Migration: 3-column shell + sidebar + detail panel
    Source: Refactor/Savit (1)/prototype/styles.css
-   Spec: desktop ≥1024px is pixel-close to prototype;/* =====================================================================
-   P-B — Prototype Migration: 3-column shell + sidebar + detail panel
-   Source: Refactor/Savit (1)/prototype/styles.css
-   Spec: desktop ≥1024px is pixel-close to prototype;/* =====================================================================
-   P-B — Prototype Migration: 3-column shell + sidebar + detail panel
-   Source: Refactor/Savit (1)/prototype/styles.css
-   Spec: desktop ≥1024px is pixel-close to prototype;/* =====================================================================
-   P-B — Prototype Migration: 3-column shell + sidebar + detail panel
-   Source: Refactor/Savit (1)/prototype/styles.css
-   Spec: desktop ≥1024px is pixel-close to prototype;<1024px adapts to
-         sidebar-drawer + detail-bottom-sheet, no bottom-nav loss.
+   Spec: desktop ≥1024px is pixel-close to prototype.
+         Mobile <1024px: sidebar-drawer + detail-bottom-sheet.
    ===================================================================== */
 
 /* --- 3-column app grid (desktop ≥1024px) ----------------------------- */
@@ -7160,9 +7137,13 @@ textarea:focus-visible,
     .main-app > .sidebar { padding: 18px 14px; gap: 4px; }
 }
 
-/* Make room for the mobile menu trigger button on .page-header */
+/* Mobile: leave clear space at both edges of .page-header for the
+   hambúrguer (top-left) and the tweaks cog (top-right). */
 @media (max-width: 1023.98px) {
-    .page-header { padding-left: 60px !important; }
+    .page-header {
+        padding-left: 60px !important;
+        padding-right: 60px !important;
+    }
 }
 
 /* Mobile menu trigger button (top-left, only on <1024px) */
@@ -7638,24 +7619,6 @@ body.detail-sheet-open .tweaks-launcher { opacity: 0.5; pointer-events: none; }
    ===================================================================== */
 
 /* Hide kanban-board + calendar + view-toggle everywhere — buckets are
-   the only view now. Markup remains for backward-compat;/* =====================================================================
-   P-C′ — Tasks: 6-bucket layout (replaces kanban as primary view)
-   Source: Refactor/Savit (1)/prototype/views.jsx (TasksView)
-   ===================================================================== */
-
-/* Hide kanban-board + calendar + view-toggle everywhere — buckets are
-   the only view now. Markup remains for backward-compat;/* =====================================================================
-   P-C′ — Tasks: 6-bucket layout (replaces kanban as primary view)
-   Source: Refactor/Savit (1)/prototype/views.jsx (TasksView)
-   ===================================================================== */
-
-/* Hide kanban-board + calendar + view-toggle everywhere — buckets are
-   the only view now. Markup remains for backward-compat;/* =====================================================================
-   P-C′ — Tasks: 6-bucket layout (replaces kanban as primary view)
-   Source: Refactor/Savit (1)/prototype/views.jsx (TasksView)
-   ===================================================================== */
-
-/* Hide kanban-board + calendar + view-toggle everywhere — buckets are
    the only view now. Markup remains for backward-compat;cleanup in P-E. */
 #kanbanPage .kanban-board,
 #kanbanPage .kanban-filters,
@@ -7999,30 +7962,6 @@ body.detail-sheet-open .tweaks-launcher { opacity: 0.5; pointer-events: none; }
 #categoriesPage .category-actions .delete-category:hover { color: var(--accent); }
 
 /* =====================================================================
-   P-C′ — Composer chrome polish (floating + serif quote + soft shadow)
-   Source: Refactor/Savit (1)/prototype/composer.jsx + styles.css 309-415
-   Strategy: keep all features (options bar, format toolbar, voice,
-   draw, attach) but reshape the container to feel like the prototype's
-   minimalist floating composer.
-   ===================================================================== */
-
-/* Composer chips area (parser preview) — already exists;/* =====================================================================
-   P-C′ — Composer chrome polish (floating + serif quote + soft shadow)
-   Source: Refactor/Savit (1)/prototype/composer.jsx + styles.css 309-415
-   Strategy: keep all features (options bar, format toolbar, voice,
-   draw, attach) but reshape the container to feel like the prototype's
-   minimalist floating composer.
-   ===================================================================== */
-
-/* Composer chips area (parser preview) — already exists;/* =====================================================================
-   P-C′ — Composer chrome polish (floating + serif quote + soft shadow)
-   Source: Refactor/Savit (1)/prototype/composer.jsx + styles.css 309-415
-   Strategy: keep all features (options bar, format toolbar, voice,
-   draw, attach) but reshape the container to feel like the prototype's
-   minimalist floating composer.
-   ===================================================================== */
-
-/* Composer chips area (parser preview) — already exists;/* =====================================================================
    P-C′ — Composer chrome polish (floating + serif quote + soft shadow)
    Source: Refactor/Savit (1)/prototype/composer.jsx + styles.css 309-415
    Strategy: keep all features (options bar, format toolbar, voice,
