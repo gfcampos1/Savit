@@ -13,7 +13,7 @@ const AppState = {
     categories: [],
     categorySections: [],
     stats: null,
-    currentPage: 'home',
+    currentPage: 'chat',  // Inbox is the new landing tab (P-A); 'home' redirected on nav
     selectedCategoryId: null,
     isTaskMode: false,
     isCategoryTaskMode: false,
@@ -4336,7 +4336,21 @@ const App = {
 
     // Navigation
     navigateTo(page) {
+        const previousPage = AppState.currentPage;
+
+        // Fix-2: legacy 'home' page was absorbed into Inbox in P-A. Anyone
+        // calling navigateTo('home') (e.g., from a saved bookmark code path)
+        // should land on the inbox/chat page now.
+        if (page === 'home') page = 'chat';
+
         AppState.currentPage = page;
+
+        // Fix-2: Close DetailPanel when switching to a different page so the
+        // right-column doesn't keep showing an item from the previous tab.
+        if (previousPage && previousPage !== page
+            && typeof DetailPanel !== 'undefined' && DetailPanel.isOpen && DetailPanel.isOpen()) {
+            DetailPanel.close();
+        }
 
         // Mirror to URL hash
         if (typeof Router !== 'undefined' && Router.syncFromNavigate) {
@@ -4374,10 +4388,9 @@ const App = {
             DOM.categoryMessagesPage.classList.remove('active');
         }
 
-        // Refresh data for specific pages
-        if (page === 'home') {
-            this.refreshDashboard();
-        } else if (page === 'chat') {
+        // Refresh data for specific pages. ('home' was absorbed into chat
+        // and is intercepted at the top of navigateTo.)
+        if (page === 'chat') {
             this.refreshMessages();
             this.updateJumpToBottomUI();
         } else if (page === 'categories') {
@@ -4389,8 +4402,12 @@ const App = {
         }
     },
 
-    // Refresh dashboard
+    // Refresh dashboard. Fix-2: homePage was absorbed into Inbox; this call
+    // path is preserved for any external trigger but bails fast if the
+    // dashboard markup isn't actually visible. Avoids wasted API fetch.
     async refreshDashboard() {
+        const homePage = document.getElementById('homePage');
+        if (!homePage || homePage.offsetParent === null) return;
         try {
             const { stats } = await API.stats.dashboard();
             AppState.stats = stats;
@@ -4770,6 +4787,9 @@ const App = {
     renderDashboard() {
         const stats = AppState.stats;
         if (!stats) return;
+        // Fix-2: bail when homePage markup is hidden (dashboard absorbed into Inbox).
+        const homePage = document.getElementById('homePage');
+        if (!homePage || homePage.offsetParent === null) return;
 
         // S4 — Editorial dashboard
         this.renderDashboardEditorial(stats);
@@ -7958,15 +7978,25 @@ const App = {
             DOM.voiceStopBtn.addEventListener('click', () => SpeechToText.stop());
         }
 
-        // Search (§7.7 — autofocus reliably via rAF)
-        DOM.searchBtn.addEventListener('click', () => {
-            DOM.searchBar.classList.toggle('active');
-            if (DOM.searchBar.classList.contains('active')) {
-                requestAnimationFrame(() => DOM.searchInput.focus());
-            } else {
-                clearSearch();
-            }
-        });
+        // Search button — Fix-2: in P-D the global ⌘K / "/" hotkey opens
+        // the CommandPalette as the canonical search surface. The header
+        // search button now opens the palette too instead of toggling the
+        // legacy inline search-bar (kept in DOM as a fallback only).
+        if (DOM.searchBtn) {
+            DOM.searchBtn.addEventListener('click', () => {
+                if (typeof CommandPalette !== 'undefined' && CommandPalette.open) {
+                    CommandPalette.open();
+                    return;
+                }
+                // Fallback: legacy inline search bar
+                DOM.searchBar.classList.toggle('active');
+                if (DOM.searchBar.classList.contains('active')) {
+                    requestAnimationFrame(() => DOM.searchInput.focus());
+                } else {
+                    clearSearch();
+                }
+            });
+        }
 
         DOM.closeSearchBtn.addEventListener('click', () => {
             DOM.searchBar.classList.remove('active');

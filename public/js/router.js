@@ -8,8 +8,9 @@
 
     // route -> { page, paramName? }
     // page IDs map to existing AppState.currentPage values used by App.navigateTo
+    // (Tabs were consolidated to 4 in P-A: Inbox / Tarefas / Categorias / Perfil.
+    //  Legacy hashes #/dashboard / #/home are now redirected to #/inbox.)
     const ROUTES = [
-        { hash: '#/dashboard', page: 'home' },
         { hash: '#/inbox',     page: 'chat' },
         { hash: '#/categories',page: 'categories' },
         { hash: '#/tasks',     page: 'kanban' },
@@ -19,8 +20,16 @@
         // Dynamic: #/category/<id> -> categoryMessages with viewingCategoryId
     ];
 
+    // Legacy hashes that should silently redirect to a current route.
+    const LEGACY_REDIRECTS = {
+        '#/dashboard': '#/inbox',
+        '#/home':      '#/inbox',
+        '#/chat':      '#/inbox',
+        '#/kanban':    '#/tasks',
+    };
+
     const PAGE_TO_HASH = {
-        home: '#/dashboard',
+        home: '#/inbox',  // home page absorbed into inbox in P-A
         chat: '#/inbox',
         categories: '#/categories',
         kanban: '#/tasks',
@@ -34,6 +43,11 @@
 
     function parseHash(hash) {
         if (!hash || hash === '#' || hash === '#/') return null;
+        // Legacy hash redirect — replace and re-resolve
+        if (Object.prototype.hasOwnProperty.call(LEGACY_REDIRECTS, hash)) {
+            history.replaceState(null, '', location.pathname + location.search + LEGACY_REDIRECTS[hash]);
+            return parseHash(LEGACY_REDIRECTS[hash]);
+        }
         // Dynamic category route
         const m = hash.match(/^#\/category\/(.+)$/);
         if (m) return { page: 'categoryMessages', params: { categoryId: decodeURIComponent(m[1]) } };
