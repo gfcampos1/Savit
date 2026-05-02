@@ -34,8 +34,6 @@ export function TasksPage() {
   const done = filtered.filter((t) => t.status === 'DONE').length;
   const pending = total - done;
 
-  const activeCat = categoryId ? cats.data?.find((c) => c.id === categoryId) ?? null : null;
-
   return (
     <div className="max-w-2xl md:max-w-7xl mx-auto px-6 pt-8 pb-32">
       <header className="mb-6 flex flex-col md:flex-row md:items-end gap-3 md:gap-6">
@@ -50,7 +48,11 @@ export function TasksPage() {
         </div>
       </header>
 
-      <div className="mb-4">
+      <div className="mb-6 flex items-center gap-3 flex-wrap">
+        <p className="text-xs text-ink-3 flex-1 min-w-0">
+          Arraste cartões pra mudar de coluna — em <em>Hoje/Amanhã/Semana</em> o prazo ajusta
+          sozinho; <em>Concluídas</em> marca como feito.
+        </p>
         <CategoryFilter
           categories={cats.data ?? []}
           value={categoryId}
@@ -58,29 +60,6 @@ export function TasksPage() {
           countKind="tasks"
         />
       </div>
-
-      {activeCat ? (
-        <p className="text-xs text-ink-2 mb-4">
-          mostrando só tarefas de{' '}
-          <span className="inline-flex items-center gap-1.5">
-            <span className="h-2 w-2 rounded-sm" style={{ background: activeCat.color }} aria-hidden />
-            <strong className="text-ink">{activeCat.name}</strong>
-          </span>{' '}
-          ·{' '}
-          <button
-            type="button"
-            onClick={() => setCategoryId(null)}
-            className="text-accent hover:underline underline-offset-2"
-          >
-            limpar
-          </button>
-        </p>
-      ) : (
-        <p className="text-xs text-ink-3 mb-6">
-          Arraste cartões pra mudar de coluna — em <em>Hoje/Amanhã/Semana</em> o prazo ajusta
-          sozinho; <em>Concluídas</em> marca como feito.
-        </p>
-      )}
 
       {tasks.isLoading ? (
         <p className="font-mono text-[11px] uppercase tracking-mono text-ink-3 py-10 text-center">

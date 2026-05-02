@@ -46,9 +46,6 @@ export function InboxPage() {
     return categoryId ? all.filter((t) => t.categoryId === categoryId) : all;
   }, [tasks.data, categoryId]);
 
-  const activeCat = categoryId
-    ? cats.data?.find((c) => c.id === categoryId) ?? null
-    : null;
   const weekly = useWeekly();
   const [weeklyDismissed, setWeeklyDismissed] = useState<boolean>(() => {
     try {
@@ -90,8 +87,8 @@ export function InboxPage() {
         </p>
       </header>
 
-      <nav className="sticky top-[57px] z-10 -mx-6 px-6 py-3 bg-bg/85 backdrop-blur border-b hairline mb-6 flex flex-col gap-3">
-        <div className="inline-flex gap-1 rounded-pill bg-surface-2 p-1 self-start">
+      <nav className="sticky top-[57px] z-10 -mx-6 px-6 py-3 bg-bg/85 backdrop-blur border-b hairline mb-6 flex items-center gap-3 flex-wrap">
+        <div className="inline-flex gap-1 rounded-pill bg-surface-2 p-1">
           <Tab active={filter === 'all'} onClick={() => setFilter('all')} count={noteCount + taskCount}>
             Tudo
           </Tab>
@@ -102,33 +99,15 @@ export function InboxPage() {
             Notas
           </Tab>
         </div>
-        <CategoryFilter
-          categories={cats.data ?? []}
-          value={categoryId}
-          onChange={setCategoryId}
-          countKind="notes"
-        />
-      </nav>
-
-      {activeCat ? (
-        <div className="mb-4 inline-flex items-center gap-2 text-xs text-ink-2">
-          <span>filtrando por</span>
-          <span
-            className="inline-flex items-center gap-1.5 rounded-pill bg-surface px-2 py-1 border hairline"
-          >
-            <span className="h-2 w-2 rounded-sm" style={{ background: activeCat.color }} aria-hidden />
-            <span className="text-ink">{activeCat.name}</span>
-            <button
-              type="button"
-              onClick={() => setCategoryId(null)}
-              aria-label="limpar filtro"
-              className="ml-0.5 text-ink-3 hover:text-ink"
-            >
-              ×
-            </button>
-          </span>
+        <div className="ml-auto">
+          <CategoryFilter
+            categories={cats.data ?? []}
+            value={categoryId}
+            onChange={setCategoryId}
+            countKind="notes"
+          />
         </div>
-      ) : null}
+      </nav>
 
       {showWeekly ? (
         <div className="mb-6">
