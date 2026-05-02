@@ -1,18 +1,25 @@
 import { NavLink, Outlet } from 'react-router-dom';
 
-/** Shell mínima do app autenticado. F1 = só nav top + outlet. F2 redesenha. */
+/**
+ * Shell do app autenticado.
+ * - Header sticky em todas as resoluções com logo "Savit" e nav.
+ * - Em mobile: nav rolagem horizontal (overflow-x-auto) — não quebra layout.
+ * - Em desktop: nav alinhada à direita.
+ */
 export function AppShell() {
   return (
     <div className="min-h-full flex flex-col">
-      <header className="sticky top-0 z-10 border-b hairline bg-bg/80 backdrop-blur">
-        <nav className="max-w-2xl mx-auto px-6 py-3 flex items-center gap-4">
-          <span className="display-serif text-lg text-ink">Savit</span>
-          <div className="flex-1" />
-          <ShellLink to="/">Inbox</ShellLink>
-          <ShellLink to="/tasks">Tarefas</ShellLink>
-          <ShellLink to="/chat">Chat ✦</ShellLink>
-          <ShellLink to="/dashboard">Dashboard</ShellLink>
-          <ShellLink to="/profile">Perfil</ShellLink>
+      <header className="sticky top-0 z-30 border-b hairline bg-bg/85 backdrop-blur">
+        <nav className="max-w-7xl mx-auto px-4 md:px-6 py-3 flex items-center gap-3 md:gap-5">
+          <span className="display-serif text-lg text-ink shrink-0">Savit</span>
+          <div className="flex-1 flex items-center gap-3 md:gap-4 overflow-x-auto md:overflow-visible md:justify-end no-scrollbar">
+            <ShellLink to="/">Inbox</ShellLink>
+            <ShellLink to="/tasks">Tarefas</ShellLink>
+            <ShellLink to="/categories">Categorias</ShellLink>
+            <ShellLink to="/chat">Chat ✦</ShellLink>
+            <ShellLink to="/dashboard">Dashboard</ShellLink>
+            <ShellLink to="/profile">Perfil</ShellLink>
+          </div>
         </nav>
       </header>
       <main className="flex-1">
@@ -28,7 +35,9 @@ function ShellLink({ to, children }: { to: string; children: React.ReactNode }) 
       to={to}
       end
       className={({ isActive }) =>
-        `text-sm transition-colors ${isActive ? 'text-ink font-medium' : 'text-ink-2 hover:text-ink'}`
+        `text-sm whitespace-nowrap transition-colors ${
+          isActive ? 'text-ink font-medium' : 'text-ink-2 hover:text-ink'
+        }`
       }
     >
       {children}

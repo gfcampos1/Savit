@@ -65,6 +65,13 @@
   .hairline {
     border-color: var(--hair);
   }
+  .no-scrollbar {
+    scrollbar-width: none;
+    -ms-overflow-style: none;
+  }
+  .no-scrollbar::-webkit-scrollbar {
+    display: none;
+  }
 }
 
 /* ===== TipTap rich-text styling (Paper-tuned) ===== */

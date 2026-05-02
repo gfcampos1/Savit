@@ -3,6 +3,7 @@
 // enquanto o backend manda eventos SSE.
 
 import { useEffect, useRef, useState } from 'react';
+import { Link } from 'react-router-dom';
 import { useQueryClient } from '@tanstack/react-query';
 import { sendMessageStream, useThread, type StreamEvent } from '@/hooks/useChat';
 import { Message } from './Message';
@@ -121,6 +122,13 @@ export function Conversation({ threadId }: ConversationProps) {
   return (
     <section className="flex flex-col h-full">
       <header className="flex items-center gap-3 px-4 py-3 border-b hairline">
+        <Link
+          to="/chat"
+          aria-label="voltar pra lista"
+          className="md:hidden text-ink-2 hover:text-ink text-lg leading-none"
+        >
+          ←
+        </Link>
         <h2 className="display-serif text-lg flex-1 truncate">
           {thread.data.title ?? 'Nova conversa'}
         </h2>

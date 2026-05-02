@@ -1,0 +1,214 @@
+import { useState } from 'react';
+import { CATEGORY_COLORS, type Category, type CategoryColor } from '@savit/shared';
+import {
+  useCategories,
+  useCreateCategory,
+  useDeleteCategory,
+  useUpdateCategory,
+} from '@/hooks/useCategories';
+import { Sheet } from '@/components/Sheet';
+
+export function CategoriesPage() {
+  const cats = useCategories();
+  const [editing, setEditing] = useState<Category | 'new' | null>(null);
+
+  return (
+    <div className="max-w-2xl mx-auto px-6 pt-8 pb-32">
+      <header className="mb-6 flex items-end justify-between gap-4">
+        <div>
+          <p className="font-mono text-[11px] uppercase tracking-mono text-ink-3">Espaços</p>
+          <h1 className="display-serif text-2xl mt-1">Categorias</h1>
+          <p className="text-sm text-ink-2 mt-2">
+            Cor + nome viram tag em todas as notas e tarefas. Clique pra editar.
+          </p>
+        </div>
+        <button
+          type="button"
+          onClick={() => setEditing('new')}
+          className="rounded-md bg-ink text-bg px-3 py-2 text-sm font-medium"
+        >
+          + nova
+        </button>
+      </header>
+
+      {cats.isLoading ? (
+        <p className="font-mono text-[11px] uppercase tracking-mono text-ink-3 py-10 text-center">
+          carregando…
+        </p>
+      ) : cats.data?.length === 0 ? (
+        <div className="text-center py-16">
+          <p className="display-serif text-2xl mb-2">Nenhuma categoria.</p>
+          <p className="text-sm text-ink-2">Crie a primeira pra organizar seu fluxo.</p>
+        </div>
+      ) : (
+        <ul className="rounded-md border hairline bg-surface divide-y divide-hair shadow-card">
+          {cats.data?.map((c) => (
+            <li
+              key={c.id}
+              className="flex items-center gap-3 px-4 py-3 hover:bg-surface-2/40 cursor-pointer"
+              onClick={() => setEditing(c)}
+            >
+              <span
+                className="grid place-items-center h-10 w-10 rounded-md display-serif text-lg text-bg"
+                style={{ background: c.color }}
+                aria-hidden
+              >
+                {c.name.charAt(0).toUpperCase()}
+              </span>
+              <div className="flex-1 min-w-0">
+                <p className="text-md text-ink truncate">{c.name}</p>
+                <p className="font-mono text-[10px] uppercase tracking-mono text-ink-3 mt-0.5">
+                  {c.color}
+                </p>
+              </div>
+              <span className="text-ink-3 text-lg">›</span>
+            </li>
+          ))}
+        </ul>
+      )}
+
+      {editing ? (
+        <CategoryEditor
+          category={editing === 'new' ? null : editing}
+          onClose={() => setEditing(null)}
+        />
+      ) : null}
+    </div>
+  );
+}
+
+interface CategoryEditorProps {
+  category: Category | null;
+  onClose: () => void;
+}
+
+function CategoryEditor({ category, onClose }: CategoryEditorProps) {
+  const create = useCreateCategory();
+  const update = useUpdateCategory();
+  const del = useDeleteCategory();
+
+  const [name, setName] = useState(category?.name ?? '');
+  const [color, setColor] = useState<CategoryColor>(
+    (category?.color as CategoryColor) ?? CATEGORY_COLORS[0],
+  );
+  const [error, setError] = useState<string | null>(null);
+  const [busy, setBusy] = useState(false);
+
+  async function save() {
+    const trimmed = name.trim();
+    if (!trimmed) {
+      setError('Dê um nome pra categoria.');
+      return;
+    }
+    setBusy(true);
+    setError(null);
+    try {
+      if (category) {
+        await update.mutateAsync({ id: category.id, name: trimmed, color });
+      } else {
+        await create.mutateAsync({ name: trimmed, color });
+      }
+      onClose();
+    } catch (err) {
+      setError(
+        err instanceof Error && /name_taken/.test(err.message)
+          ? 'Já existe uma categoria com esse nome.'
+          : 'Não foi possível salvar.',
+      );
+    } finally {
+      setBusy(false);
+    }
+  }
+
+  async function remove() {
+    if (!category) return;
+    if (!confirm(`Excluir "${category.name}"? Notas e tarefas vão ficar sem categoria.`)) return;
+    setBusy(true);
+    try {
+      await del.mutateAsync(category.id);
+      onClose();
+    } catch {
+      setError('Não foi possível excluir.');
+      setBusy(false);
+    }
+  }
+
+  return (
+    <Sheet
+      open
+      onClose={onClose}
+      title={category ? 'Editar categoria' : 'Nova categoria'}
+      footer={
+        <>
+          {category ? (
+            <button
+              type="button"
+              onClick={() => void remove()}
+              disabled={busy}
+              className="mr-auto text-sm text-danger hover:underline underline-offset-2 disabled:opacity-50"
+            >
+              excluir
+            </button>
+          ) : null}
+          <button
+            type="button"
+            onClick={onClose}
+            disabled={busy}
+            className="px-3 py-1.5 text-sm text-ink-2 hover:text-ink"
+          >
+            cancelar
+          </button>
+          <button
+            type="button"
+            onClick={() => void save()}
+            disabled={busy || !name.trim()}
+            className="rounded-md bg-ink text-bg px-4 py-1.5 text-sm font-medium disabled:opacity-50"
+          >
+            {busy ? '…' : 'salvar'}
+          </button>
+        </>
+      }
+    >
+      <div className="mb-5">
+        <label className="font-mono text-[11px] uppercase tracking-mono text-ink-3 block mb-1.5">
+          NOME
+        </label>
+        <input
+          type="text"
+          value={name}
+          onChange={(e) => setName(e.target.value)}
+          maxLength={40}
+          autoFocus
+          className="w-full bg-transparent border-b hairline text-ink text-md py-2 outline-none focus:border-accent transition-colors"
+        />
+      </div>
+
+      <div>
+        <label className="font-mono text-[11px] uppercase tracking-mono text-ink-3 block mb-2">
+          COR
+        </label>
+        <div className="grid grid-cols-6 gap-2">
+          {CATEGORY_COLORS.map((c) => (
+            <button
+              key={c}
+              type="button"
+              onClick={() => setColor(c)}
+              aria-label={`cor ${c}`}
+              aria-pressed={c === color}
+              className={`h-10 rounded-md transition-transform ${
+                c === color ? 'scale-110 ring-2 ring-ink ring-offset-2 ring-offset-bg' : ''
+              }`}
+              style={{ background: c }}
+            />
+          ))}
+        </div>
+      </div>
+
+      {error ? (
+        <p className="text-sm text-danger mt-4" role="alert">
+          {error}
+        </p>
+      ) : null}
+    </Sheet>
+  );
+}

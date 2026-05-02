@@ -17,7 +17,7 @@ export function ThreadList() {
   }
 
   return (
-    <aside className="w-full sm:w-72 border-r hairline bg-bg flex flex-col h-full">
+    <aside className="w-full md:border-r md:hairline bg-bg flex flex-col h-full">
       <header className="flex items-center justify-between px-4 py-3 border-b hairline">
         <span className="font-mono text-[11px] uppercase tracking-mono text-ink-3">conversas</span>
         <button

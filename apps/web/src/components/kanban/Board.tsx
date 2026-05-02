@@ -83,7 +83,9 @@ export function Board({ tasks }: BoardProps) {
       onDragEnd={onDragEnd}
       onDragCancel={() => setDraggingId(null)}
     >
-      <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-5 gap-4">
+      {/* Mobile: seções empilhadas (gap maior pra parecer "feed"). */}
+      {/* Desktop: 2 colunas md, 5 colunas lg. */}
+      <div className="flex flex-col gap-7 md:grid md:grid-cols-2 md:gap-4 lg:grid-cols-5">
         {KANBAN_COLUMNS.map((col) => (
           <Column
             key={col.key}

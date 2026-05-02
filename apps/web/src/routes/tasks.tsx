@@ -13,13 +13,13 @@ export function TasksPage() {
   const pending = total - done;
 
   return (
-    <div className="max-w-7xl mx-auto px-6 pt-8 pb-32">
-      <header className="mb-6 flex items-end gap-6">
+    <div className="max-w-2xl md:max-w-7xl mx-auto px-6 pt-8 pb-32">
+      <header className="mb-6 flex flex-col md:flex-row md:items-end gap-3 md:gap-6">
         <div>
           <p className="font-mono text-[11px] uppercase tracking-mono text-ink-3">Quadro</p>
-          <h1 className="display-serif text-2xl mt-1">Tarefas</h1>
+          <h1 className="display-serif text-display md:text-2xl mt-1">Tarefas</h1>
         </div>
-        <div className="flex items-baseline gap-4 text-sm text-ink-2 ml-auto">
+        <div className="flex items-baseline gap-5 text-sm text-ink-2 md:ml-auto">
           <Stat label="pendentes" value={pending} />
           <Stat label="concluídas" value={done} />
           <Stat label="total" value={total} />
@@ -27,8 +27,8 @@ export function TasksPage() {
       </header>
 
       <p className="text-xs text-ink-3 mb-6">
-        Arraste cartões entre colunas — mover pra <em>Hoje/Amanhã/Semana</em> ajusta o prazo
-        automaticamente. <em>Concluídas</em> marca como feito.
+        Arraste cartões pra mudar de coluna — em <em>Hoje/Amanhã/Semana</em> o prazo ajusta
+        sozinho; <em>Concluídas</em> marca como feito.
       </p>
 
       {tasks.isLoading ? (

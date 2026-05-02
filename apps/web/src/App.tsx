@@ -5,6 +5,7 @@ import { AuthBootstrap, RequireAuth, RequireGuest } from '@/components/auth/Auth
 import { AppShell } from '@/components/AppShell';
 import { LoginPage } from '@/routes/auth/login';
 import { RegisterPage } from '@/routes/auth/register';
+import { CategoriesPage } from '@/routes/categories';
 import { ChatPage } from '@/routes/chat/index';
 import { DashboardPage } from '@/routes/dashboard';
 import { InboxPage } from '@/routes/inbox';
@@ -40,6 +41,7 @@ export function App() {
             <Route element={<RequireAuth />}>
               <Route element={<AppShell />}>
                 <Route path="/" element={<InboxPage />} />
+                <Route path="/categories" element={<CategoriesPage />} />
                 <Route path="/tasks" element={<TasksPage />} />
                 <Route path="/notes/:id" element={<NoteDetailPage />} />
                 <Route path="/chat" element={<ChatPage />} />
