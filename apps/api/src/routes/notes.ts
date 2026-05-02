@@ -122,6 +122,82 @@ notesRouter.patch('/:id', async (req, res, next) => {
   }
 });
 
+/**
+ * Converte uma nota em tarefa: cria um registro Task linkado ao note (`noteId`).
+ * Não apaga a nota — relação opcional permite duas vidas paralelas.
+ */
+const ConvertInput = z.object({
+  dueAt: z.string().datetime().nullable().optional(),
+  column: z.string().min(1).max(40).optional(),
+  title: z.string().min(1).max(200).optional(),
+});
+
+notesRouter.post('/:id/convert-to-task', async (req, res, next) => {
+  try {
+    const id = z.string().cuid().parse(req.params.id);
+    const input = ConvertInput.parse(req.body ?? {});
+
+    const note = await prisma.note.findFirst({
+      where: { id, userId: req.user!.id },
+      include: { category: true },
+    });
+    if (!note) throw new HttpError(404, 'not_found');
+
+    const title =
+      input.title?.trim() ||
+      note.title?.trim() ||
+      (note.contentText ?? '').trim().split(/\n/)[0]?.slice(0, 200) ||
+      'Sem título';
+
+    const column = input.column ?? 'hoje';
+    const last = await prisma.task.aggregate({
+      where: { userId: req.user!.id, column },
+      _max: { sortOrder: true },
+    });
+
+    const created = await prisma.task.create({
+      data: {
+        userId: req.user!.id,
+        noteId: note.id,
+        categoryId: note.categoryId ?? null,
+        title,
+        column,
+        sortOrder: (last._max.sortOrder ?? -1) + 1,
+        dueAt: input.dueAt ? new Date(input.dueAt) : null,
+        priority: note.priority,
+      },
+      include: { category: true },
+    });
+
+    res.status(201).json({
+      id: created.id,
+      noteId: created.noteId,
+      categoryId: created.categoryId,
+      title: created.title,
+      status: created.status,
+      column: created.column,
+      sortOrder: created.sortOrder,
+      dueAt: created.dueAt?.toISOString() ?? null,
+      priority: created.priority,
+      reminderMinBefore: created.reminderMinBefore,
+      completedAt: null,
+      createdAt: created.createdAt.toISOString(),
+      updatedAt: created.updatedAt.toISOString(),
+      category: created.category
+        ? {
+            id: created.category.id,
+            name: created.category.name,
+            color: created.category.color,
+            icon: created.category.icon,
+          }
+        : null,
+      description: created.description,
+    });
+  } catch (err) {
+    next(err);
+  }
+});
+
 notesRouter.delete('/:id', async (req, res, next) => {
   try {
     const id = z.string().cuid().parse(req.params.id);

@@ -3,6 +3,7 @@ import { useNavigate } from 'react-router-dom';
 import type { Note } from '@savit/shared';
 import { formatTime } from '@/lib/format-date';
 import { useDeleteNote } from '@/hooks/useNotes';
+import { useConvertNoteToTask } from '@/hooks/useTasks';
 
 interface NoteCardProps {
   note: Note;
@@ -13,6 +14,7 @@ export function NoteCard({ note }: NoteCardProps) {
   const navigate = useNavigate();
   const [deleting, setDeleting] = useState(false);
   const del = useDeleteNote();
+  const convert = useConvertNoteToTask();
 
   async function onDelete(e: React.MouseEvent) {
     e.stopPropagation();
@@ -24,6 +26,12 @@ export function NoteCard({ note }: NoteCardProps) {
     } finally {
       setDeleting(false);
     }
+  }
+
+  async function onConvert(e: React.MouseEvent) {
+    e.stopPropagation();
+    if (convert.isPending) return;
+    await convert.mutateAsync({ noteId: note.id, column: 'hoje' });
   }
 
   return (
@@ -61,14 +69,25 @@ export function NoteCard({ note }: NoteCardProps) {
         ) : null}
         <span aria-hidden>·</span>
         <time dateTime={note.createdAt}>{formatTime(new Date(note.createdAt))}</time>
-        <button
-          type="button"
-          onClick={onDelete}
-          aria-label="excluir nota"
-          className="ml-auto opacity-0 group-hover:opacity-100 focus:opacity-100 text-ink-3 hover:text-danger transition-opacity"
-        >
-          excluir
-        </button>
+        <div className="ml-auto flex items-center gap-3 opacity-0 group-hover:opacity-100 focus-within:opacity-100 transition-opacity">
+          <button
+            type="button"
+            onClick={onConvert}
+            disabled={convert.isPending}
+            aria-label="transformar em tarefa"
+            className="text-ink-3 hover:text-accent disabled:opacity-50 transition-colors"
+          >
+            {convert.isPending ? '…' : '→ tarefa'}
+          </button>
+          <button
+            type="button"
+            onClick={onDelete}
+            aria-label="excluir nota"
+            className="text-ink-3 hover:text-danger transition-colors"
+          >
+            excluir
+          </button>
+        </div>
       </div>
     </article>
   );

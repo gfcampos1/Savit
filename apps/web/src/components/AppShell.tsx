@@ -9,6 +9,7 @@ export function AppShell() {
           <span className="display-serif text-lg text-ink">Savit</span>
           <div className="flex-1" />
           <ShellLink to="/">Inbox</ShellLink>
+          <ShellLink to="/tasks">Tarefas</ShellLink>
           <ShellLink to="/profile">Perfil</ShellLink>
         </nav>
       </header>

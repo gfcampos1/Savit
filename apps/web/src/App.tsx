@@ -8,6 +8,7 @@ import { RegisterPage } from '@/routes/auth/register';
 import { InboxPage } from '@/routes/inbox';
 import { NoteDetailPage } from '@/routes/notes/detail';
 import { ProfilePage } from '@/routes/profile';
+import { TasksPage } from '@/routes/tasks';
 
 // importa store pra ativar o configureApi side-effect
 import '@/stores/auth';
@@ -37,6 +38,7 @@ export function App() {
             <Route element={<RequireAuth />}>
               <Route element={<AppShell />}>
                 <Route path="/" element={<InboxPage />} />
+                <Route path="/tasks" element={<TasksPage />} />
                 <Route path="/notes/:id" element={<NoteDetailPage />} />
                 <Route path="/profile" element={<ProfilePage />} />
               </Route>

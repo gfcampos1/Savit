@@ -1,7 +1,7 @@
 import { Router } from 'express';
 import { z } from 'zod';
 import type { Prisma, TaskStatus as PrismaTaskStatus } from '@prisma/client';
-import { TaskInput, TaskPatch } from '@savit/shared';
+import { TaskInput, TaskMoveInput, TaskPatch } from '@savit/shared';
 import { prisma } from '../lib/prisma.js';
 import { requireAuth } from '../middleware/auth.js';
 import { HttpError } from '../middleware/error.js';
@@ -104,6 +104,72 @@ tasksRouter.patch('/:id', async (req, res, next) => {
   }
 });
 
+/**
+ * Move uma tarefa entre colunas/posições do kanban.
+ * - Se a coluna nova for temporal (hoje/amanha/semana) e o cliente não passou
+ *   `dueAt`, ajustamos automaticamente pra manhã do dia destino.
+ * - Re-numeramos sortOrder na coluna destino pra acomodar o novo item.
+ */
+tasksRouter.patch('/:id/move', async (req, res, next) => {
+  try {
+    const id = z.string().cuid().parse(req.params.id);
+    const input = TaskMoveInput.parse(req.body);
+    const existing = await prisma.task.findFirst({ where: { id, userId: req.user!.id } });
+    if (!existing) throw new HttpError(404, 'not_found');
+
+    const data: Prisma.TaskUpdateInput = {
+      column: input.column,
+      sortOrder: input.sortOrder,
+    };
+
+    // Status segue a coluna (ex: arrastar pra "concluidas" marca DONE)
+    const statusByColumn: Record<string, PrismaTaskStatus | undefined> = {
+      hoje: 'TODAY',
+      amanha: 'UPCOMING',
+      semana: 'UPCOMING',
+      'sem-prazo': 'SOMEDAY',
+      concluidas: 'DONE',
+      arquivadas: 'ARCHIVED',
+    };
+    const newStatus = statusByColumn[input.column];
+    if (newStatus) {
+      data.status = newStatus;
+      data.completedAt = newStatus === 'DONE' ? new Date() : null;
+    }
+
+    // dueAt: cliente passou explicitamente vence; senão calculamos pela coluna
+    if (input.dueAt !== undefined) {
+      data.dueAt = input.dueAt ? new Date(input.dueAt) : null;
+    } else {
+      const next = computeDueAtForColumn(input.column);
+      if (next !== undefined) data.dueAt = next;
+    }
+
+    // Re-numera os sortOrder dos vizinhos na coluna destino pra abrir espaço
+    await prisma.$transaction(async (tx) => {
+      // empurra todos com sortOrder >= input.sortOrder na coluna destino
+      await tx.task.updateMany({
+        where: {
+          userId: req.user!.id,
+          column: input.column,
+          sortOrder: { gte: input.sortOrder },
+          NOT: { id },
+        },
+        data: { sortOrder: { increment: 1 } },
+      });
+      await tx.task.update({ where: { id }, data });
+    });
+
+    const updated = await prisma.task.findUnique({
+      where: { id },
+      include: { category: true },
+    });
+    res.json(serialize(updated!));
+  } catch (err) {
+    next(err);
+  }
+});
+
 tasksRouter.delete('/:id', async (req, res, next) => {
   try {
     const id = z.string().cuid().parse(req.params.id);
@@ -126,6 +192,37 @@ async function assertOwnsCategory(userId: string, categoryId: string): Promise<v
 async function assertOwnsNote(userId: string, noteId: string): Promise<void> {
   const note = await prisma.note.findFirst({ where: { id: noteId, userId } });
   if (!note) throw new HttpError(400, 'invalid_note');
+}
+
+/**
+ * Default dueAt para colunas temporais: manhã (09:00) do dia destino.
+ * undefined = não toca em dueAt. null = limpa.
+ */
+function computeDueAtForColumn(column: string): Date | null | undefined {
+  const now = new Date();
+  const morning = (offsetDays: number) => {
+    const d = new Date(now);
+    d.setDate(d.getDate() + offsetDays);
+    d.setHours(9, 0, 0, 0);
+    return d;
+  };
+
+  switch (column) {
+    case 'hoje':
+      return morning(0);
+    case 'amanha':
+      return morning(1);
+    case 'semana': {
+      // próximo dia útil até o final da semana corrente; senão segunda da próxima
+      const dow = now.getDay(); // 0=dom..6=sab
+      const diasAteSexta = (5 - dow + 7) % 7;
+      return morning(Math.max(diasAteSexta, 2));
+    }
+    case 'sem-prazo':
+      return null;
+    default:
+      return undefined;
+  }
 }
 
 type TaskWithCategory = Prisma.TaskGetPayload<{ include: { category: true } }>;

@@ -53,6 +53,65 @@ export function useUpdateTask() {
   });
 }
 
+export interface MoveTaskInput {
+  id: string;
+  column: string;
+  sortOrder: number;
+  /** opcional — se ausente o backend calcula manhã do dia da coluna */
+  dueAt?: string | null;
+}
+
+export function useMoveTask() {
+  const qc = useQueryClient();
+  return useMutation({
+    mutationFn: ({ id, ...body }: MoveTaskInput) =>
+      api<Task>(`/api/tasks/${id}/move`, { method: 'PATCH', body }),
+    // Optimistic: atualiza cache antes do round-trip
+    onMutate: async (vars) => {
+      await qc.cancelQueries({ queryKey: KEY });
+      type Snap = readonly [readonly unknown[], TasksResponse | undefined];
+      const snapshots: Snap[] = [];
+      qc.getQueriesData<TasksResponse>({ queryKey: KEY }).forEach(([key, data]) => {
+        if (!data) return;
+        snapshots.push([key, data] as Snap);
+        const next: TasksResponse = {
+          items: data.items.map((t) =>
+            t.id === vars.id
+              ? { ...t, column: vars.column, sortOrder: vars.sortOrder }
+              : t,
+          ),
+        };
+        qc.setQueryData(key, next);
+      });
+      return { snapshots };
+    },
+    onError: (_err, _vars, ctx) => {
+      ctx?.snapshots.forEach(([key, data]) => qc.setQueryData(key, data));
+    },
+    onSettled: () => {
+      void qc.invalidateQueries({ queryKey: KEY });
+    },
+  });
+}
+
+export function useConvertNoteToTask() {
+  const qc = useQueryClient();
+  return useMutation({
+    mutationFn: ({
+      noteId,
+      ...body
+    }: {
+      noteId: string;
+      column?: string;
+      dueAt?: string | null;
+      title?: string;
+    }) => api<Task>(`/api/notes/${noteId}/convert-to-task`, { method: 'POST', body }),
+    onSuccess: () => {
+      void qc.invalidateQueries({ queryKey: KEY });
+    },
+  });
+}
+
 export function useToggleTaskDone() {
   const qc = useQueryClient();
   return useMutation({
