@@ -1,4 +1,5 @@
 import { NavLink, Outlet } from 'react-router-dom';
+import { useUIStore } from '@/stores/ui';
 
 /**
  * Shell do app autenticado.
@@ -7,6 +8,7 @@ import { NavLink, Outlet } from 'react-router-dom';
  * - Em desktop: nav alinhada à direita.
  */
 export function AppShell() {
+  const openPalette = useUIStore((s) => s.openPalette);
   return (
     <div className="min-h-full flex flex-col">
       <header className="sticky top-0 z-30 border-b hairline bg-bg/85 backdrop-blur">
@@ -20,6 +22,16 @@ export function AppShell() {
             <ShellLink to="/dashboard">Dashboard</ShellLink>
             <ShellLink to="/profile">Perfil</ShellLink>
           </div>
+          <button
+            type="button"
+            onClick={openPalette}
+            aria-label="abrir comandos"
+            title="Comandos (⌘K)"
+            className="hidden md:inline-flex items-center gap-1.5 rounded-md border hairline bg-surface px-2 py-1 text-[11px] font-mono text-ink-3 hover:text-ink shrink-0"
+          >
+            <span>⌘</span>
+            <span>K</span>
+          </button>
         </nav>
       </header>
       <main className="flex-1">

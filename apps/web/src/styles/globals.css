@@ -27,6 +27,29 @@
     font-feature-settings: 'cv11', 'ss01', 'ss03'; /* alt single-story a/g + tabular */
     -webkit-font-smoothing: antialiased;
     text-rendering: optimizeLegibility;
+    /* Mobile: evita atraso de 300ms em taps + bloqueia menu nativo de long-press
+       em elementos que controlamos (cards, botões). */
+    touch-action: manipulation;
+  }
+
+  /* Cards e elementos selecionáveis: bloqueia menu nativo no long-press
+     pra implementar swipe/long-press semântico nossos. */
+  article,
+  button,
+  [role='button'] {
+    -webkit-touch-callout: none;
+    -webkit-user-select: none;
+    user-select: none;
+  }
+  /* Mas dentro de campos de texto e prosa, mantém seleção habilitada */
+  input,
+  textarea,
+  [contenteditable='true'],
+  .prose-savit,
+  .prose-savit * {
+    -webkit-user-select: auto;
+    user-select: auto;
+    -webkit-touch-callout: default;
   }
 
   ::selection {

@@ -1,5 +1,5 @@
 import { useEffect, useMemo, useState } from 'react';
-import { useSearchParams } from 'react-router-dom';
+import { Link, useSearchParams } from 'react-router-dom';
 import { useAuthStore } from '@/stores/auth';
 import { useCategories } from '@/hooks/useCategories';
 import { useNotes } from '@/hooks/useNotes';
@@ -92,22 +92,51 @@ export function InboxPage() {
   const noteCount = filteredNotes.length;
   const taskCount = filteredTasks.length;
 
+  const todayPendingCount = useMemo(() => {
+    const all = tasks.data?.items ?? [];
+    const today = new Date();
+    return all.filter((t) => {
+      if (t.status === 'DONE' || t.status === 'ARCHIVED') return false;
+      if (t.column === 'hoje') return true;
+      if (!t.dueAt) return false;
+      const d = new Date(t.dueAt);
+      return (
+        d.getFullYear() === today.getFullYear() &&
+        d.getMonth() === today.getMonth() &&
+        d.getDate() === today.getDate()
+      );
+    }).length;
+  }, [tasks.data]);
+
   const isLoading = cats.isLoading || notes.isLoading || tasks.isLoading;
 
   return (
     <div className="max-w-2xl mx-auto px-6 pt-8 pb-32">
-      <header className="mb-6">
-        <p className="font-mono text-[11px] uppercase tracking-mono text-ink-3">Olá ✦</p>
-        <h1 className="display-serif text-display mt-1">{firstName(user?.name) ?? 'você'}.</h1>
-        <p className="text-sm text-ink-2 mt-2">
-          {noteCount + taskCount === 0
-            ? 'Capture sua primeira ideia abaixo.'
-            : `${noteCount} ${plural(noteCount, 'nota', 'notas')} · ${taskCount} ${plural(
-                taskCount,
-                'tarefa',
-                'tarefas',
-              )} no total.`}
-        </p>
+      <header className="mb-6 flex items-end justify-between gap-4">
+        <div className="flex-1 min-w-0">
+          <p className="font-mono text-[11px] uppercase tracking-mono text-ink-3">Olá ✦</p>
+          <h1 className="display-serif text-display mt-1">{firstName(user?.name) ?? 'você'}.</h1>
+          <p className="text-sm text-ink-2 mt-2">
+            {noteCount + taskCount === 0
+              ? 'Capture sua primeira ideia abaixo.'
+              : `${noteCount} ${plural(noteCount, 'nota', 'notas')} · ${taskCount} ${plural(
+                  taskCount,
+                  'tarefa',
+                  'tarefas',
+                )} no total.`}
+          </p>
+        </div>
+        {todayPendingCount > 0 ? (
+          <Link
+            to="/focus"
+            className="shrink-0 rounded-md bg-ink text-bg px-3 py-2 text-xs font-medium inline-flex items-center gap-2 hover:opacity-90"
+          >
+            <span aria-hidden>✦</span>
+            <span>
+              foco · {todayPendingCount} {plural(todayPendingCount, 'pendente', 'pendentes')}
+            </span>
+          </Link>
+        ) : null}
       </header>
 
       <nav className="sticky top-[57px] z-10 -mx-6 px-6 py-3 bg-bg/85 backdrop-blur border-b hairline mb-6 flex items-center gap-3 flex-wrap">

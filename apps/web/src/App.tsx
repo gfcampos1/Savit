@@ -3,12 +3,16 @@ import { BrowserRouter, Navigate, Route, Routes } from 'react-router-dom';
 
 import { AuthBootstrap, RequireAuth, RequireGuest } from '@/components/auth/AuthGuard';
 import { AppShell } from '@/components/AppShell';
+import { CommandPalette } from '@/components/CommandPalette';
 import { PWAStatus } from '@/components/PWAStatus';
+import { Toaster } from '@/components/Toaster';
+import { useGlobalShortcuts } from '@/hooks/useGlobalShortcuts';
 import { LoginPage } from '@/routes/auth/login';
 import { RegisterPage } from '@/routes/auth/register';
 import { CategoriesPage } from '@/routes/categories';
 import { ChatPage } from '@/routes/chat/index';
 import { DashboardPage } from '@/routes/dashboard';
+import { FocusPage } from '@/routes/focus';
 import { InboxPage } from '@/routes/inbox';
 import { NoteDetailPage } from '@/routes/notes/detail';
 import { ProfilePage } from '@/routes/profile';
@@ -28,11 +32,25 @@ const queryClient = new QueryClient({
   },
 });
 
+function AppInner({ children }: { children: React.ReactNode }) {
+  // Atalhos globais precisam de useNavigate (CommandPalette usa) → tem que
+  // estar dentro do BrowserRouter.
+  useGlobalShortcuts();
+  return (
+    <>
+      <CommandPalette />
+      <Toaster />
+      {children}
+    </>
+  );
+}
+
 export function App() {
   return (
     <QueryClientProvider client={queryClient}>
       <BrowserRouter>
         <PWAStatus />
+        <AppInner>
         <AuthBootstrap>
           <Routes>
             <Route element={<RequireGuest />}>
@@ -51,11 +69,14 @@ export function App() {
                 <Route path="/dashboard" element={<DashboardPage />} />
                 <Route path="/profile" element={<ProfilePage />} />
               </Route>
+              {/* /focus é tela cheia — fora do AppShell */}
+              <Route path="/focus" element={<FocusPage />} />
             </Route>
 
             <Route path="*" element={<Navigate to="/" replace />} />
           </Routes>
         </AuthBootstrap>
+        </AppInner>
       </BrowserRouter>
     </QueryClientProvider>
   );

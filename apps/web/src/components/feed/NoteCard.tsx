@@ -4,6 +4,7 @@ import type { Note } from '@savit/shared';
 import { formatTime } from '@/lib/format-date';
 import { useDeleteNote } from '@/hooks/useNotes';
 import { useConvertNoteToTask } from '@/hooks/useTasks';
+import { toast } from '@/stores/ui';
 
 interface NoteCardProps {
   note: Note;
@@ -31,7 +32,20 @@ export function NoteCard({ note }: NoteCardProps) {
   async function onConvert(e: React.MouseEvent) {
     e.stopPropagation();
     if (convert.isPending) return;
-    await convert.mutateAsync({ noteId: note.id, column: 'hoje' });
+    try {
+      const t = await convert.mutateAsync({ noteId: note.id, column: 'hoje' });
+      toast({
+        message: `Tarefa criada a partir da nota.`,
+        tone: 'success',
+        actionLabel: 'Ver',
+        onAction: () => {
+          window.location.assign(`/tasks`);
+          void t;
+        },
+      });
+    } catch {
+      toast({ message: 'Não foi possível criar a tarefa.', tone: 'danger' });
+    }
   }
 
   return (
