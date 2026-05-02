@@ -925,10 +925,28 @@ const S5Polish = {
             if (gPrefixTimer) { clearTimeout(gPrefixTimer); gPrefixTimer = null; }
         };
 
+        // Fix-4.2: cancel pending g-prefix when an input/textarea/editor
+        // takes focus. Otherwise the flag stays armed for 1500ms and the
+        // next character typed inside the input could accidentally jump
+        // tabs (e.g. typing 'i' becoming "go to Inbox").
+        document.addEventListener('focusin', (e) => {
+            const t = e.target;
+            if (!gPrefixActive) return;
+            if (t && (t.tagName === 'INPUT' || t.tagName === 'TEXTAREA' || t.isContentEditable)) {
+                cancelGPrefix();
+            }
+        });
+
         document.addEventListener('keydown', (e) => {
             // Ignore if typing in a field or editor
             const t = e.target;
             const isEditable = t && (t.tagName === 'INPUT' || t.tagName === 'TEXTAREA' || t.isContentEditable);
+
+            // Fix-4.2: any Esc cancels a pending g-prefix immediately, even
+            // when the user is in an editable.
+            if (e.key === 'Escape' && gPrefixActive) {
+                cancelGPrefix();
+            }
 
             // P-D: `/` (when not typing) opens the command palette / search
             if (e.key === '/' && !isEditable && !e.metaKey && !e.ctrlKey && !e.altKey) {
@@ -7057,7 +7075,9 @@ const App = {
         if (cat) this.renderCategorySpaceHeader(cat);
     },
 
-    // Sidebar dynamic categories (S3 / F4)
+    // Sidebar dynamic categories — Fix-4 emits the prototype `.cat-row`
+    // markup (swatch + label + count) instead of the legacy
+    // `.sidebar-cat-item` BEM. Click still routes to openCategoryMessages.
     renderSidebarCategories() {
         const list = document.getElementById('sidebarCategoryList');
         if (!list) return;
@@ -7076,14 +7096,14 @@ const App = {
             const safeColor = Utils.sanitizeCssColor(c.color || '#888');
             const safeName = Utils.escapeHtml(c.name || '');
             const cnt = counts[c.id] || 0;
-            html += '<button type="button" class="sidebar-cat-item" data-cat-id="' + Utils.escapeHtml(c.id) + '">'
-                + '<span class="sidebar-cat-item__swatch" style="background:' + safeColor + '"></span>'
-                + '<span class="sidebar-cat-item__name">' + safeName + '</span>'
-                + '<span class="sidebar-cat-item__count">' + cnt + '</span>'
+            html += '<button type="button" class="cat-row" data-cat-id="' + Utils.escapeHtml(c.id) + '">'
+                + '<span class="swatch" style="background:' + safeColor + '"></span>'
+                + '<span class="label-text">' + safeName + '</span>'
+                + (cnt ? '<span class="count mono">' + cnt + '</span>' : '')
                 + '</button>';
         }
         list.innerHTML = html;
-        list.querySelectorAll('.sidebar-cat-item').forEach(btn => {
+        list.querySelectorAll('.cat-row').forEach(btn => {
             btn.addEventListener('click', () => {
                 const id = btn.dataset.catId;
                 if (id) this.openCategoryMessages(id);

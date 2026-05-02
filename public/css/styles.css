@@ -4,6 +4,12 @@
    ============================================= */
 
 /* CSS Variables — non-color tokens (legacy redundant declarations
+   removed;/* =============================================
+   SAVIT - Design System & Styles
+   Mobile-First WhatsApp-Inspired UI with Dashboard
+   ============================================= */
+
+/* CSS Variables — non-color tokens (legacy redundant declarations
    removed;cores agora cascadam de tokens.css per-theme via aliases) */
 :root {
     /* Spacing */
@@ -296,6 +302,9 @@ body {
 }
 
 /* Legacy bottom-nav .nav-item rules — scoped to .bottom-nav so they
+   don't bleed into the sidebar's .nav-item (which P-B styles as a flex
+   row). The bottom-nav itself is now display:none in Fix-3, so these
+   are dormant;/* Legacy bottom-nav .nav-item rules — scoped to .bottom-nav so they
    don't bleed into the sidebar's .nav-item (which P-B styles as a flex
    row). The bottom-nav itself is now display:none in Fix-3, so these
    are dormant; kept only for the case where bottom-nav is re-enabled. */
@@ -5162,55 +5171,6 @@ body {
     }
 }
 
-/* =============================================
-   S3 — Category-as-space + Tasks (mobile list) + Focus mode
-   ============================================= */
-
-/* Sidebar dynamic categories ------------------- */
-.sidebar-cat-item {
-    display: flex;
-    align-items: center;
-    gap: var(--spacing-sm);
-    padding: 6px 10px;
-    background: none;
-    border: none;
-    border-radius: var(--radius-sm);
-    color: var(--ink-2);
-    cursor: pointer;
-    font-family: var(--font-ui);
-    font-size: var(--fs-sm);
-    width: 100%;
-    text-align: left;
-    transition: background var(--transition-fast), color var(--transition-fast);
-}
-
-.sidebar-cat-item:hover {
-    background: var(--surface-2);
-    color: var(--ink);
-}
-
-.sidebar-cat-item__swatch {
-    width: 8px;
-    height: 8px;
-    border-radius: 50%;
-    flex-shrink: 0;
-}
-
-.sidebar-cat-item__name {
-    flex: 1;
-    overflow: hidden;
-    text-overflow: ellipsis;
-    white-space: nowrap;
-    min-width: 0;
-}
-
-.sidebar-cat-item__count {
-    font-family: var(--font-mono);
-    font-size: var(--fs-xs);
-    color: var(--ink-3);
-    flex-shrink: 0;
-}
-
 /* Category-as-space header --------------------- */
 .cat-space-header {
     position: sticky;
@@ -6632,7 +6592,6 @@ textarea:focus-visible,
 .message:focus-visible,
 .nav-item:focus-visible,
 .sidebar-nav-item:focus-visible,
-.sidebar-cat-item:focus-visible,
 .option-btn:focus-visible,
 .color-option:focus-visible,
 .composer-chip:focus-visible {
@@ -6804,44 +6763,22 @@ textarea:focus-visible,
     padding: 0 4px;
 }
 
-/* Accept both prototype `.cat-row` and legacy `.sidebar-cat-item` markup. */
-.main-app > .sidebar #sidebarCategoryList .cat-row,
-.main-app > .sidebar #sidebarCategoryList .sidebar-cat-item {
-    display: flex; align-items: center; gap: 10px;
-    padding: 7px 10px; border-radius: 8px;
-    font-size: 12.5px; color: var(--ink-2);
-    background: none; border: none; cursor: pointer;
-    width: 100%; text-align: left;
-    transition: background 120ms ease, color 120ms ease;
-    box-shadow: none;
-}
-
-.main-app > .sidebar #sidebarCategoryList .cat-row:hover,
-.main-app > .sidebar #sidebarCategoryList .sidebar-cat-item:hover {
+.main-app > .sidebar #sidebarCategoryList .cat-row:hover {
     background: rgba(29,26,20,0.04); color: var(--ink);
 }
 
-.main-app > .sidebar #sidebarCategoryList .cat-row.active,
-.main-app > .sidebar #sidebarCategoryList .sidebar-cat-item.active {
+.main-app > .sidebar #sidebarCategoryList .cat-row.active {
     background: var(--accent-soft); color: var(--accent);
 }
 
-.main-app > .sidebar #sidebarCategoryList .swatch,
-.main-app > .sidebar #sidebarCategoryList .sidebar-cat-item__swatch {
+.main-app > .sidebar #sidebarCategoryList .swatch {
     width: 10px; height: 10px; border-radius: 3px; flex-shrink: 0;
     margin: 0;
 }
 
-.main-app > .sidebar #sidebarCategoryList .label-text,
-.main-app > .sidebar #sidebarCategoryList .sidebar-cat-item__name {
+.main-app > .sidebar #sidebarCategoryList .label-text {
     flex: 1; min-width: 0; overflow: hidden; text-overflow: ellipsis; white-space: nowrap;
     font-size: 12.5px;
-}
-
-.main-app > .sidebar #sidebarCategoryList .sidebar-cat-item__count {
-    font-family: var(--font-mono);
-    font-size: 10px;
-    color: var(--ink-3);
 }
 
 .main-app > .sidebar .search-btn {
@@ -7619,6 +7556,12 @@ body.detail-sheet-open .tweaks-launcher { opacity: 0.5; pointer-events: none; }
    ===================================================================== */
 
 /* Hide kanban-board + calendar + view-toggle everywhere — buckets are
+   the only view now. Markup remains for backward-compat;/* =====================================================================
+   P-C′ — Tasks: 6-bucket layout (replaces kanban as primary view)
+   Source: Refactor/Savit (1)/prototype/views.jsx (TasksView)
+   ===================================================================== */
+
+/* Hide kanban-board + calendar + view-toggle everywhere — buckets are
    the only view now. Markup remains for backward-compat;cleanup in P-E. */
 #kanbanPage .kanban-board,
 #kanbanPage .kanban-filters,
@@ -7962,6 +7905,14 @@ body.detail-sheet-open .tweaks-launcher { opacity: 0.5; pointer-events: none; }
 #categoriesPage .category-actions .delete-category:hover { color: var(--accent); }
 
 /* =====================================================================
+   P-C′ — Composer chrome polish (floating + serif quote + soft shadow)
+   Source: Refactor/Savit (1)/prototype/composer.jsx + styles.css 309-415
+   Strategy: keep all features (options bar, format toolbar, voice,
+   draw, attach) but reshape the container to feel like the prototype's
+   minimalist floating composer.
+   ===================================================================== */
+
+/* Composer chips area (parser preview) — already exists;/* =====================================================================
    P-C′ — Composer chrome polish (floating + serif quote + soft shadow)
    Source: Refactor/Savit (1)/prototype/composer.jsx + styles.css 309-415
    Strategy: keep all features (options bar, format toolbar, voice,
