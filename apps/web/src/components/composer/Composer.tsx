@@ -1,10 +1,14 @@
 import { useEffect, useMemo, useRef, useState } from 'react';
+import { useNavigate } from 'react-router-dom';
 import type { Category } from '@savit/shared';
 import { parseNatural } from '@/lib/parse-natural';
 import { useCreateNote } from '@/hooks/useNotes';
 import { useCreateTask } from '@/hooks/useTasks';
+import { transcribeAttachment, uploadAttachment } from '@/lib/upload';
+import { ApiError } from '@/lib/api';
 import { PreviewChips } from './PreviewChips';
 import { CategoryPicker } from './CategoryPicker';
+import { VoiceRecorder, type RecordedClip } from '@/components/editor/VoiceRecorder';
 
 interface ComposerProps {
   categories: Category[];
@@ -24,7 +28,10 @@ export function Composer({ categories, defaultCategoryId = null }: ComposerProps
   const [pinnedCategoryId, setPinnedCategoryId] = useState<string | null>(defaultCategoryId);
   const [submitting, setSubmitting] = useState(false);
   const [error, setError] = useState<string | null>(null);
+  const [voiceOpen, setVoiceOpen] = useState(false);
+  const [voiceBusy, setVoiceBusy] = useState<string | null>(null);
   const taRef = useRef<HTMLTextAreaElement>(null);
+  const navigate = useNavigate();
 
   const createNote = useCreateNote();
   const createTask = useCreateTask();
@@ -86,6 +93,60 @@ export function Composer({ categories, defaultCategoryId = null }: ComposerProps
     }
   }
 
+  async function onVoiceClip(clip: RecordedClip) {
+    setVoiceBusy('enviando…');
+    try {
+      // 1. cria a nota tipo VOICE primeiro pra poder linkar o anexo
+      const note = await createNote.mutateAsync({
+        type: 'VOICE',
+        contentText: '',
+        rawInput: '[áudio]',
+        categoryId: effectiveCategoryId ?? null,
+      });
+
+      // 2. upload do áudio
+      setVoiceBusy('enviando áudio…');
+      const { attachment } = await uploadAttachment({
+        blob: clip.blob,
+        kind: 'AUDIO',
+        noteId: note.id,
+        durationMs: clip.durationMs,
+      });
+
+      // 3. transcribe (pode falhar se OPENROUTER_API_KEY ausente — não bloqueia)
+      let transcript = '';
+      setVoiceBusy('transcrevendo…');
+      try {
+        const t = await transcribeAttachment(attachment.id, 'pt');
+        transcript = t.text;
+      } catch (err) {
+        console.warn('transcribe falhou', err);
+        if (err instanceof ApiError && err.status === 503) {
+          transcript = '[transcrição indisponível — configure OPENROUTER_API_KEY]';
+        } else {
+          transcript = '[falha ao transcrever]';
+        }
+      }
+
+      // 4. atualiza a nota com o texto transcrito (PATCH inline via /api/notes/:id)
+      // Não temos hook dedicado aqui — cada client faz seu invalidate. Uma rota POST
+      // /api/notes seguida de patch via fetch direto é simples:
+      const { api } = await import('@/lib/api');
+      await api(`/api/notes/${note.id}`, {
+        method: 'PATCH',
+        body: { contentText: transcript },
+      });
+
+      setVoiceOpen(false);
+      setVoiceBusy(null);
+      navigate(`/notes/${note.id}`);
+    } catch (err) {
+      console.error('voice flow error', err);
+      setError('Não conseguimos salvar a gravação.');
+      setVoiceBusy(null);
+    }
+  }
+
   function onKeyDown(e: React.KeyboardEvent<HTMLTextAreaElement>) {
     if ((e.metaKey || e.ctrlKey) && e.key === 'Enter') {
       e.preventDefault();
@@ -94,6 +155,19 @@ export function Composer({ categories, defaultCategoryId = null }: ComposerProps
       e.preventDefault();
       taRef.current?.blur();
     }
+  }
+
+  if (voiceOpen) {
+    return (
+      <VoiceRecorder
+        busyLabel={voiceBusy}
+        onCancel={() => {
+          setVoiceOpen(false);
+          setVoiceBusy(null);
+        }}
+        onComplete={onVoiceClip}
+      />
+    );
   }
 
   return (
@@ -113,6 +187,15 @@ export function Composer({ categories, defaultCategoryId = null }: ComposerProps
           className="flex-1 resize-none bg-transparent text-ink text-md leading-snug outline-none placeholder:text-ink-3 py-1"
           aria-label="capturar ideia"
         />
+        <button
+          type="button"
+          onClick={() => setVoiceOpen(true)}
+          aria-label="gravar voz"
+          title="gravar voz"
+          className="grid place-items-center h-10 w-10 rounded-pill border hairline text-ink-2 hover:text-accent hover:border-accent transition-colors"
+        >
+          <MicIcon />
+        </button>
         <button
           type="button"
           onClick={() => void submit()}
@@ -146,6 +229,15 @@ export function Composer({ categories, defaultCategoryId = null }: ComposerProps
         </p>
       ) : null}
     </div>
+  );
+}
+
+function MicIcon() {
+  return (
+    <svg width="18" height="18" viewBox="0 0 24 24" fill="none" aria-hidden>
+      <rect x="9" y="3" width="6" height="12" rx="3" stroke="currentColor" strokeWidth="1.8" />
+      <path d="M5 11a7 7 0 0 0 14 0M12 18v3" stroke="currentColor" strokeWidth="1.8" strokeLinecap="round" />
+    </svg>
   );
 }
 

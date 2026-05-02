@@ -90,3 +90,22 @@ export async function uploadAttachment(opts: UploadOptions): Promise<{
 
   return { attachment, url: inlineUrl };
 }
+
+export interface TranscribeResult {
+  text: string;
+  language?: string;
+  cached: boolean;
+  model?: string;
+  attachmentId: string;
+  durationMs: number | null;
+}
+
+export async function transcribeAttachment(
+  attachmentId: string,
+  language?: string,
+): Promise<TranscribeResult> {
+  return api<TranscribeResult>('/api/voice/transcribe', {
+    method: 'POST',
+    body: { attachmentId, ...(language && { language }) },
+  });
+}

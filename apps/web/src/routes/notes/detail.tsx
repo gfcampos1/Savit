@@ -87,14 +87,40 @@ export function NoteDetailPage() {
         <SaveStatus saving={patch.isPending} savedAt={savedAt} error={saveError} />
       </header>
 
+      {n.type === 'VOICE' ? <AudioAttachments note={n} /> : null}
+
       <TipTapEditor
         initialJson={initial.json}
         initialText={initial.text ?? ''}
         noteId={n.id}
         onChange={debouncedSave}
-        placeholder="comece a escrever — cole imagens, formate texto…"
+        placeholder={
+          n.type === 'VOICE'
+            ? 'transcrição (edite à vontade)…'
+            : 'comece a escrever — cole imagens, formate texto…'
+        }
       />
     </article>
+  );
+}
+
+function AudioAttachments({ note }: { note: NonNullable<ReturnType<typeof useNote>['data']> }) {
+  const audios = (note.attachments ?? []).filter((a) => a.kind === 'AUDIO');
+  if (audios.length === 0) return null;
+  return (
+    <div className="mb-6 flex flex-col gap-2">
+      {audios.map((a) => (
+        <figure
+          key={a.id}
+          className="rounded-md border hairline bg-surface-2 p-3 flex items-center gap-3"
+        >
+          <span className="font-mono text-[10px] uppercase tracking-mono text-ink-3 shrink-0">
+            áudio
+          </span>
+          <audio src={a.url} controls preload="metadata" className="flex-1 h-8" />
+        </figure>
+      ))}
+    </div>
   );
 }
 

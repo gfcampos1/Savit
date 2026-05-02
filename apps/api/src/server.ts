@@ -17,6 +17,7 @@ import { meRouter } from './routes/me.js';
 import { notesRouter } from './routes/notes.js';
 import { tasksRouter } from './routes/tasks.js';
 import { uploadsRouter } from './routes/uploads.js';
+import { voiceRouter } from './routes/voice.js';
 
 const __filename = fileURLToPath(import.meta.url);
 const __dirname = path.dirname(__filename);
@@ -59,6 +60,7 @@ export function buildServer(): Express {
   app.use('/api/notes', notesRouter);
   app.use('/api/tasks', tasksRouter);
   app.use('/api/uploads', uploadsRouter);
+  app.use('/api/voice', voiceRouter);
 
   // ----- Static frontend (produção) -----
   // Em prod o build do web está em apps/web/dist; servimos como SPA fallback.
