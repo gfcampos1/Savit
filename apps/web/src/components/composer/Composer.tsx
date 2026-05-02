@@ -2,7 +2,7 @@ import { useEffect, useMemo, useRef, useState } from 'react';
 import { useNavigate } from 'react-router-dom';
 import type { Category } from '@savit/shared';
 import { parseNatural } from '@/lib/parse-natural';
-import { useCreateNote } from '@/hooks/useNotes';
+import { useCreateNote, usePatchNote } from '@/hooks/useNotes';
 import { useCreateTask } from '@/hooks/useTasks';
 import { transcribeAttachment, uploadAttachment } from '@/lib/upload';
 import { ApiError } from '@/lib/api';
@@ -34,6 +34,7 @@ export function Composer({ categories, defaultCategoryId = null }: ComposerProps
   const navigate = useNavigate();
 
   const createNote = useCreateNote();
+  const patchNote = usePatchNote();
   const createTask = useCreateTask();
 
   const parsed = useMemo(() => parseNatural(text, categories), [text, categories]);
@@ -93,6 +94,34 @@ export function Composer({ categories, defaultCategoryId = null }: ComposerProps
     }
   }
 
+  async function createDrawingNote() {
+    const note = await createNote.mutateAsync({
+      type: 'DRAWING',
+      contentText: '',
+      categoryId: effectiveCategoryId ?? null,
+    });
+    navigate(`/notes/${note.id}`);
+  }
+
+  /**
+   * Cria nota tipo PHOTO e dispara o file picker. Tem que criar a nota primeiro
+   * pra associar os anexos. Como o file picker é síncrono via DOM, usamos uma
+   * ref oculta no JSX abaixo e chamamos click() depois.
+   */
+  async function createPhotoNote(files: FileList | null) {
+    const fileArr = files ? Array.from(files) : [];
+    if (fileArr.length === 0) return;
+    const note = await createNote.mutateAsync({
+      type: 'PHOTO',
+      contentText: '',
+      categoryId: effectiveCategoryId ?? null,
+    });
+    for (const f of fileArr) {
+      await uploadAttachment({ blob: f, kind: 'PHOTO', noteId: note.id });
+    }
+    navigate(`/notes/${note.id}`);
+  }
+
   async function onVoiceClip(clip: RecordedClip) {
     setVoiceBusy('enviando…');
     try {
@@ -128,14 +157,8 @@ export function Composer({ categories, defaultCategoryId = null }: ComposerProps
         }
       }
 
-      // 4. atualiza a nota com o texto transcrito (PATCH inline via /api/notes/:id)
-      // Não temos hook dedicado aqui — cada client faz seu invalidate. Uma rota POST
-      // /api/notes seguida de patch via fetch direto é simples:
-      const { api } = await import('@/lib/api');
-      await api(`/api/notes/${note.id}`, {
-        method: 'PATCH',
-        body: { contentText: transcript },
-      });
+      // 4. atualiza a nota com o texto transcrito
+      await patchNote.mutateAsync({ id: note.id, contentText: transcript });
 
       setVoiceOpen(false);
       setVoiceBusy(null);
@@ -196,6 +219,30 @@ export function Composer({ categories, defaultCategoryId = null }: ComposerProps
         >
           <MicIcon />
         </button>
+        <label
+          aria-label="adicionar foto"
+          title="foto / câmera"
+          className="grid place-items-center h-10 w-10 rounded-pill border hairline text-ink-2 hover:text-accent hover:border-accent transition-colors cursor-pointer"
+        >
+          <input
+            type="file"
+            accept="image/*"
+            multiple
+            capture="environment"
+            onChange={(e) => void createPhotoNote(e.target.files)}
+            className="hidden"
+          />
+          <PhotoIcon />
+        </label>
+        <button
+          type="button"
+          onClick={() => void createDrawingNote()}
+          aria-label="desenhar"
+          title="desenho à mão"
+          className="grid place-items-center h-10 w-10 rounded-pill border hairline text-ink-2 hover:text-accent hover:border-accent transition-colors"
+        >
+          <PenIcon />
+        </button>
         <button
           type="button"
           onClick={() => void submit()}
@@ -237,6 +284,30 @@ function MicIcon() {
     <svg width="18" height="18" viewBox="0 0 24 24" fill="none" aria-hidden>
       <rect x="9" y="3" width="6" height="12" rx="3" stroke="currentColor" strokeWidth="1.8" />
       <path d="M5 11a7 7 0 0 0 14 0M12 18v3" stroke="currentColor" strokeWidth="1.8" strokeLinecap="round" />
+    </svg>
+  );
+}
+
+function PhotoIcon() {
+  return (
+    <svg width="18" height="18" viewBox="0 0 24 24" fill="none" aria-hidden>
+      <rect x="3" y="6" width="18" height="14" rx="2" stroke="currentColor" strokeWidth="1.8" />
+      <path d="M8 6l1.5-2h5L16 6" stroke="currentColor" strokeWidth="1.8" strokeLinejoin="round" />
+      <circle cx="12" cy="13" r="3.5" stroke="currentColor" strokeWidth="1.8" />
+    </svg>
+  );
+}
+
+function PenIcon() {
+  return (
+    <svg width="18" height="18" viewBox="0 0 24 24" fill="none" aria-hidden>
+      <path
+        d="M14 4l6 6L9 21H3v-6L14 4z"
+        stroke="currentColor"
+        strokeWidth="1.8"
+        strokeLinejoin="round"
+      />
+      <path d="M13 5l6 6" stroke="currentColor" strokeWidth="1.8" />
     </svg>
   );
 }

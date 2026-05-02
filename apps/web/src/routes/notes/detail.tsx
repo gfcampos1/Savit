@@ -1,11 +1,17 @@
-import { useEffect, useMemo, useState } from 'react';
+import { Suspense, lazy, useCallback, useEffect, useMemo, useState } from 'react';
 import { Link, useNavigate, useParams } from 'react-router-dom';
 import { useNote, usePatchNote } from '@/hooks/useNotes';
 import { useCategories } from '@/hooks/useCategories';
 import { useDebouncedCallback } from '@/hooks/useDebouncedCallback';
 import { TipTapEditor, type TipTapDoc } from '@/components/editor/TipTapEditor';
+import { PhotoGallery } from '@/components/editor/PhotoGallery';
 import { CategoryPicker } from '@/components/composer/CategoryPicker';
 import { dayHeading, formatTime } from '@/lib/format-date';
+
+// tldraw é pesado — só carrega quando o usuário abre uma nota DRAWING.
+const DrawingCanvas = lazy(() =>
+  import('@/components/editor/DrawingCanvas').then((m) => ({ default: m.DrawingCanvas })),
+);
 
 export function NoteDetailPage() {
   const params = useParams();
@@ -33,6 +39,21 @@ export function NoteDetailPage() {
       setSaveError(err instanceof Error ? err.message : 'erro ao salvar');
     }
   }, 800);
+
+  // Para DRAWING: snapshot vira contentJson (texto fica vazio).
+  const saveDrawing = useCallback(
+    async (snapshot: unknown) => {
+      if (!id) return;
+      try {
+        await patch.mutateAsync({ id, contentJson: snapshot });
+        setSavedAt(Date.now());
+        setSaveError(null);
+      } catch (err) {
+        setSaveError(err instanceof Error ? err.message : 'erro ao salvar');
+      }
+    },
+    [id, patch],
+  );
 
   // flush ao desmontar (mudança de rota)
   useEffect(() => () => debouncedSave.flush(), [debouncedSave]);
@@ -89,17 +110,36 @@ export function NoteDetailPage() {
 
       {n.type === 'VOICE' ? <AudioAttachments note={n} /> : null}
 
-      <TipTapEditor
-        initialJson={initial.json}
-        initialText={initial.text ?? ''}
-        noteId={n.id}
-        onChange={debouncedSave}
-        placeholder={
-          n.type === 'VOICE'
-            ? 'transcrição (edite à vontade)…'
-            : 'comece a escrever — cole imagens, formate texto…'
-        }
-      />
+      {n.type === 'PHOTO' || n.type === 'MIXED' ? <PhotoGallery note={n} /> : null}
+
+      {n.type === 'DRAWING' ? (
+        <Suspense
+          fallback={
+            <p className="font-mono text-[11px] uppercase tracking-mono text-ink-3 py-10 text-center">
+              carregando canvas…
+            </p>
+          }
+        >
+          <DrawingCanvas
+            initialSnapshot={initial.json}
+            onChange={(snap) => void saveDrawing(snap)}
+          />
+        </Suspense>
+      ) : (
+        <TipTapEditor
+          initialJson={initial.json}
+          initialText={initial.text ?? ''}
+          noteId={n.id}
+          onChange={debouncedSave}
+          placeholder={
+            n.type === 'VOICE'
+              ? 'transcrição (edite à vontade)…'
+              : n.type === 'PHOTO'
+              ? 'legenda ou notas sobre as fotos…'
+              : 'comece a escrever — cole imagens, formate texto…'
+          }
+        />
+      )}
     </article>
   );
 }
