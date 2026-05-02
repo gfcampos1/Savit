@@ -1,4 +1,4 @@
-const CACHE_NAME = 'savit-backup-v1';
+const CACHE_NAME = 'savit-rollback-v2';
 
 // Keep this list same-origin only; cross-origin precache can fail (CORS) and break install.
 const STATIC_ASSETS = [
@@ -39,8 +39,10 @@ async function precacheAssets() {
 }
 
 self.addEventListener('install', (event) => {
-    // S5: do NOT auto-skipWaiting. Wait for the client to send SKIP_WAITING
-    // (triggered by the "Recarregar" toast — bug §7.9).
+    // ROLLBACK: skipWaiting unconditionally so users stuck on the
+    // prototype-migration SW (savit-v40) get the pre-refactor build on
+    // their next visit without needing to click a "Recarregar" toast.
+    self.skipWaiting();
     event.waitUntil(precacheAssets());
 });
 
@@ -55,6 +57,15 @@ self.addEventListener('activate', (event) => {
         caches.keys()
             .then((names) => Promise.all(names.filter((n) => n !== CACHE_NAME).map((n) => caches.delete(n))))
             .then(() => self.clients.claim())
+            .then(async () => {
+                // ROLLBACK: force every open tab to navigate to /, picking up
+                // the freshly cached pre-refactor index.html instead of the
+                // prototype-migration one still in memory.
+                const clients = await self.clients.matchAll({ type: 'window' });
+                clients.forEach((c) => {
+                    try { c.navigate(c.url); } catch { /* ignore */ }
+                });
+            })
     );
 });
 
