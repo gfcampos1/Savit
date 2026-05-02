@@ -1,0 +1,98 @@
+/* =====================================================================
+ * Savit · Design tokens dos 3 temas
+ * Fonte: Refactor/Savit (1)/SPEC.md §1.2-1.4 e SPEC-V2.md §0
+ * Ativar via: <html data-theme="paper" | "playful" | "linear">
+ * ===================================================================== */
+
+:root {
+  /* defaults compartilhados */
+  --radius-sm: 8px;
+  --radius-md: 12px;
+  --radius-lg: 18px;
+  --radius-pill: 999px;
+  --shadow-card: 0 1px 0 rgba(29, 26, 20, 0.04), 0 12px 24px -16px rgba(29, 26, 20, 0.18);
+}
+
+/* ===== Tema A — Paper (default, mobile-first, calmo) ===== */
+[data-theme='paper'] {
+  --bg: #f6f1e8;
+  --surface: #fdfaf3;
+  --surface-2: #f0e9da;
+  --ink: #1d1a14;
+  --ink-2: #5b5448;
+  --ink-3: #8a8270;
+  --hair: rgba(29, 26, 20, 0.1);
+  --accent: #c0563a;
+  --accent-2: #e6b540;
+  --accent-soft: rgba(192, 86, 58, 0.09);
+  --success: #3a8a6a;
+  --warning: #e6b540;
+  --danger: #c0563a;
+  --shadow-card: 0 1px 0 rgba(29, 26, 20, 0.04), 0 12px 24px -16px rgba(29, 26, 20, 0.18);
+  --radius-sm: 8px;
+  --radius-md: 12px;
+  --radius-lg: 18px;
+}
+
+/* accent variants pro Paper (SPEC tweaks-panel) */
+[data-theme='paper'][data-accent='terra'] { --accent: #b34a30; }
+[data-theme='paper'][data-accent='amber'] { --accent: #e6b540; }
+[data-theme='paper'][data-accent='mint']  { --accent: #3a8a6a; }
+[data-theme='paper'][data-accent='purple']{ --accent: #7a5cc7; }
+[data-theme='paper'][data-accent='blue']  { --accent: #5b8cff; }
+
+/* ===== Tema B — Playful (vibrante, dark roxo) ===== */
+[data-theme='playful'] {
+  --bg: #0e0a1a;
+  --surface: #181228;
+  --surface-2: #221a36;
+  --ink: #f5f0ff;
+  --ink-2: #a89cc4;
+  --ink-3: #6b5e8a;
+  --hair: rgba(255, 255, 255, 0.08);
+  --accent: #ff6b9d;
+  --accent-2: #7c5cff;
+  --accent-3: #5cd6c0;
+  --accent-4: #ffb84a;
+  --accent-soft: rgba(255, 107, 157, 0.14);
+  --grad-primary: linear-gradient(135deg, #7c5cff 0%, #ff6b9d 100%);
+  --grad-secondary: linear-gradient(135deg, #5cd6c0 0%, #7c5cff 100%);
+  --shadow-card: 0 8px 24px -6px rgba(255, 107, 157, 0.25);
+  --radius-sm: 10px;
+  --radius-md: 14px;
+  --radius-lg: 22px;
+}
+
+/* ===== Tema C — Linear (denso, dark blue-gray) ===== */
+[data-theme='linear'] {
+  --bg: #0a0c10;
+  --surface: #0f1218;
+  --surface-2: #161922;
+  --surface-hi: #1c2030;
+  --ink: #e6e8ec;
+  --ink-2: #9097a6;
+  --ink-3: #5a6172;
+  --hair: rgba(255, 255, 255, 0.06);
+  --hair-hi: rgba(255, 255, 255, 0.1);
+  --accent: #7c8bf5;
+  --accent-2: #4d5db5;
+  --accent-dim: #4d5db5;
+  --accent-soft: rgba(124, 139, 245, 0.08);
+  --success: #5cd49c;
+  --warning: #f0b95c;
+  --danger: #f06c7c;
+  --shadow-card: none;
+  --radius-sm: 4px;
+  --radius-md: 6px;
+  --radius-lg: 10px;
+}
+
+/* densidade compact (SPEC-V2 §0.4) */
+[data-density='compact'] {
+  --gap-card: 8px;
+  --pad-card: 12px;
+}
+[data-density='comfortable'] {
+  --gap-card: 12px;
+  --pad-card: 16px;
+}

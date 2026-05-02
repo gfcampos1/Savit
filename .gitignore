@@ -36,6 +36,8 @@ Thumbs.db
 # Build
 dist/
 build/
+.turbo/
+.vite/
 
 # Vendored assets generated on install
 public/vendor/fontawesome/
@@ -44,3 +46,12 @@ public/vendor/fontawesome/
 prisma/*.db
 prisma/*.db.bak
 prisma/*.db-journal
+
+# pnpm
+.pnpm-store/
+
+# PWA generated
+apps/web/dev-dist/
+apps/web/public/sw.js
+apps/web/public/workbox-*.js
+apps/web/public/registerSW.js

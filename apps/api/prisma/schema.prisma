@@ -1,0 +1,236 @@
+// Savit — Prisma schema
+// Cobertura completa do plano (notas, tarefas, kanban, chat IA, anexos R2, etc.)
+
+generator client {
+  provider = "prisma-client-js"
+}
+
+datasource db {
+  provider = "postgresql"
+  url      = env("DATABASE_URL")
+}
+
+// =====================================================================
+// Auth
+// =====================================================================
+
+model User {
+  id            String   @id @default(cuid())
+  email         String   @unique
+  passwordHash  String
+  name          String?
+  createdAt     DateTime @default(now())
+  updatedAt     DateTime @updatedAt
+
+  refreshTokens RefreshToken[]
+  categories    Category[]
+  notes         Note[]
+  tasks         Task[]
+  threads       ChatThread[]
+  attachments   Attachment[]
+  weekly        WeeklySummary[]
+  aiUsage       AiUsage[]
+}
+
+model RefreshToken {
+  id          String    @id @default(cuid())
+  userId      String
+  hashedToken String    @unique
+  deviceInfo  String?
+  expiresAt   DateTime
+  revokedAt   DateTime?
+  createdAt   DateTime  @default(now())
+  user        User      @relation(fields: [userId], references: [id], onDelete: Cascade)
+
+  @@index([userId])
+  @@index([expiresAt])
+}
+
+// =====================================================================
+// Domain
+// =====================================================================
+
+model Category {
+  id        String   @id @default(cuid())
+  userId    String
+  name      String
+  color     String   // hex da paleta da SPEC §1.5
+  icon      String?
+  sortOrder Int      @default(0)
+  createdAt DateTime @default(now())
+  updatedAt DateTime @updatedAt
+  user      User     @relation(fields: [userId], references: [id], onDelete: Cascade)
+  notes     Note[]
+  tasks     Task[]
+
+  @@unique([userId, name])
+  @@index([userId])
+}
+
+enum NoteType {
+  TEXT
+  VOICE
+  DRAWING
+  MINDMAP
+  PHOTO
+  MIXED
+}
+
+model Note {
+  id          String    @id @default(cuid())
+  userId      String
+  categoryId  String?
+  type        NoteType  @default(TEXT)
+  title       String?
+  contentJson Json? // TipTap doc, tldraw snapshot, mindmap nodes/edges
+  contentText String? // texto extraído pra busca FTS
+  rawInput    String? // texto cru do composer (pré-parser)
+  priority    String? // low | med | high
+  archivedAt  DateTime?
+  createdAt   DateTime  @default(now())
+  updatedAt   DateTime  @updatedAt
+
+  user        User         @relation(fields: [userId], references: [id], onDelete: Cascade)
+  category    Category?    @relation(fields: [categoryId], references: [id], onDelete: SetNull)
+  attachments Attachment[]
+  tasks       Task[]
+
+  @@index([userId, createdAt])
+  @@index([categoryId])
+}
+
+enum AttachmentKind {
+  PHOTO
+  AUDIO
+  DRAWING_EXPORT
+  FILE
+}
+
+model Attachment {
+  id            String         @id @default(cuid())
+  noteId        String?
+  userId        String
+  kind          AttachmentKind
+  r2Key         String         @unique // path no bucket: userId/noteId/uuid.ext
+  mimeType      String
+  sizeBytes    Int
+  durationMs    Int? // pra audio
+  transcription String? // pra audio
+  meta          Json? // dimensões, etc.
+  uploadedAt    DateTime?
+  createdAt     DateTime       @default(now())
+
+  user User  @relation(fields: [userId], references: [id], onDelete: Cascade)
+  note Note? @relation(fields: [noteId], references: [id], onDelete: Cascade)
+
+  @@index([userId])
+  @@index([noteId])
+}
+
+enum TaskStatus {
+  TODAY
+  UPCOMING
+  SOMEDAY
+  DONE
+  ARCHIVED
+}
+
+model Task {
+  id                String     @id @default(cuid())
+  userId            String
+  noteId            String? // origem opcional
+  categoryId        String?
+  title             String
+  description       String? // markdown curto
+  status            TaskStatus @default(TODAY)
+  column            String     @default("hoje") // coluna kanban configurável
+  sortOrder         Int        @default(0)
+  dueAt             DateTime?
+  priority          String? // low | med | high
+  reminderMinBefore Int?
+  completedAt       DateTime?
+  createdAt         DateTime   @default(now())
+  updatedAt         DateTime   @updatedAt
+
+  user     User      @relation(fields: [userId], references: [id], onDelete: Cascade)
+  note     Note?     @relation(fields: [noteId], references: [id], onDelete: SetNull)
+  category Category? @relation(fields: [categoryId], references: [id], onDelete: SetNull)
+
+  @@index([userId, status, column, sortOrder])
+  @@index([userId, dueAt])
+}
+
+// =====================================================================
+// Chat IA
+// =====================================================================
+
+enum ChatRole {
+  USER
+  ASSISTANT
+  SYSTEM
+  TOOL
+}
+
+model ChatThread {
+  id        String   @id @default(cuid())
+  userId    String
+  title     String?
+  model     String   @default("anthropic/claude-sonnet-4-6")
+  createdAt DateTime @default(now())
+  updatedAt DateTime @updatedAt
+
+  user     User          @relation(fields: [userId], references: [id], onDelete: Cascade)
+  messages ChatMessage[]
+
+  @@index([userId, updatedAt])
+}
+
+model ChatMessage {
+  id           String     @id @default(cuid())
+  threadId     String
+  role         ChatRole
+  content      String     @db.Text
+  toolCalls    Json? // chamadas de tool feitas pelo modelo
+  toolResult   Json? // resultado das tools que rodamos
+  model        String?
+  inputTokens  Int?
+  outputTokens Int?
+  createdAt    DateTime   @default(now())
+
+  thread ChatThread @relation(fields: [threadId], references: [id], onDelete: Cascade)
+
+  @@index([threadId, createdAt])
+}
+
+model AiUsage {
+  id           String   @id @default(cuid())
+  userId       String
+  date         DateTime @db.Date
+  model        String
+  inputTokens  Int      @default(0)
+  outputTokens Int      @default(0)
+  audioSeconds Int      @default(0)
+  costUsd      Decimal  @default(0) @db.Decimal(10, 6)
+
+  user User @relation(fields: [userId], references: [id], onDelete: Cascade)
+
+  @@unique([userId, date, model])
+  @@index([userId, date])
+}
+
+// =====================================================================
+// Weekly digest
+// =====================================================================
+
+model WeeklySummary {
+  id        String   @id @default(cuid())
+  userId    String
+  weekStart DateTime @db.Date
+  payload   Json
+  text      String   @db.Text
+  createdAt DateTime @default(now())
+
+  user User @relation(fields: [userId], references: [id], onDelete: Cascade)
+
+  @@unique([userId, weekStart])
+}

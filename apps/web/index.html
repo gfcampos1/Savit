@@ -1,0 +1,24 @@
+<!doctype html>
+<html lang="pt-BR" data-theme="paper" data-density="comfortable">
+  <head>
+    <meta charset="UTF-8" />
+    <link rel="icon" type="image/svg+xml" href="/icons/favicon.svg" />
+    <meta name="viewport" content="width=device-width, initial-scale=1, viewport-fit=cover" />
+    <meta name="theme-color" content="#f6f1e8" />
+    <meta name="description" content="Savit · suas ideias, sempre à mão." />
+    <title>Savit</title>
+    <script>
+      // Aplica tema persistido antes do React montar (evita flash).
+      try {
+        const t = localStorage.getItem('savit_theme');
+        if (t === 'paper' || t === 'playful' || t === 'linear') {
+          document.documentElement.setAttribute('data-theme', t);
+        }
+      } catch {}
+    </script>
+  </head>
+  <body>
+    <div id="root"></div>
+    <script type="module" src="/src/main.tsx"></script>
+  </body>
+</html>

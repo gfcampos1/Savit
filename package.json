@@ -1,0 +1,27 @@
+{
+  "name": "savit",
+  "version": "0.1.0",
+  "private": true,
+  "packageManager": "pnpm@9.15.0",
+  "engines": {
+    "node": ">=20.0.0"
+  },
+  "scripts": {
+    "dev": "pnpm -r --parallel --stream run dev",
+    "build": "pnpm --filter @savit/shared build && pnpm --filter @savit/web build && pnpm --filter @savit/api build",
+    "start": "node apps/api/dist/index.js",
+    "db:migrate": "pnpm --filter @savit/api run migrate",
+    "db:deploy": "pnpm --filter @savit/api run migrate:deploy",
+    "db:generate": "pnpm --filter @savit/api exec prisma generate",
+    "db:studio": "pnpm --filter @savit/api run studio",
+    "db:seed": "pnpm --filter @savit/api run seed",
+    "db:up": "docker compose up -d postgres",
+    "db:down": "docker compose down",
+    "lint": "pnpm -r run lint",
+    "typecheck": "pnpm -r run typecheck",
+    "clean": "pnpm -r exec rm -rf dist node_modules .turbo && rm -rf node_modules"
+  },
+  "devDependencies": {
+    "typescript": "^5.6.3"
+  }
+}
