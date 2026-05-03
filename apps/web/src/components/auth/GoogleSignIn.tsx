@@ -77,12 +77,14 @@ export function GoogleSignIn({ onCode, label = 'Continuar com Google' }: GoogleS
         callback: async (resp) => {
           if (resp.error || !resp.code) {
             setBusy(false);
-            setError('Login cancelado.');
+            console.warn('GIS callback error', resp);
+            setError(resp.error ?? 'Login cancelado.');
             return;
           }
           try {
             await onCode(resp.code);
-          } catch {
+          } catch (err) {
+            console.error('google exchange failed', err);
             setError('Não foi possível entrar com Google.');
           } finally {
             setBusy(false);
@@ -90,8 +92,13 @@ export function GoogleSignIn({ onCode, label = 'Continuar com Google' }: GoogleS
         },
         error_callback: (err) => {
           setBusy(false);
-          if (err.type !== 'popup_closed') {
-            setError('Login cancelado.');
+          console.warn('GIS error_callback', err);
+          if (err.type === 'popup_closed') {
+            setError(
+              'Popup fechou antes de completar. Verifique se a origin do site está autorizada no Google Cloud Console.',
+            );
+          } else {
+            setError(err.message ?? 'Login cancelado.');
           }
         },
       });
