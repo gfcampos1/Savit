@@ -53,7 +53,8 @@ export function TasksPage() {
       </header>
 
       <div className="mb-6 flex items-center gap-3 flex-wrap">
-        <p className="text-xs text-ink-3 flex-1 min-w-0">
+        {/* Hint longo só no desktop — mobile descobre o gesto pela UI. */}
+        <p className="hidden md:block text-xs text-ink-3 flex-1 min-w-0">
           Arraste cartões pra mudar de coluna — em <em>Hoje/Amanhã/Semana</em> o prazo ajusta
           sozinho; <em>Concluídas</em> marca como feito.
         </p>

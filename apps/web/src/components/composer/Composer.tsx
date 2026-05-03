@@ -223,30 +223,50 @@ export function Composer({
         <PreviewChips parsed={parsed} onClearMatch={clearMatch} />
       ) : null}
 
+      {/* Linha 1: textarea ocupando largura total — sem competir com botões.
+          Em desktop os ícones de ação ainda ficam inline à direita; em mobile
+          eles descem pra própria linha pra liberar espaço de digitação. */}
       <div className="flex items-end gap-2">
         <textarea
           ref={taRef}
           value={text}
           onChange={(e) => setText(e.target.value)}
           onKeyDown={onKeyDown}
-          placeholder="Sobre o que é? — escreva ou cole, # categoria, amanhã 9h pra virar tarefa…"
+          placeholder="Sobre o que é?"
           rows={1}
           className="flex-1 resize-none bg-transparent text-ink text-md leading-snug outline-none placeholder:text-ink-3 py-1"
           aria-label="capturar ideia"
         />
         <button
           type="button"
+          onClick={() => void submit()}
+          disabled={!text.trim() || submitting}
+          aria-label="enviar"
+          className="grid place-items-center h-10 w-10 rounded-pill bg-ink text-bg disabled:opacity-40 transition-opacity shrink-0"
+        >
+          {submitting ? (
+            <span className="font-mono text-[10px]">…</span>
+          ) : (
+            <SendIcon />
+          )}
+        </button>
+      </div>
+
+      {/* Linha 2: ações secundárias em row própria. */}
+      <div className="mt-2 flex items-center gap-2">
+        <button
+          type="button"
           onClick={() => setVoiceOpen(true)}
           aria-label="gravar voz"
           title="gravar voz"
-          className="grid place-items-center h-10 w-10 rounded-pill border hairline text-ink-2 hover:text-accent hover:border-accent transition-colors"
+          className="grid place-items-center h-9 w-9 rounded-pill border hairline text-ink-2 hover:text-accent hover:border-accent transition-colors"
         >
           <MicIcon />
         </button>
         <label
           aria-label="adicionar foto"
           title="foto / câmera"
-          className="grid place-items-center h-10 w-10 rounded-pill border hairline text-ink-2 hover:text-accent hover:border-accent transition-colors cursor-pointer"
+          className="grid place-items-center h-9 w-9 rounded-pill border hairline text-ink-2 hover:text-accent hover:border-accent transition-colors cursor-pointer"
         >
           <input
             type="file"
@@ -263,7 +283,7 @@ export function Composer({
           onClick={() => void createDrawingNote()}
           aria-label="desenhar"
           title="desenho à mão"
-          className="grid place-items-center h-10 w-10 rounded-pill border hairline text-ink-2 hover:text-accent hover:border-accent transition-colors"
+          className="grid place-items-center h-9 w-9 rounded-pill border hairline text-ink-2 hover:text-accent hover:border-accent transition-colors"
         >
           <PenIcon />
         </button>
@@ -272,22 +292,9 @@ export function Composer({
           onClick={() => void createMindMapNote()}
           aria-label="mapa mental"
           title="mapa mental"
-          className="grid place-items-center h-10 w-10 rounded-pill border hairline text-ink-2 hover:text-accent hover:border-accent transition-colors"
+          className="grid place-items-center h-9 w-9 rounded-pill border hairline text-ink-2 hover:text-accent hover:border-accent transition-colors"
         >
           <MindIcon />
-        </button>
-        <button
-          type="button"
-          onClick={() => void submit()}
-          disabled={!text.trim() || submitting}
-          aria-label="enviar"
-          className="grid place-items-center h-10 w-10 rounded-pill bg-ink text-bg disabled:opacity-40 transition-opacity"
-        >
-          {submitting ? (
-            <span className="font-mono text-[10px]">…</span>
-          ) : (
-            <SendIcon />
-          )}
         </button>
       </div>
 
