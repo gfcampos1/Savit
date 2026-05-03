@@ -12,7 +12,7 @@ export default defineConfig(({ mode }) => {
       react(),
       VitePWA({
         registerType: 'prompt', // mostra toast "Atualizar" quando há nova versão
-        includeAssets: ['icons/favicon.svg'],
+        includeAssets: ['icons/logo-light.png', 'icons/logo-dark.png', 'icons/logo-accent.png'],
         injectRegister: false, // registramos manualmente em main.tsx pra controlar update prompt
         devOptions: {
           enabled: false, // SW só em prod (em dev usaríamos perdíamos hot-reload)
@@ -66,15 +66,15 @@ export default defineConfig(({ mode }) => {
           dir: 'ltr',
           icons: [
             {
-              src: '/icons/icon.svg',
-              sizes: 'any',
-              type: 'image/svg+xml',
+              src: '/icons/logo-light.png',
+              sizes: '192x192 512x512',
+              type: 'image/png',
               purpose: 'any',
             },
             {
-              src: '/icons/icon-maskable.svg',
-              sizes: 'any',
-              type: 'image/svg+xml',
+              src: '/icons/logo-dark.png',
+              sizes: '192x192 512x512',
+              type: 'image/png',
               purpose: 'maskable',
             },
           ],
@@ -90,19 +90,19 @@ export default defineConfig(({ mode }) => {
               name: 'Inbox',
               short_name: 'Inbox',
               url: '/',
-              icons: [{ src: '/icons/icon.svg', sizes: 'any', type: 'image/svg+xml' }],
+              icons: [{ src: '/icons/logo-light.png', sizes: '192x192 512x512', type: 'image/png' }],
             },
             {
               name: 'Tarefas',
               short_name: 'Tarefas',
               url: '/tasks',
-              icons: [{ src: '/icons/icon.svg', sizes: 'any', type: 'image/svg+xml' }],
+              icons: [{ src: '/icons/logo-light.png', sizes: '192x192 512x512', type: 'image/png' }],
             },
             {
               name: 'Chat IA',
               short_name: 'Chat',
               url: '/chat',
-              icons: [{ src: '/icons/icon.svg', sizes: 'any', type: 'image/svg+xml' }],
+              icons: [{ src: '/icons/logo-light.png', sizes: '192x192 512x512', type: 'image/png' }],
             },
           ],
         },

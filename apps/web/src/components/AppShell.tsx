@@ -17,7 +17,10 @@ export function AppShell() {
       <PaywallBanner />
       <header className="sticky top-0 z-30 border-b hairline bg-bg/85 backdrop-blur">
         <nav className="max-w-7xl mx-auto px-4 md:px-6 py-3 flex items-center gap-3 md:gap-5">
-          <span className="display-serif text-lg text-ink shrink-0">Savit</span>
+          <NavLink to="/" className="flex items-center gap-2 shrink-0" aria-label="Savit">
+            <img src="/icons/logo-light.png" alt="" width={24} height={24} className="rounded" />
+            <span className="display-serif text-lg text-ink">Savit</span>
+          </NavLink>
           <div className="flex-1 flex items-center gap-3 md:gap-4 overflow-x-auto md:overflow-visible md:justify-end no-scrollbar">
             <ShellLink to="/">Inbox</ShellLink>
             <ShellLink to="/tasks">Tarefas</ShellLink>

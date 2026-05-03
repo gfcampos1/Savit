@@ -18,12 +18,14 @@ export function AuthShell({ badge, title, subtitle, footer, children }: AuthShel
   return (
     <main className="min-h-full flex flex-col px-6 pt-10 pb-8 max-w-md mx-auto">
       <header className="mb-10">
-        <Link
-          to="/"
-          aria-label="Savit"
-          className="grid h-11 w-11 place-items-center rounded-md bg-ink text-bg display-serif text-2xl"
-        >
-          S
+        <Link to="/" aria-label="Savit" className="inline-block">
+          <img
+            src="/icons/logo-dark.png"
+            alt="Savit"
+            width={44}
+            height={44}
+            className="rounded-md"
+          />
         </Link>
         <p className="label-mono mt-7">{badge}</p>
         <h1 className="display-serif text-display mt-2 leading-tight">{title}</h1>
