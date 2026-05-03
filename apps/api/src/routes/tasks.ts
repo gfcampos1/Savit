@@ -4,6 +4,7 @@ import type { Prisma, TaskStatus as PrismaTaskStatus } from '@prisma/client';
 import { TaskInput, TaskMoveInput, TaskPatch } from '@savit/shared';
 import { prisma } from '../lib/prisma.js';
 import { requireAuth } from '../middleware/auth.js';
+import { requireActive } from '../middleware/billing.js';
 import { HttpError } from '../middleware/error.js';
 
 export const tasksRouter: Router = Router();
@@ -34,7 +35,7 @@ tasksRouter.get('/', async (req, res, next) => {
   }
 });
 
-tasksRouter.post('/', async (req, res, next) => {
+tasksRouter.post('/', requireActive, async (req, res, next) => {
   try {
     const input = TaskInput.parse(req.body);
     if (input.categoryId) await assertOwnsCategory(req.user!.id, input.categoryId);
@@ -70,7 +71,7 @@ tasksRouter.post('/', async (req, res, next) => {
   }
 });
 
-tasksRouter.patch('/:id', async (req, res, next) => {
+tasksRouter.patch('/:id', requireActive, async (req, res, next) => {
   try {
     const id = z.string().cuid().parse(req.params.id);
     const patch = TaskPatch.parse(req.body);
@@ -110,7 +111,7 @@ tasksRouter.patch('/:id', async (req, res, next) => {
  *   `dueAt`, ajustamos automaticamente pra manhã do dia destino.
  * - Re-numeramos sortOrder na coluna destino pra acomodar o novo item.
  */
-tasksRouter.patch('/:id/move', async (req, res, next) => {
+tasksRouter.patch('/:id/move', requireActive, async (req, res, next) => {
   try {
     const id = z.string().cuid().parse(req.params.id);
     const input = TaskMoveInput.parse(req.body);
@@ -170,7 +171,7 @@ tasksRouter.patch('/:id/move', async (req, res, next) => {
   }
 });
 
-tasksRouter.delete('/:id', async (req, res, next) => {
+tasksRouter.delete('/:id', requireActive, async (req, res, next) => {
   try {
     const id = z.string().cuid().parse(req.params.id);
     const existing = await prisma.task.findFirst({ where: { id, userId: req.user!.id } });

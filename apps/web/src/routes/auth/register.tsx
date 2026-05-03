@@ -1,6 +1,7 @@
 import { useMemo, useState } from 'react';
 import { Link, useNavigate } from 'react-router-dom';
 import { useAuthStore } from '@/stores/auth';
+import { GoogleSignIn } from '@/components/auth/GoogleSignIn';
 import { ApiError } from '@/lib/api';
 import { AuthShell } from '@/components/auth/AuthShell';
 import { Field } from '@/components/auth/Field';
@@ -22,6 +23,7 @@ const STRENGTH_COPY = ['muito fraca', 'fraca', 'razoável', 'boa', 'ótima'];
 export function RegisterPage() {
   const navigate = useNavigate();
   const register = useAuthStore((s) => s.register);
+  const googleLogin = useAuthStore((s) => s.googleLogin);
 
   const [name, setName] = useState('');
   const [email, setEmail] = useState('');
@@ -70,6 +72,29 @@ export function RegisterPage() {
         </p>
       }
     >
+      <div className="mb-6">
+        <GoogleSignIn
+          text="signup_with"
+          onCredential={async (credential) => {
+            try {
+              await googleLogin(credential);
+              navigate('/', { replace: true });
+            } catch (err) {
+              setError(
+                err instanceof ApiError && err.status === 503
+                  ? 'Login com Google não está disponível agora.'
+                  : 'Não foi possível continuar com Google.',
+              );
+            }
+          }}
+        />
+        <div className="flex items-center gap-3 mt-4 text-xs text-ink-3">
+          <span className="flex-1 border-t hairline" aria-hidden />
+          <span className="font-mono uppercase tracking-mono">ou</span>
+          <span className="flex-1 border-t hairline" aria-hidden />
+        </div>
+      </div>
+
       <form onSubmit={onSubmit} noValidate>
         <Field
           label="NOME"

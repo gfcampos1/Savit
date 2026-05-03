@@ -4,6 +4,7 @@ import { useAuthStore } from '@/stores/auth';
 import { ApiError } from '@/lib/api';
 import { AuthShell } from '@/components/auth/AuthShell';
 import { Field } from '@/components/auth/Field';
+import { GoogleSignIn } from '@/components/auth/GoogleSignIn';
 
 interface LocationStateMaybe {
   from?: string;
@@ -13,6 +14,7 @@ export function LoginPage() {
   const navigate = useNavigate();
   const location = useLocation();
   const login = useAuthStore((s) => s.login);
+  const googleLogin = useAuthStore((s) => s.googleLogin);
 
   const from = (location.state as LocationStateMaybe | null)?.from ?? '/';
 
@@ -57,6 +59,29 @@ export function LoginPage() {
         </p>
       }
     >
+      <div className="mb-6">
+        <GoogleSignIn
+          text="signin_with"
+          onCredential={async (credential) => {
+            try {
+              await googleLogin(credential);
+              navigate(from, { replace: true });
+            } catch (err) {
+              setError(
+                err instanceof ApiError && err.status === 503
+                  ? 'Login com Google não está disponível agora.'
+                  : 'Não foi possível entrar com Google.',
+              );
+            }
+          }}
+        />
+        <div className="flex items-center gap-3 mt-4 text-xs text-ink-3">
+          <span className="flex-1 border-t hairline" aria-hidden />
+          <span className="font-mono uppercase tracking-mono">ou</span>
+          <span className="flex-1 border-t hairline" aria-hidden />
+        </div>
+      </div>
+
       <form onSubmit={onSubmit} noValidate>
         <Field
           label="EMAIL"

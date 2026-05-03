@@ -14,13 +14,42 @@ datasource db {
 // Auth
 // =====================================================================
 
+enum UserRole {
+  USER
+  ADMIN
+}
+
+enum SubscriptionStatus {
+  TRIALING // dentro dos 14 dias
+  ACTIVE // pagou, dentro do período corrente
+  PAST_DUE // pagamento atrasado (cartão recusou, boleto vencido)
+  CANCELED // cancelou — fica ativo até currentPeriodEndsAt
+  BLOCKED // trial expirado sem pagar OU CANCELED + período expirou
+}
+
+enum SubscriptionPlan {
+  PRO_MONTHLY
+  PRO_YEARLY
+}
+
 model User {
-  id            String   @id @default(cuid())
-  email         String   @unique
-  passwordHash  String
-  name          String?
-  createdAt     DateTime @default(now())
-  updatedAt     DateTime @updatedAt
+  id           String  @id @default(cuid())
+  email        String  @unique
+  passwordHash String? // nullable: usuários só-Google não têm senha
+  name         String?
+  googleId     String? @unique
+  avatarUrl    String?
+  role         UserRole @default(USER)
+
+  // Billing
+  plan                SubscriptionPlan?
+  status              SubscriptionStatus @default(TRIALING)
+  trialEndsAt         DateTime?
+  currentPeriodEndsAt DateTime?
+  asaasCustomerId     String?            @unique
+
+  createdAt DateTime @default(now())
+  updatedAt DateTime @updatedAt
 
   refreshTokens RefreshToken[]
   categories    Category[]
@@ -30,6 +59,39 @@ model User {
   attachments   Attachment[]
   weekly        WeeklySummary[]
   aiUsage       AiUsage[]
+  subscriptions Subscription[]
+  billingEvents BillingEvent[]
+}
+
+model Subscription {
+  id                  String             @id @default(cuid())
+  userId              String
+  asaasSubscriptionId String             @unique
+  plan                SubscriptionPlan
+  status              SubscriptionStatus
+  startedAt           DateTime           @default(now())
+  endedAt             DateTime?
+  cancelReason        String?
+
+  user User @relation(fields: [userId], references: [id], onDelete: Cascade)
+
+  @@index([userId])
+}
+
+model BillingEvent {
+  id             String   @id @default(cuid())
+  userId         String
+  asaasPaymentId String?
+  type           String // ex: PAYMENT_CONFIRMED, PAYMENT_OVERDUE, SUBSCRIPTION_DELETED
+  status         String?
+  amount         Decimal? @db.Decimal(10, 2)
+  payload        Json     // body bruto do webhook pra debug
+  createdAt      DateTime @default(now())
+
+  user User @relation(fields: [userId], references: [id], onDelete: Cascade)
+
+  @@index([userId, createdAt])
+  @@index([asaasPaymentId])
 }
 
 model RefreshToken {
@@ -89,6 +151,11 @@ model Note {
   archivedAt  DateTime?
   createdAt   DateTime  @default(now())
   updatedAt   DateTime  @updatedAt
+
+  // Coluna gerada pra full-text search PT-BR (criada via migration manual
+  // 20260502190000_note_fts). Marcada como Unsupported pra Prisma não tentar
+  // alterar/dropar; é write-once via expressão STORED.
+  ftsTextPt Unsupported("tsvector")?
 
   user        User         @relation(fields: [userId], references: [id], onDelete: Cascade)
   category    Category?    @relation(fields: [categoryId], references: [id], onDelete: SetNull)

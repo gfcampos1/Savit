@@ -4,6 +4,7 @@ import { Prisma, type NoteType } from '@prisma/client';
 import { NoteInput, NotePatch } from '@savit/shared';
 import { prisma } from '../lib/prisma.js';
 import { requireAuth } from '../middleware/auth.js';
+import { requireActive } from '../middleware/billing.js';
 import { HttpError } from '../middleware/error.js';
 import { publicUrlFor } from '../services/r2.js';
 
@@ -62,7 +63,7 @@ notesRouter.get('/:id', async (req, res, next) => {
   }
 });
 
-notesRouter.post('/', async (req, res, next) => {
+notesRouter.post('/', requireActive, async (req, res, next) => {
   try {
     const input = NoteInput.parse(req.body);
     if (input.categoryId) await assertOwnsCategory(req.user!.id, input.categoryId);
@@ -89,7 +90,7 @@ notesRouter.post('/', async (req, res, next) => {
   }
 });
 
-notesRouter.patch('/:id', async (req, res, next) => {
+notesRouter.patch('/:id', requireActive, async (req, res, next) => {
   try {
     const id = z.string().cuid().parse(req.params.id);
     const patch = NotePatch.parse(req.body);
@@ -132,7 +133,7 @@ const ConvertInput = z.object({
   title: z.string().min(1).max(200).optional(),
 });
 
-notesRouter.post('/:id/convert-to-task', async (req, res, next) => {
+notesRouter.post('/:id/convert-to-task', requireActive, async (req, res, next) => {
   try {
     const id = z.string().cuid().parse(req.params.id);
     const input = ConvertInput.parse(req.body ?? {});
@@ -198,7 +199,7 @@ notesRouter.post('/:id/convert-to-task', async (req, res, next) => {
   }
 });
 
-notesRouter.delete('/:id', async (req, res, next) => {
+notesRouter.delete('/:id', requireActive, async (req, res, next) => {
   try {
     const id = z.string().cuid().parse(req.params.id);
     const existing = await prisma.note.findFirst({ where: { id, userId: req.user!.id } });

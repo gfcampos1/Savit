@@ -14,6 +14,7 @@ interface AuthState {
   login: (input: { email: string; password: string }) => Promise<void>;
   register: (input: { email: string; password: string; name?: string }) => Promise<void>;
   logout: () => Promise<void>;
+  googleLogin: (credential: string) => Promise<void>;
 }
 
 export const useAuthStore = create<AuthState>((set, get) => ({
@@ -71,6 +72,14 @@ export const useAuthStore = create<AuthState>((set, get) => ({
       /* segue limpando local mesmo se falhar */
     }
     get().clear();
+  },
+
+  googleLogin: async (credential: string) => {
+    const data = await api<{ accessToken: string; user: MeResponse }>('/api/auth/google', {
+      method: 'POST',
+      body: { credential },
+    });
+    set({ user: data.user, accessToken: data.accessToken, status: 'authed' });
   },
 }));
 

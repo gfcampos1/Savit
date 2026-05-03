@@ -8,6 +8,7 @@ import { UploadSignInput } from '@savit/shared';
 import type { AttachmentKind } from '@prisma/client';
 import { prisma } from '../lib/prisma.js';
 import { requireAuth } from '../middleware/auth.js';
+import { requireActive } from '../middleware/billing.js';
 import { HttpError } from '../middleware/error.js';
 import { buildKey, signPutUrl, STORAGE_MODE, LOCAL_UPLOADS_DIR } from '../services/r2.js';
 
@@ -64,7 +65,7 @@ if (STORAGE_MODE === 'local') {
 const signedHandler = Router();
 signedHandler.use(requireAuth);
 
-signedHandler.post('/sign', async (req, res, next) => {
+signedHandler.post('/sign', requireActive, async (req, res, next) => {
   try {
     const input = UploadSignInput.parse(req.body);
     if (input.noteId) {
@@ -117,7 +118,7 @@ const CompleteInput = z.object({
   durationMs: z.number().int().nonnegative().optional(),
 });
 
-signedHandler.post('/complete', async (req, res, next) => {
+signedHandler.post('/complete', requireActive, async (req, res, next) => {
   try {
     const input = CompleteInput.parse(req.body);
     const att = await prisma.attachment.findFirst({

@@ -1,5 +1,7 @@
 import { NavLink, Outlet } from 'react-router-dom';
 import { useUIStore } from '@/stores/ui';
+import { useAuthStore } from '@/stores/auth';
+import { PaywallBanner } from '@/components/PaywallBanner';
 
 /**
  * Shell do app autenticado.
@@ -9,8 +11,10 @@ import { useUIStore } from '@/stores/ui';
  */
 export function AppShell() {
   const openPalette = useUIStore((s) => s.openPalette);
+  const isAdmin = useAuthStore((s) => s.user?.role === 'ADMIN');
   return (
     <div className="min-h-full flex flex-col">
+      <PaywallBanner />
       <header className="sticky top-0 z-30 border-b hairline bg-bg/85 backdrop-blur">
         <nav className="max-w-7xl mx-auto px-4 md:px-6 py-3 flex items-center gap-3 md:gap-5">
           <span className="display-serif text-lg text-ink shrink-0">Savit</span>
@@ -20,6 +24,7 @@ export function AppShell() {
             <ShellLink to="/categories">Categorias</ShellLink>
             <ShellLink to="/chat">Chat ✦</ShellLink>
             <ShellLink to="/dashboard">Dashboard</ShellLink>
+            {isAdmin ? <ShellLink to="/admin">Admin</ShellLink> : null}
             <ShellLink to="/profile">Perfil</ShellLink>
           </div>
           <button

@@ -11,6 +11,7 @@ import { env } from '../lib/env.js';
 import { logger } from '../lib/logger.js';
 import { prisma } from '../lib/prisma.js';
 import { HttpError } from '../middleware/error.js';
+import { runTrialExpirer } from '../jobs/trial-expirer.js';
 import { generateWeeklySummary } from '../services/weekly-summary.js';
 
 export const jobsRouter: Router = Router();
@@ -45,6 +46,15 @@ jobsRouter.post('/weekly-summary', async (_req, res, next) => {
     }
     logger.info({ generated, skipped }, 'weekly-summary job done');
     res.json({ generated, skipped });
+  } catch (err) {
+    next(err);
+  }
+});
+
+jobsRouter.post('/trial-expirer', async (_req, res, next) => {
+  try {
+    const result = await runTrialExpirer();
+    res.json(result);
   } catch (err) {
     next(err);
   }

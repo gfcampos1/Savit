@@ -11,6 +11,9 @@
     <meta name="apple-mobile-web-app-title" content="Savit" />
     <meta name="description" content="Savit · suas ideias, sempre à mão." />
     <title>Savit</title>
+    <!-- Google Identity Services (login com Google) — async/defer; só executa
+         quando o componente GoogleSignIn for montado. -->
+    <script src="https://accounts.google.com/gsi/client" async defer></script>
     <script>
       // Aplica tema persistido antes do React montar (evita flash).
       try {

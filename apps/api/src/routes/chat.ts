@@ -19,6 +19,7 @@ import { env } from '../lib/env.js';
 import { prisma } from '../lib/prisma.js';
 import { logger } from '../lib/logger.js';
 import { requireAuth } from '../middleware/auth.js';
+import { requireActive } from '../middleware/billing.js';
 import { HttpError } from '../middleware/error.js';
 import {
   OpenRouterError,
@@ -138,7 +139,7 @@ chatRouter.delete('/threads/:id', async (req, res, next) => {
 
 // ---------- streaming messages ----------
 
-chatRouter.post('/threads/:id/messages', async (req, res, next) => {
+chatRouter.post('/threads/:id/messages', requireActive, async (req, res, next) => {
   try {
     if (!isOpenRouterConfigured()) {
       throw new HttpError(503, 'openrouter_not_configured');

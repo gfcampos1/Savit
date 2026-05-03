@@ -3,6 +3,7 @@ import { z } from 'zod';
 import { CategoryInput, CategoryPatch } from '@savit/shared';
 import { prisma } from '../lib/prisma.js';
 import { requireAuth } from '../middleware/auth.js';
+import { requireActive } from '../middleware/billing.js';
 import { HttpError } from '../middleware/error.js';
 
 export const categoriesRouter: Router = Router();
@@ -42,7 +43,7 @@ categoriesRouter.get('/', async (req, res, next) => {
   }
 });
 
-categoriesRouter.post('/', async (req, res, next) => {
+categoriesRouter.post('/', requireActive, async (req, res, next) => {
   try {
     const input = CategoryInput.parse(req.body);
     const exists = await prisma.category.findUnique({
@@ -64,7 +65,7 @@ categoriesRouter.post('/', async (req, res, next) => {
   }
 });
 
-categoriesRouter.patch('/reorder', async (req, res, next) => {
+categoriesRouter.patch('/reorder', requireActive, async (req, res, next) => {
   try {
     const { ids } = z.object({ ids: z.array(z.string().cuid()).min(1) }).parse(req.body);
     const owned = await prisma.category.findMany({
@@ -83,7 +84,7 @@ categoriesRouter.patch('/reorder', async (req, res, next) => {
   }
 });
 
-categoriesRouter.patch('/:id', async (req, res, next) => {
+categoriesRouter.patch('/:id', requireActive, async (req, res, next) => {
   try {
     const id = z.string().cuid().parse(req.params.id);
     const patch = CategoryPatch.parse(req.body);
@@ -107,7 +108,7 @@ categoriesRouter.patch('/:id', async (req, res, next) => {
   }
 });
 
-categoriesRouter.delete('/:id', async (req, res, next) => {
+categoriesRouter.delete('/:id', requireActive, async (req, res, next) => {
   try {
     const id = z.string().cuid().parse(req.params.id);
     const existing = await prisma.category.findFirst({

@@ -10,7 +10,9 @@ import { existsSync } from 'node:fs';
 import { env } from './lib/env.js';
 import { logger } from './lib/logger.js';
 import { errorHandler, notFoundHandler } from './middleware/error.js';
+import { adminRouter } from './routes/admin.js';
 import { authRouter } from './routes/auth.js';
+import { billingRouter } from './routes/billing.js';
 import { categoriesRouter } from './routes/categories.js';
 import { chatRouter } from './routes/chat.js';
 import { healthRouter } from './routes/health.js';
@@ -66,6 +68,8 @@ export function buildServer(): Express {
   app.use('/api/stats', statsRouter);
   app.use('/api/weekly', weeklyRouter);
   app.use('/api/jobs', jobsRouter);
+  app.use('/api/admin', adminRouter);
+  app.use('/api/billing', billingRouter);
 
   // ----- Static frontend (produção) -----
   // Em prod o build do web está em apps/web/dist; servimos como SPA fallback.

@@ -1,5 +1,6 @@
 import type { RequestHandler } from 'express';
 import { verifyAccessToken } from '../lib/jwt.js';
+import { prisma } from '../lib/prisma.js';
 import { HttpError } from './error.js';
 
 declare global {
@@ -25,5 +26,27 @@ export const requireAuth: RequestHandler = (req, _res, next) => {
     next();
   } catch {
     next(new HttpError(401, 'invalid_token'));
+  }
+};
+
+/**
+ * Encadeia requireAuth + checa role=ADMIN no DB.
+ * Usar em todas as rotas /api/admin/*.
+ */
+export const requireAdmin: RequestHandler = async (req, _res, next) => {
+  if (!req.user) {
+    return next(new HttpError(401, 'missing_token'));
+  }
+  try {
+    const u = await prisma.user.findUnique({
+      where: { id: req.user.id },
+      select: { role: true },
+    });
+    if (!u || u.role !== 'ADMIN') {
+      return next(new HttpError(403, 'admin_required'));
+    }
+    next();
+  } catch (err) {
+    next(err);
   }
 };

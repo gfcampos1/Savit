@@ -1,14 +1,22 @@
 import { QueryClient, QueryClientProvider } from '@tanstack/react-query';
 import { BrowserRouter, Navigate, Route, Routes } from 'react-router-dom';
 
-import { AuthBootstrap, RequireAuth, RequireGuest } from '@/components/auth/AuthGuard';
+import {
+  AuthBootstrap,
+  RequireAdmin,
+  RequireAuth,
+  RequireGuest,
+} from '@/components/auth/AuthGuard';
 import { AppShell } from '@/components/AppShell';
 import { CommandPalette } from '@/components/CommandPalette';
+import { PaywallModal } from '@/components/PaywallModal';
 import { PWAStatus } from '@/components/PWAStatus';
 import { Toaster } from '@/components/Toaster';
 import { useGlobalShortcuts } from '@/hooks/useGlobalShortcuts';
+import { AdminPage } from '@/routes/admin/index';
 import { LoginPage } from '@/routes/auth/login';
 import { RegisterPage } from '@/routes/auth/register';
+import { BillingPage } from '@/routes/billing';
 import { CategoriesPage } from '@/routes/categories';
 import { ChatPage } from '@/routes/chat/index';
 import { DashboardPage } from '@/routes/dashboard';
@@ -39,6 +47,7 @@ function AppInner({ children }: { children: React.ReactNode }) {
   return (
     <>
       <CommandPalette />
+      <PaywallModal />
       <Toaster />
       {children}
     </>
@@ -67,7 +76,11 @@ export function App() {
                 <Route path="/chat" element={<ChatPage />} />
                 <Route path="/chat/:threadId" element={<ChatPage />} />
                 <Route path="/dashboard" element={<DashboardPage />} />
+                <Route path="/billing" element={<BillingPage />} />
                 <Route path="/profile" element={<ProfilePage />} />
+                <Route element={<RequireAdmin />}>
+                  <Route path="/admin" element={<AdminPage />} />
+                </Route>
               </Route>
               {/* /focus é tela cheia — fora do AppShell */}
               <Route path="/focus" element={<FocusPage />} />

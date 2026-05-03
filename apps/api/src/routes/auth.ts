@@ -1,8 +1,9 @@
 import { Router } from 'express';
+import { z } from 'zod';
 import { LoginInput, RegisterInput } from '@savit/shared';
 import { env } from '../lib/env.js';
 import { expiresInMs } from '../lib/jwt.js';
-import { login, logout, refresh, register } from '../services/auth.js';
+import { login, loginWithGoogle, logout, refresh, register } from '../services/auth.js';
 import type { AuthResult } from '../services/auth.js';
 
 export const authRouter: Router = Router();
@@ -60,6 +61,21 @@ authRouter.post('/login', async (req, res, next) => {
   try {
     const input = LoginInput.parse(req.body);
     const result = await login({ ...input, deviceInfo: deviceInfoFrom(req) });
+    setRefreshCookie(res, result.refreshToken, result.refreshExpiresAt);
+    res.json(publicResponse(result));
+  } catch (err) {
+    next(err);
+  }
+});
+
+const GoogleLoginInput = z.object({
+  credential: z.string().min(20).max(8192),
+});
+
+authRouter.post('/google', async (req, res, next) => {
+  try {
+    const { credential } = GoogleLoginInput.parse(req.body);
+    const result = await loginWithGoogle({ credential, deviceInfo: deviceInfoFrom(req) });
     setRefreshCookie(res, result.refreshToken, result.refreshExpiresAt);
     res.json(publicResponse(result));
   } catch (err) {

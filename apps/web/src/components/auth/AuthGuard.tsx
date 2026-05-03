@@ -16,6 +16,24 @@ export function RequireAuth() {
   return <Outlet />;
 }
 
+/** Bloqueia rotas de admin pra users sem role=ADMIN. */
+export function RequireAdmin() {
+  const status = useAuthStore((s) => s.status);
+  const isAdmin = useAuthStore((s) => s.user?.role === 'ADMIN');
+  const location = useLocation();
+
+  if (status === 'unknown') {
+    return <FullPageLoader label="carregando…" />;
+  }
+  if (status === 'guest') {
+    return <Navigate to="/login" replace state={{ from: location.pathname }} />;
+  }
+  if (!isAdmin) {
+    return <Navigate to="/" replace />;
+  }
+  return <Outlet />;
+}
+
 /** Inverso: usuário logado não vê /login ou /register. */
 export function RequireGuest() {
   const status = useAuthStore((s) => s.status);

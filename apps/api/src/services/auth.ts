@@ -9,12 +9,20 @@ import {
 } from '../lib/jwt.js';
 import { HttpError } from '../middleware/error.js';
 import { ensureDefaultCategories } from './categories.js';
+import { GoogleAuthError, verifyGoogleIdToken } from './google-oauth.js';
 
 export interface AuthResult {
   user: { id: string; email: string; name: string | null; createdAt: Date };
   accessToken: string;
   refreshToken: string;
   refreshExpiresAt: Date;
+}
+
+/** Computa data de expiração do trial pra um novo user. */
+function computeTrialEndsAt(): Date {
+  const d = new Date();
+  d.setDate(d.getDate() + env.TRIAL_DAYS);
+  return d;
 }
 
 export async function register(input: {
@@ -31,13 +39,75 @@ export async function register(input: {
 
   const passwordHash = await hashPassword(input.password);
   const user = await prisma.user.create({
-    data: { email, passwordHash, name: input.name?.trim() || null },
+    data: {
+      email,
+      passwordHash,
+      name: input.name?.trim() || null,
+      trialEndsAt: computeTrialEndsAt(),
+    },
     select: { id: true, email: true, name: true, createdAt: true },
   });
 
   await ensureDefaultCategories(user.id);
 
   return issueTokens(user, input.deviceInfo);
+}
+
+/**
+ * Login (ou registro implícito) via Google OAuth.
+ * - Se já existe user com mesmo email: linka googleId.
+ * - Senão cria user novo (sem senha) + categorias default + trial.
+ */
+export async function loginWithGoogle(input: {
+  credential: string;
+  deviceInfo?: string;
+}): Promise<AuthResult> {
+  let profile;
+  try {
+    profile = await verifyGoogleIdToken(input.credential);
+  } catch (err) {
+    if (err instanceof GoogleAuthError) {
+      throw new HttpError(err.status, err.message);
+    }
+    throw err;
+  }
+  if (!profile.emailVerified) {
+    throw new HttpError(403, 'google_email_not_verified');
+  }
+
+  const email = profile.email.trim().toLowerCase();
+  let user = await prisma.user.findFirst({
+    where: { OR: [{ email }, { googleId: profile.googleId }] },
+    select: { id: true, email: true, name: true, createdAt: true, googleId: true },
+  });
+
+  if (!user) {
+    // Cria novo user só-Google (sem senha) com trial novo
+    const created = await prisma.user.create({
+      data: {
+        email,
+        passwordHash: null,
+        name: profile.name,
+        googleId: profile.googleId,
+        avatarUrl: profile.picture,
+        trialEndsAt: computeTrialEndsAt(),
+      },
+      select: { id: true, email: true, name: true, createdAt: true },
+    });
+    await ensureDefaultCategories(created.id);
+    user = { ...created, googleId: profile.googleId };
+  } else if (!user.googleId) {
+    // Linka Google a um user existente que tinha só email/senha
+    await prisma.user.update({
+      where: { id: user.id },
+      data: { googleId: profile.googleId, avatarUrl: profile.picture },
+    });
+  }
+
+  return issueTokens(
+    { id: user.id, email: user.email, name: user.name, createdAt: user.createdAt },
+    input.deviceInfo,
+  );
 }
 
 export async function login(input: {
@@ -50,7 +120,9 @@ export async function login(input: {
     where: { email },
     select: { id: true, email: true, name: true, createdAt: true, passwordHash: true },
   });
-  if (!user) {
+  // user só-Google não tem passwordHash; cai em invalid_credentials
+  // (não revelamos a existência do email pra evitar enumeration)
+  if (!user || !user.passwordHash) {
     throw new HttpError(401, 'invalid_credentials');
   }
 

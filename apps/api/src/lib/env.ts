@@ -35,6 +35,24 @@ const EnvSchema = z.object({
 
   CRON_SECRET: z.string().default('dev-cron-secret'),
 
+  // Google OAuth (GIS One Tap)
+  GOOGLE_OAUTH_CLIENT_ID: z.string().default(''),
+
+  // Admin único via env (boot do API faz upsert)
+  ADMIN_EMAIL: z.string().email().optional().or(z.literal('')),
+  ADMIN_PASSWORD: z.string().min(12).optional().or(z.literal('')),
+  ADMIN_NAME: z.string().default('Admin'),
+
+  // Asaas (gateway BR de pagamento)
+  ASAAS_API_KEY: z.string().default(''),
+  ASAAS_BASE_URL: z.string().url().default('https://sandbox.asaas.com/api/v3'),
+  ASAAS_WEBHOOK_TOKEN: z.string().default(''),
+
+  // Planos (centavos pra evitar float)
+  PLAN_MONTHLY_PRICE_BRL: z.coerce.number().int().positive().default(1990),
+  PLAN_YEARLY_PRICE_BRL: z.coerce.number().int().positive().default(19900),
+  TRIAL_DAYS: z.coerce.number().int().min(0).default(14),
+
   SENTRY_DSN: z.string().default(''),
   LOG_LEVEL: z.enum(['fatal', 'error', 'warn', 'info', 'debug', 'trace']).default('info'),
 });
