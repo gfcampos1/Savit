@@ -219,9 +219,8 @@ export function parseNatural(input: string, categories: Category[]): ParseResult
   }
 
   const isTask = dueAt !== null || matchesTaskVerb(lower);
-  if (!dueAt && isTask) {
-    matches.push({ kind: 'task', raw: '', label: 'Tarefa' });
-  }
+  // (não empurramos um match 'task' aqui — KindChip em PreviewChips já mostra
+  // o badge "TAREFA"/"NOTA" baseado em isTask.)
 
   // ---------- Prioridade ----------
   let priority: ParseResult['priority'] = null;
