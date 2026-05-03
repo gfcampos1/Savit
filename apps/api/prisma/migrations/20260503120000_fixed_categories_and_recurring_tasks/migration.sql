@@ -71,13 +71,24 @@ ALTER TABLE "Task"
   FOREIGN KEY ("recurringTaskId") REFERENCES "RecurringTask"("id") ON DELETE SET NULL ON UPDATE CASCADE;
 
 -- =====================================================================
--- Backfill: cria categorias fixas para todos os usuários existentes.
--- Idempotente: ON CONFLICT no índice (userId, slug) ignora se já existir.
--- A geração de id usa gen_random_uuid() do pgcrypto (nativo no PG 13+).
+-- Backfill: garante categorias fixas para todos os usuários existentes.
+-- Estratégia em dois passos para evitar conflito com (userId, name) caso
+-- o usuário já tenha criado uma categoria 'Livros' ou 'YouTube' manualmente:
+--   1) UPDATE: promove categorias com nome exato a fixas (set slug).
+--   2) INSERT: cria a fixa apenas para usuários que não tenham essa slug.
+-- Ambos passos são idempotentes — seguros pra rodar múltiplas vezes.
 -- =====================================================================
 
 CREATE EXTENSION IF NOT EXISTS pgcrypto;
 
+-- 1) Promover categorias existentes com nome exato
+UPDATE "Category" SET "slug" = 'books'
+ WHERE "name" = 'Livros' AND "slug" IS NULL;
+
+UPDATE "Category" SET "slug" = 'youtube'
+ WHERE "name" = 'YouTube' AND "slug" IS NULL;
+
+-- 2) Criar a fixa para usuários que ainda não têm essa slug
 INSERT INTO "Category" ("id", "userId", "name", "color", "icon", "sortOrder", "slug", "createdAt", "updatedAt")
 SELECT
   gen_random_uuid()::text,
@@ -90,7 +101,10 @@ SELECT
   NOW(),
   NOW()
 FROM "User" u
-ON CONFLICT ("userId", "slug") DO NOTHING;
+WHERE NOT EXISTS (
+  SELECT 1 FROM "Category" c
+   WHERE c."userId" = u."id" AND c."slug" = 'books'
+);
 
 INSERT INTO "Category" ("id", "userId", "name", "color", "icon", "sortOrder", "slug", "createdAt", "updatedAt")
 SELECT
@@ -104,4 +118,7 @@ SELECT
   NOW(),
   NOW()
 FROM "User" u
-ON CONFLICT ("userId", "slug") DO NOTHING;
+WHERE NOT EXISTS (
+  SELECT 1 FROM "Category" c
+   WHERE c."userId" = u."id" AND c."slug" = 'youtube'
+);
