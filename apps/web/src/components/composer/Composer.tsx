@@ -223,36 +223,19 @@ export function Composer({
         <PreviewChips parsed={parsed} onClearMatch={clearMatch} />
       ) : null}
 
-      {/* Linha 1: textarea ocupando largura total — sem competir com botões.
-          Em desktop os ícones de ação ainda ficam inline à direita; em mobile
-          eles descem pra própria linha pra liberar espaço de digitação. */}
-      <div className="flex items-end gap-2">
-        <textarea
-          ref={taRef}
-          value={text}
-          onChange={(e) => setText(e.target.value)}
-          onKeyDown={onKeyDown}
-          placeholder="Sobre o que é?"
-          rows={1}
-          className="flex-1 resize-none bg-transparent text-ink text-md leading-snug outline-none placeholder:text-ink-3 py-1"
-          aria-label="capturar ideia"
-        />
-        <button
-          type="button"
-          onClick={() => void submit()}
-          disabled={!text.trim() || submitting}
-          aria-label="enviar"
-          className="grid place-items-center h-10 w-10 rounded-pill bg-ink text-bg disabled:opacity-40 transition-opacity shrink-0"
-        >
-          {submitting ? (
-            <span className="font-mono text-[10px]">…</span>
-          ) : (
-            <SendIcon />
-          )}
-        </button>
-      </div>
+      {/* Linha 1: textarea ocupa largura total — não compete com botões. */}
+      <textarea
+        ref={taRef}
+        value={text}
+        onChange={(e) => setText(e.target.value)}
+        onKeyDown={onKeyDown}
+        placeholder="Sobre o que é?"
+        rows={1}
+        className="w-full resize-none bg-transparent text-ink text-md leading-snug outline-none placeholder:text-ink-3 py-1"
+        aria-label="capturar ideia"
+      />
 
-      {/* Linha 2: ações secundárias em row própria. */}
+      {/* Linha 2: ícones de captura alternativa (voz, foto, desenho, mapa). */}
       <div className="mt-2 flex items-center gap-2">
         <button
           type="button"
@@ -298,8 +281,9 @@ export function Composer({
         </button>
       </div>
 
+      {/* Linha 3: contexto (categoria + recorrência) + dica de teclado. */}
       <div className="mt-2 flex items-center justify-between gap-3">
-        <div className="flex items-center gap-2">
+        <div className="flex items-center gap-2 flex-wrap">
           <CategoryPicker
             categories={categories}
             value={pinnedCategoryId}
@@ -325,6 +309,27 @@ export function Composer({
         <span className="font-mono text-[10px] uppercase tracking-mono text-ink-3 hidden sm:block">
           ⌘↵ enviar
         </span>
+      </div>
+
+      {/* Linha 4: send como CTA prominente — full width no mobile,
+          right-aligned auto no desktop. */}
+      <div className="mt-3 sm:flex sm:justify-end">
+        <button
+          type="button"
+          onClick={() => void submit()}
+          disabled={!text.trim() || submitting}
+          aria-label="enviar"
+          className="w-full sm:w-auto inline-flex items-center justify-center gap-2 h-11 px-6 rounded-pill bg-ink text-bg text-sm font-medium disabled:opacity-40 transition-opacity"
+        >
+          {submitting ? (
+            <span className="font-mono text-[11px]">enviando…</span>
+          ) : (
+            <>
+              <SendIcon />
+              <span>Enviar</span>
+            </>
+          )}
+        </button>
       </div>
 
       {error ? (

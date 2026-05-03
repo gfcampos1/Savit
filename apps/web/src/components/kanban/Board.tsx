@@ -2,7 +2,8 @@ import { useMemo, useState } from 'react';
 import {
   DndContext,
   DragOverlay,
-  PointerSensor,
+  MouseSensor,
+  TouchSensor,
   closestCorners,
   useSensor,
   useSensors,
@@ -23,8 +24,14 @@ export function Board({ tasks }: BoardProps) {
   const move = useMoveTask();
   const [draggingId, setDraggingId] = useState<string | null>(null);
 
-  // Sensor com threshold pra não disparar drag em cliques no checkbox
-  const sensors = useSensors(useSensor(PointerSensor, { activationConstraint: { distance: 6 } }));
+  // Mouse: drag inicia após 6px de movimento (não dispara em clique no checkbox).
+  // Touch: long-press de 200ms inicia o drag — sem isso o browser rouba o gesto
+  // pra scroll vertical da página antes do dnd-kit capturar (padrão iOS/Android).
+  // tolerance: 8px permite leve "tremor" do dedo durante o long-press sem cancelar.
+  const sensors = useSensors(
+    useSensor(MouseSensor, { activationConstraint: { distance: 6 } }),
+    useSensor(TouchSensor, { activationConstraint: { delay: 200, tolerance: 8 } }),
+  );
 
   const grouped = useMemo(() => {
     const map = new Map<string, Task[]>(KANBAN_COLUMNS.map((c) => [c.key, []]));
