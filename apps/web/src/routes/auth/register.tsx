@@ -63,6 +63,7 @@ export function RegisterPage() {
           Comece em <em className="text-accent not-italic italic">menos de um minuto.</em>
         </>
       }
+      tagline="é grátis por 14 dias."
       footer={
         <p>
           Já tem conta?{' '}

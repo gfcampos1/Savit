@@ -50,6 +50,7 @@ export function LoginPage() {
           Suas ideias, <em className="text-accent not-italic font-normal italic">sempre à mão.</em>
         </>
       }
+      tagline="sua segunda memória."
       footer={
         <p>
           Sem conta?{' '}

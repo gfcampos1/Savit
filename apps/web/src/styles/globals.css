@@ -101,6 +101,26 @@
   .no-scrollbar::-webkit-scrollbar {
     display: none;
   }
+
+  /* Marca-d'água "S" gigante usada como decoração de fundo nas telas de auth.
+     Sangra pra fora do viewport pelo canto inferior direito; opacidade muito
+     baixa pra não competir com o conteúdo. */
+  .auth-watermark {
+    position: absolute;
+    right: -8%;
+    bottom: -14%;
+    font-family: 'Fraunces', ui-serif, Georgia, serif;
+    font-optical-sizing: auto;
+    font-variation-settings: 'SOFT' 50;
+    font-weight: 400;
+    font-size: clamp(28rem, 60vh, 56rem);
+    line-height: 0.8;
+    color: var(--ink);
+    opacity: 0.055;
+    pointer-events: none;
+    user-select: none;
+    z-index: 0;
+  }
 }
 
 /* ===== TipTap rich-text styling (Paper-tuned) ===== */
