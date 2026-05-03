@@ -14,7 +14,7 @@ export function LoginPage() {
   const navigate = useNavigate();
   const location = useLocation();
   const login = useAuthStore((s) => s.login);
-  const googleLogin = useAuthStore((s) => s.googleLogin);
+  const googleExchange = useAuthStore((s) => s.googleExchange);
 
   const from = (location.state as LocationStateMaybe | null)?.from ?? '/';
 
@@ -61,10 +61,10 @@ export function LoginPage() {
     >
       <div className="mb-6">
         <GoogleSignIn
-          text="signin_with"
-          onCredential={async (credential) => {
+          label="Entrar com Google"
+          onCode={async (code) => {
             try {
-              await googleLogin(credential);
+              await googleExchange(code);
               navigate(from, { replace: true });
             } catch (err) {
               setError(

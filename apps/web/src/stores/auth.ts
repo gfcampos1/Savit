@@ -15,6 +15,7 @@ interface AuthState {
   register: (input: { email: string; password: string; name?: string }) => Promise<void>;
   logout: () => Promise<void>;
   googleLogin: (credential: string) => Promise<void>;
+  googleExchange: (code: string) => Promise<void>;
 }
 
 export const useAuthStore = create<AuthState>((set, get) => ({
@@ -79,6 +80,14 @@ export const useAuthStore = create<AuthState>((set, get) => ({
       method: 'POST',
       body: { credential },
     });
+    set({ user: data.user, accessToken: data.accessToken, status: 'authed' });
+  },
+
+  googleExchange: async (code: string) => {
+    const data = await api<{ accessToken: string; user: MeResponse }>(
+      '/api/auth/google/exchange',
+      { method: 'POST', body: { code } },
+    );
     set({ user: data.user, accessToken: data.accessToken, status: 'authed' });
   },
 }));

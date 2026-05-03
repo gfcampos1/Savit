@@ -9,9 +9,16 @@ import { logger } from '../lib/logger.js';
 export const isGoogleOAuthConfigured = (): boolean =>
   Boolean(env.GOOGLE_OAUTH_CLIENT_ID);
 
+export const isGoogleCodeFlowConfigured = (): boolean =>
+  Boolean(env.GOOGLE_OAUTH_CLIENT_ID) && Boolean(env.GOOGLE_OAUTH_CLIENT_SECRET);
+
 if (!isGoogleOAuthConfigured()) {
   logger.warn(
     'google-oauth: GOOGLE_OAUTH_CLIENT_ID vazio — login com Google retorna 503 até configurar.',
+  );
+} else if (!isGoogleCodeFlowConfigured()) {
+  logger.warn(
+    'google-oauth: GOOGLE_OAUTH_CLIENT_SECRET vazio — exchange de code retorna 503; só ID token funciona.',
   );
 }
 
@@ -62,4 +69,50 @@ export async function verifyGoogleIdToken(credential: string): Promise<GooglePro
     picture: payload.picture ?? null,
     emailVerified: Boolean(payload.email_verified),
   };
+}
+
+/**
+ * Troca um authorization code (popup ux do GIS oauth2.initCodeClient) por
+ * tokens, e valida o ID token devolvido. `redirect_uri` deve ser 'postmessage'
+ * pra ux_mode=popup (não vai pro Cloud Console como redirect URI separado).
+ */
+export async function exchangeCodeForProfile(code: string): Promise<GoogleProfile> {
+  if (!isGoogleCodeFlowConfigured()) {
+    throw new GoogleAuthError(503, 'google_oauth_secret_missing');
+  }
+
+  const params = new URLSearchParams({
+    code,
+    client_id: env.GOOGLE_OAUTH_CLIENT_ID,
+    client_secret: env.GOOGLE_OAUTH_CLIENT_SECRET,
+    redirect_uri: 'postmessage',
+    grant_type: 'authorization_code',
+  });
+
+  let tokenResp;
+  try {
+    tokenResp = await fetch('https://oauth2.googleapis.com/token', {
+      method: 'POST',
+      headers: { 'Content-Type': 'application/x-www-form-urlencoded' },
+      body: params.toString(),
+    });
+  } catch (err) {
+    logger.error({ err }, 'google token exchange network failure');
+    throw new GoogleAuthError(502, 'google_token_exchange_failed');
+  }
+
+  if (!tokenResp.ok) {
+    const body = await tokenResp.text().catch(() => '');
+    logger.warn({ status: tokenResp.status, body }, 'google token exchange rejected');
+    throw new GoogleAuthError(401, 'invalid_google_code');
+  }
+
+  const tokens = (await tokenResp.json().catch(() => null)) as
+    | { id_token?: string; access_token?: string }
+    | null;
+  if (!tokens?.id_token) {
+    throw new GoogleAuthError(401, 'google_id_token_missing');
+  }
+
+  return verifyGoogleIdToken(tokens.id_token);
 }

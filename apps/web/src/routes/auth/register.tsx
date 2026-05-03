@@ -23,7 +23,7 @@ const STRENGTH_COPY = ['muito fraca', 'fraca', 'razoável', 'boa', 'ótima'];
 export function RegisterPage() {
   const navigate = useNavigate();
   const register = useAuthStore((s) => s.register);
-  const googleLogin = useAuthStore((s) => s.googleLogin);
+  const googleExchange = useAuthStore((s) => s.googleExchange);
 
   const [name, setName] = useState('');
   const [email, setEmail] = useState('');
@@ -74,10 +74,10 @@ export function RegisterPage() {
     >
       <div className="mb-6">
         <GoogleSignIn
-          text="signup_with"
-          onCredential={async (credential) => {
+          label="Cadastrar com Google"
+          onCode={async (code) => {
             try {
-              await googleLogin(credential);
+              await googleExchange(code);
               navigate('/', { replace: true });
             } catch (err) {
               setError(

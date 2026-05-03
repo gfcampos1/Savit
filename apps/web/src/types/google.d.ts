@@ -27,10 +27,24 @@ interface GoogleAccountsId {
   disableAutoSelect(): void;
 }
 
+interface GoogleAccountsOAuth2 {
+  initCodeClient(config: {
+    client_id: string;
+    scope: string;
+    ux_mode?: 'popup' | 'redirect';
+    redirect_uri?: string;
+    callback: (response: { code?: string; error?: string; state?: string }) => void;
+    error_callback?: (err: { type: string; message?: string }) => void;
+  }): {
+    requestCode: () => void;
+  };
+}
+
 interface Window {
   google?: {
     accounts: {
       id: GoogleAccountsId;
+      oauth2: GoogleAccountsOAuth2;
     };
   };
 }

@@ -9,7 +9,12 @@ import {
 } from '../lib/jwt.js';
 import { HttpError } from '../middleware/error.js';
 import { ensureDefaultCategories } from './categories.js';
-import { GoogleAuthError, verifyGoogleIdToken } from './google-oauth.js';
+import {
+  GoogleAuthError,
+  exchangeCodeForProfile,
+  verifyGoogleIdToken,
+  type GoogleProfile,
+} from './google-oauth.js';
 
 export interface AuthResult {
   user: { id: string; email: string; name: string | null; createdAt: Date };
@@ -71,6 +76,34 @@ export async function loginWithGoogle(input: {
     }
     throw err;
   }
+  return loginWithGoogleProfile(profile, input.deviceInfo);
+}
+
+/**
+ * Variante que recebe um auth code do popup ux (oauth2.initCodeClient) e
+ * troca por ID token no servidor. Mais robusto que o ID token direto e
+ * permite UI 100% custom no front.
+ */
+export async function loginWithGoogleCode(input: {
+  code: string;
+  deviceInfo?: string;
+}): Promise<AuthResult> {
+  let profile;
+  try {
+    profile = await exchangeCodeForProfile(input.code);
+  } catch (err) {
+    if (err instanceof GoogleAuthError) {
+      throw new HttpError(err.status, err.message);
+    }
+    throw err;
+  }
+  return loginWithGoogleProfile(profile, input.deviceInfo);
+}
+
+async function loginWithGoogleProfile(
+  profile: GoogleProfile,
+  deviceInfo: string | undefined,
+): Promise<AuthResult> {
   if (!profile.emailVerified) {
     throw new HttpError(403, 'google_email_not_verified');
   }
@@ -106,7 +139,7 @@ export async function loginWithGoogle(input: {
 
   return issueTokens(
     { id: user.id, email: user.email, name: user.name, createdAt: user.createdAt },
-    input.deviceInfo,
+    deviceInfo,
   );
 }
 

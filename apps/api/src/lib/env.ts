@@ -35,8 +35,9 @@ const EnvSchema = z.object({
 
   CRON_SECRET: z.string().default('dev-cron-secret'),
 
-  // Google OAuth (GIS One Tap)
+  // Google OAuth (GIS — popup code flow)
   GOOGLE_OAUTH_CLIENT_ID: z.string().default(''),
+  GOOGLE_OAUTH_CLIENT_SECRET: z.string().default(''),
 
   // Admin único via env (boot do API faz upsert)
   ADMIN_EMAIL: z.string().email().optional().or(z.literal('')),
