@@ -1,3 +1,4 @@
+import { lazy, Suspense } from 'react';
 import { QueryClient, QueryClientProvider } from '@tanstack/react-query';
 import { BrowserRouter, Navigate, Route, Routes } from 'react-router-dom';
 
@@ -14,18 +15,35 @@ import { PaywallModal } from '@/components/PaywallModal';
 import { PWAStatus } from '@/components/PWAStatus';
 import { Toaster } from '@/components/Toaster';
 import { useGlobalShortcuts } from '@/hooks/useGlobalShortcuts';
-import { AdminPage } from '@/routes/admin/index';
+
+// Eager: caminho crítico (auth + telas mais visitadas).
 import { LoginPage } from '@/routes/auth/login';
 import { RegisterPage } from '@/routes/auth/register';
-import { BillingPage } from '@/routes/billing';
-import { CategoriesPage } from '@/routes/categories';
-import { ChatPage } from '@/routes/chat/index';
-import { DashboardPage } from '@/routes/dashboard';
-import { FocusPage } from '@/routes/focus';
 import { InboxPage } from '@/routes/inbox';
-import { NoteDetailPage } from '@/routes/notes/detail';
-import { ProfilePage } from '@/routes/profile';
 import { TasksPage } from '@/routes/tasks';
+
+// Lazy: telas pesadas (TipTap, tldraw, charts, billing) ou pouco visitadas.
+// Reduz o bundle inicial e acelera o FCP.
+const NoteDetailPage = lazy(() =>
+  import('@/routes/notes/detail').then((m) => ({ default: m.NoteDetailPage })),
+);
+const CategoriesPage = lazy(() =>
+  import('@/routes/categories').then((m) => ({ default: m.CategoriesPage })),
+);
+const ChatPage = lazy(() => import('@/routes/chat/index').then((m) => ({ default: m.ChatPage })));
+const DashboardPage = lazy(() =>
+  import('@/routes/dashboard').then((m) => ({ default: m.DashboardPage })),
+);
+const FocusPage = lazy(() => import('@/routes/focus').then((m) => ({ default: m.FocusPage })));
+const BillingPage = lazy(() =>
+  import('@/routes/billing').then((m) => ({ default: m.BillingPage })),
+);
+const ProfilePage = lazy(() =>
+  import('@/routes/profile').then((m) => ({ default: m.ProfilePage })),
+);
+const AdminPage = lazy(() =>
+  import('@/routes/admin/index').then((m) => ({ default: m.AdminPage })),
+);
 
 // importa store pra ativar o configureApi side-effect
 import '@/stores/auth';
@@ -40,6 +58,14 @@ const queryClient = new QueryClient({
     },
   },
 });
+
+function RouteFallback() {
+  return (
+    <div className="min-h-svh grid place-items-center bg-bg text-ink-3">
+      <p className="label-mono">carregando…</p>
+    </div>
+  );
+}
 
 function AppInner({ children }: { children: React.ReactNode }) {
   // Atalhos globais precisam de useNavigate (CommandPalette usa) → tem que
@@ -63,33 +89,35 @@ export function App() {
         <PWAStatus />
         <AppInner>
         <AuthBootstrap>
-          <Routes>
-            <Route element={<RequireGuest />}>
-              <Route path="/login" element={<LoginPage />} />
-              <Route path="/register" element={<RegisterPage />} />
-            </Route>
-
-            <Route element={<RequireAuth />}>
-              <Route element={<AppShell />}>
-                <Route path="/" element={<InboxPage />} />
-                <Route path="/categories" element={<CategoriesPage />} />
-                <Route path="/tasks" element={<TasksPage />} />
-                <Route path="/notes/:id" element={<NoteDetailPage />} />
-                <Route path="/chat" element={<ChatPage />} />
-                <Route path="/chat/:threadId" element={<ChatPage />} />
-                <Route path="/dashboard" element={<DashboardPage />} />
-                <Route path="/billing" element={<BillingPage />} />
-                <Route path="/profile" element={<ProfilePage />} />
-                <Route element={<RequireAdmin />}>
-                  <Route path="/admin" element={<AdminPage />} />
-                </Route>
+          <Suspense fallback={<RouteFallback />}>
+            <Routes>
+              <Route element={<RequireGuest />}>
+                <Route path="/login" element={<LoginPage />} />
+                <Route path="/register" element={<RegisterPage />} />
               </Route>
-              {/* /focus é tela cheia — fora do AppShell */}
-              <Route path="/focus" element={<FocusPage />} />
-            </Route>
 
-            <Route path="*" element={<Navigate to="/" replace />} />
-          </Routes>
+              <Route element={<RequireAuth />}>
+                <Route element={<AppShell />}>
+                  <Route path="/" element={<InboxPage />} />
+                  <Route path="/categories" element={<CategoriesPage />} />
+                  <Route path="/tasks" element={<TasksPage />} />
+                  <Route path="/notes/:id" element={<NoteDetailPage />} />
+                  <Route path="/chat" element={<ChatPage />} />
+                  <Route path="/chat/:threadId" element={<ChatPage />} />
+                  <Route path="/dashboard" element={<DashboardPage />} />
+                  <Route path="/billing" element={<BillingPage />} />
+                  <Route path="/profile" element={<ProfilePage />} />
+                  <Route element={<RequireAdmin />}>
+                    <Route path="/admin" element={<AdminPage />} />
+                  </Route>
+                </Route>
+                {/* /focus é tela cheia — fora do AppShell */}
+                <Route path="/focus" element={<FocusPage />} />
+              </Route>
+
+              <Route path="*" element={<Navigate to="/" replace />} />
+            </Routes>
+          </Suspense>
         </AuthBootstrap>
         </AppInner>
       </BrowserRouter>

@@ -23,18 +23,11 @@ export default defineConfig(({ mode }) => {
           // navegate fallback pra SPA: se a rota não existir no cache, devolve index.html
           navigateFallback: '/index.html',
           navigateFallbackDenylist: [/^\/api\//],
-          // não interceptar uploads PUT (R2 / local) — passa direto pra rede
+          // /api/* fica de fora do SW de propósito: NetworkFirst antes cacheava
+          // 401 do /api/auth/refresh e quebrava o login do PWA (timeout de 5s
+          // servia resposta stale). React Query gerencia cache em memória.
+          // Uploads PUT (R2/local) também passam direto pela rede.
           runtimeCaching: [
-            {
-              // API: NetworkFirst com fallback ao cache em offline
-              urlPattern: ({ url }) => url.pathname.startsWith('/api/'),
-              handler: 'NetworkFirst',
-              options: {
-                cacheName: 'savit-api',
-                networkTimeoutSeconds: 5,
-                expiration: { maxEntries: 60, maxAgeSeconds: 60 * 60 * 24 },
-              },
-            },
             {
               // Google Fonts CSS
               urlPattern: ({ url }) => url.origin === 'https://fonts.googleapis.com',
