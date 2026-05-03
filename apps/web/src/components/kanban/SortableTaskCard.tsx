@@ -3,6 +3,7 @@ import { useSortable } from '@dnd-kit/sortable';
 import { CSS } from '@dnd-kit/utilities';
 import { dueLabel } from '@/lib/format-date';
 import { useToggleTaskDone, useDeleteTask } from '@/hooks/useTasks';
+import { confirm } from '@/stores/confirm';
 
 interface SortableTaskCardProps {
   task: Task;
@@ -120,9 +121,15 @@ function TaskCardBody({ task, elevated }: TaskCardBodyProps) {
           type="button"
           aria-label="excluir tarefa"
           onPointerDown={(e) => e.stopPropagation()}
-          onClick={(e) => {
+          onClick={async (e) => {
             e.stopPropagation();
-            if (confirm('Excluir esta tarefa?')) del.mutate(task.id);
+            const ok = await confirm({
+              title: 'Excluir esta tarefa?',
+              body: 'Essa ação não pode ser desfeita.',
+              confirmLabel: 'Excluir',
+              tone: 'danger',
+            });
+            if (ok) del.mutate(task.id);
           }}
           className="opacity-0 group-hover:opacity-100 focus:opacity-100 text-ink-3 hover:text-danger text-xs transition-opacity"
         >

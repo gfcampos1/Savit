@@ -4,6 +4,7 @@ import type { Note } from '@savit/shared';
 import { formatTime } from '@/lib/format-date';
 import { useDeleteNote } from '@/hooks/useNotes';
 import { useConvertNoteToTask } from '@/hooks/useTasks';
+import { confirm } from '@/stores/confirm';
 import { toast } from '@/stores/ui';
 
 interface NoteCardProps {
@@ -20,7 +21,13 @@ export function NoteCard({ note }: NoteCardProps) {
   async function onDelete(e: React.MouseEvent) {
     e.stopPropagation();
     if (deleting) return;
-    if (!confirm('Excluir esta nota?')) return;
+    const ok = await confirm({
+      title: 'Excluir esta nota?',
+      body: 'Essa ação não pode ser desfeita.',
+      confirmLabel: 'Excluir',
+      tone: 'danger',
+    });
+    if (!ok) return;
     setDeleting(true);
     try {
       await del.mutateAsync(note.id);

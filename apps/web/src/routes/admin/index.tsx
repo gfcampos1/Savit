@@ -11,6 +11,7 @@ import {
   type AdminUserRow,
 } from '@/hooks/useAdmin';
 import { dayHeading } from '@/lib/format-date';
+import { confirm } from '@/stores/confirm';
 import { toast } from '@/stores/ui';
 
 const STATUS_LABELS: Record<BillingStatus, string> = {
@@ -37,7 +38,12 @@ export function AdminPage() {
   const update = useUpdateAdminUser();
 
   async function setStatus(u: AdminUserRow, status: BillingStatus) {
-    if (!confirm(`Mudar status de ${u.email} para ${STATUS_LABELS[status]}?`)) return;
+    const ok = await confirm({
+      title: `Mudar status para ${STATUS_LABELS[status]}?`,
+      body: u.email,
+      confirmLabel: 'Mudar',
+    });
+    if (!ok) return;
     try {
       await update.mutateAsync({ id: u.id, status });
       toast({ message: `Status atualizado: ${u.email} → ${STATUS_LABELS[status]}`, tone: 'success' });

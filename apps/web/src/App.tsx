@@ -9,6 +9,7 @@ import {
 } from '@/components/auth/AuthGuard';
 import { AppShell } from '@/components/AppShell';
 import { CommandPalette } from '@/components/CommandPalette';
+import { ConfirmDialog } from '@/components/ConfirmDialog';
 import { PaywallModal } from '@/components/PaywallModal';
 import { PWAStatus } from '@/components/PWAStatus';
 import { Toaster } from '@/components/Toaster';
@@ -48,6 +49,7 @@ function AppInner({ children }: { children: React.ReactNode }) {
     <>
       <CommandPalette />
       <PaywallModal />
+      <ConfirmDialog />
       <Toaster />
       {children}
     </>

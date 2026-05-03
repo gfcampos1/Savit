@@ -7,6 +7,7 @@ import { Link, useNavigate } from 'react-router-dom';
 import type { Task } from '@savit/shared';
 import { useTasks, useUpdateTask, useDeleteTask } from '@/hooks/useTasks';
 import { dueLabel } from '@/lib/format-date';
+import { confirm } from '@/stores/confirm';
 
 const STORAGE_KEY = 'savit_focus_idx';
 
@@ -132,7 +133,11 @@ export function FocusPage() {
   }
   async function archive() {
     if (!current) return;
-    if (!confirm('Arquivar esta tarefa?')) return;
+    const ok = await confirm({
+      title: 'Arquivar esta tarefa?',
+      confirmLabel: 'Arquivar',
+    });
+    if (!ok) return;
     await del.mutateAsync(current.id);
     if (idx >= todayTasks.length - 1) setIdx(Math.max(0, idx - 1));
   }

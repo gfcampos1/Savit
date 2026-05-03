@@ -13,6 +13,7 @@ import {
 } from '@/hooks/useBilling';
 import { Sheet } from '@/components/Sheet';
 import { ApiError } from '@/lib/api';
+import { confirm } from '@/stores/confirm';
 import { toast } from '@/stores/ui';
 import type { SubscriptionPlan } from '@savit/shared';
 
@@ -24,7 +25,14 @@ export function BillingPage() {
   const [checkoutPlan, setCheckoutPlan] = useState<PlanInfo | null>(null);
 
   async function onCancel() {
-    if (!confirm('Cancelar assinatura? Você mantém acesso até o fim do período pago.')) return;
+    const ok = await confirm({
+      title: 'Cancelar assinatura?',
+      body: 'Você mantém acesso até o fim do período pago.',
+      confirmLabel: 'Cancelar assinatura',
+      cancelLabel: 'Voltar',
+      tone: 'danger',
+    });
+    if (!ok) return;
     try {
       await cancel.mutateAsync();
       toast({ message: 'Assinatura cancelada.', tone: 'success' });

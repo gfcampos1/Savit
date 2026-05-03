@@ -1,6 +1,7 @@
 import type { Task } from '@savit/shared';
 import { dueLabel } from '@/lib/format-date';
 import { useToggleTaskDone, useDeleteTask } from '@/hooks/useTasks';
+import { confirm } from '@/stores/confirm';
 
 interface TaskCardProps {
   task: Task;
@@ -70,8 +71,14 @@ export function TaskCard({ task }: TaskCardProps) {
             ) : null}
             <button
               type="button"
-              onClick={() => {
-                if (confirm('Excluir esta tarefa?')) del.mutate(task.id);
+              onClick={async () => {
+                const ok = await confirm({
+                  title: 'Excluir esta tarefa?',
+                  body: 'Essa ação não pode ser desfeita.',
+                  confirmLabel: 'Excluir',
+                  tone: 'danger',
+                });
+                if (ok) del.mutate(task.id);
               }}
               aria-label="excluir tarefa"
               className="ml-auto opacity-0 group-hover:opacity-100 focus:opacity-100 text-ink-3 hover:text-danger transition-opacity"

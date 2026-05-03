@@ -8,6 +8,7 @@ import {
   useUpdateCategory,
 } from '@/hooks/useCategories';
 import { Sheet } from '@/components/Sheet';
+import { confirm } from '@/stores/confirm';
 
 export function CategoriesPage() {
   const cats = useCategories();
@@ -142,7 +143,13 @@ function CategoryEditor({ category, onClose }: CategoryEditorProps) {
 
   async function remove() {
     if (!category) return;
-    if (!confirm(`Excluir "${category.name}"? Notas e tarefas vão ficar sem categoria.`)) return;
+    const ok = await confirm({
+      title: `Excluir "${category.name}"?`,
+      body: 'Notas e tarefas dessa categoria ficarão sem categoria.',
+      confirmLabel: 'Excluir',
+      tone: 'danger',
+    });
+    if (!ok) return;
     setBusy(true);
     try {
       await del.mutateAsync(category.id);

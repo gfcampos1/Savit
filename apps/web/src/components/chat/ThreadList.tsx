@@ -2,6 +2,7 @@ import { Link, useParams } from 'react-router-dom';
 import { useThreads, useDeleteThread, useCreateThread } from '@/hooks/useChat';
 import { useNavigate } from 'react-router-dom';
 import { dayHeading, formatTime } from '@/lib/format-date';
+import { confirm } from '@/stores/confirm';
 
 export function ThreadList() {
   const params = useParams();
@@ -54,8 +55,14 @@ export function ThreadList() {
                 </Link>
                 <button
                   type="button"
-                  onClick={() => {
-                    if (!confirm('Excluir esta conversa?')) return;
+                  onClick={async () => {
+                    const ok = await confirm({
+                      title: 'Excluir esta conversa?',
+                      body: 'Todo o histórico será removido.',
+                      confirmLabel: 'Excluir',
+                      tone: 'danger',
+                    });
+                    if (!ok) return;
                     del.mutate(t.id);
                     if (activeId === t.id) navigate('/chat');
                   }}
