@@ -68,6 +68,15 @@ authRouter.post('/login', async (req, res, next) => {
   }
 });
 
+// Config público pro front saber quais providers de auth estão disponíveis
+// sem depender de VITE_* em build time. Cacheável (5min).
+authRouter.get('/config', (_req, res) => {
+  res.set('Cache-Control', 'public, max-age=300');
+  res.json({
+    googleClientId: env.GOOGLE_OAUTH_CLIENT_ID || null,
+  });
+});
+
 const GoogleLoginInput = z.object({
   credential: z.string().min(20).max(8192),
 });

@@ -1,11 +1,10 @@
 // Botão "Entrar com Google" via Google Identity Services.
 //
-// Polling leve até o script GIS carregar (max 5s); depois inicializa,
-// renderiza o botão e dispara callback com o ID token quando o usuário escolhe
-// uma conta. Em produção sem VITE_GOOGLE_CLIENT_ID o componente esconde
-// silenciosamente — não polui a UI.
+// Lê o client_id de /api/auth/config em runtime (não depende de VITE_*).
+// Em produção sem GOOGLE_OAUTH_CLIENT_ID o componente esconde silenciosamente.
 
 import { useEffect, useRef, useState } from 'react';
+import { api } from '@/lib/api';
 
 interface GoogleSignInProps {
   /** Callback com o credential JWT do Google. */
@@ -14,15 +13,36 @@ interface GoogleSignInProps {
   text?: 'signin_with' | 'signup_with' | 'continue_with';
 }
 
-const CLIENT_ID = import.meta.env.VITE_GOOGLE_CLIENT_ID as string | undefined;
+// Fallback de build-time pra dev local. Em prod, sempre vence o /api/auth/config.
+const BUILD_TIME_CLIENT_ID = import.meta.env.VITE_GOOGLE_CLIENT_ID as string | undefined;
 
 export function GoogleSignIn({ onCredential, text = 'continue_with' }: GoogleSignInProps) {
   const containerRef = useRef<HTMLDivElement>(null);
   const [error, setError] = useState<string | null>(null);
   const [ready, setReady] = useState(false);
+  const [clientId, setClientId] = useState<string | null>(BUILD_TIME_CLIENT_ID ?? null);
+  const [configLoaded, setConfigLoaded] = useState(false);
+
+  // Busca client_id do servidor (runtime). Sobrescreve o BUILD_TIME se vier.
+  useEffect(() => {
+    let cancelled = false;
+    api<{ googleClientId: string | null }>('/api/auth/config')
+      .then((cfg) => {
+        if (cancelled) return;
+        if (cfg.googleClientId) setClientId(cfg.googleClientId);
+        setConfigLoaded(true);
+      })
+      .catch(() => {
+        if (cancelled) return;
+        setConfigLoaded(true);
+      });
+    return () => {
+      cancelled = true;
+    };
+  }, []);
 
   useEffect(() => {
-    if (!CLIENT_ID) return;
+    if (!clientId) return;
     let cancelled = false;
     let attempts = 0;
 
@@ -40,7 +60,7 @@ export function GoogleSignIn({ onCredential, text = 'continue_with' }: GoogleSig
       }
       try {
         g.initialize({
-          client_id: CLIENT_ID!,
+          client_id: clientId!,
           callback: (resp) => {
             if (resp?.credential) void onCredential(resp.credential);
           },
@@ -69,12 +89,13 @@ export function GoogleSignIn({ onCredential, text = 'continue_with' }: GoogleSig
     return () => {
       cancelled = true;
     };
-  }, [onCredential, text]);
+  }, [clientId, onCredential, text]);
 
-  if (!CLIENT_ID) {
-    // Em dev sem CLIENT_ID, esconder silenciosamente
-    return null;
-  }
+  // Enquanto não confirmou config, não mostra nada (evita flash).
+  if (!configLoaded) return null;
+  // Sem client_id → esconde silenciosamente.
+  if (!clientId) return null;
+
   return (
     <div className="flex flex-col items-center gap-2">
       <div ref={containerRef} aria-label="entrar com Google" />
