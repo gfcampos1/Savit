@@ -75,10 +75,20 @@ export interface Attachment {
   createdAt: Iso;
 }
 
+export type UserRole = 'USER' | 'ADMIN';
+export type BillingStatus = 'TRIALING' | 'ACTIVE' | 'PAST_DUE' | 'CANCELED' | 'BLOCKED';
+export type SubscriptionPlan = 'PRO_MONTHLY' | 'PRO_YEARLY';
+
 export interface MeResponse {
   id: string;
   email: string;
   name: string | null;
+  avatarUrl?: string | null;
+  role?: UserRole;
+  plan?: SubscriptionPlan | null;
+  status?: BillingStatus;
+  trialEndsAt?: Iso | null;
+  currentPeriodEndsAt?: Iso | null;
   createdAt: Iso;
 }
 
