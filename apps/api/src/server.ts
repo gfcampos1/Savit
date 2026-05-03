@@ -36,6 +36,10 @@ export function buildServer(): Express {
     helmet({
       contentSecurityPolicy: false, // configurar quando o frontend final estiver definido
       crossOriginResourcePolicy: { policy: 'cross-origin' },
+      // 'same-origin' (default do helmet) bloqueia postMessage do popup do
+      // Google OAuth. 'same-origin-allow-popups' mantém isolamento da janela
+      // principal mas libera popups cross-origin como o GIS.
+      crossOriginOpenerPolicy: { policy: 'same-origin-allow-popups' },
     }),
   );
 
