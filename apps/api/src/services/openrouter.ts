@@ -71,7 +71,10 @@ export interface StreamEvent {
 
 interface ChatStreamInput {
   messages: ChatMessage[];
+  /** Modelo primário. */
   model: string;
+  /** Lista de fallbacks em ordem de prioridade (OpenRouter tenta automaticamente quando o primário falha com 429/5xx). */
+  fallbackModels?: string[];
   tools?: ToolDefinition[];
   toolChoice?: 'auto' | 'none' | 'required';
   signal?: AbortSignal;
@@ -91,8 +94,12 @@ export async function* chatCompletionStream(
   }
 
   const url = `${env.OPENROUTER_BASE_URL.replace(/\/$/, '')}/chat/completions`;
+  // Se houver fallbacks, usa o array `models` (OpenRouter roteia automaticamente
+  // quando o primário falha). Senão usa `model` puro.
+  const allModels = [input.model, ...(input.fallbackModels ?? [])].filter(Boolean);
+  const useArray = allModels.length > 1;
   const body = {
-    model: input.model,
+    ...(useArray ? { models: allModels } : { model: input.model }),
     messages: input.messages,
     stream: true,
     ...(input.tools && input.tools.length > 0 && {

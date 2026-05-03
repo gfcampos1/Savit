@@ -169,6 +169,10 @@ chatRouter.post('/threads/:id/messages', requireActive, async (req, res, next) =
     // Modelo é sempre o do env atual — ignoramos qualquer override do client.
     // Threads antigas com modelo diferente são re-rotuladas pra o atual.
     const model = env.OPENROUTER_DEFAULT_MODEL;
+    // Fallback chain: se o primário der 429/5xx, OpenRouter tenta o próximo
+    // automaticamente. Filtramos vazios e duplicatas.
+    const fallbackModels = [env.OPENROUTER_FALLBACK_MODEL]
+      .filter((m): m is string => Boolean(m) && m !== model);
 
     // Persiste a mensagem do usuário
     await prisma.chatMessage.create({
@@ -203,6 +207,7 @@ chatRouter.post('/threads/:id/messages', requireActive, async (req, res, next) =
         const stream = chatCompletionStream({
           messages,
           model,
+          fallbackModels,
           tools: SAVIT_TOOLS,
         });
 
