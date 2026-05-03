@@ -22,11 +22,18 @@ function setRefreshCookie(
   refreshToken: string,
   expiresAt: Date,
 ) {
+  // domain só é setado se COOKIE_DOMAIN for explícito (ex: '.savit.com' pra
+  // compartilhar entre subdomínios). Default = host-only, que funciona em
+  // qualquer domínio sem precisar de config (Railway, custom domain, etc.).
+  const explicitDomain =
+    env.NODE_ENV === 'production' && env.COOKIE_DOMAIN && env.COOKIE_DOMAIN !== 'localhost'
+      ? env.COOKIE_DOMAIN
+      : undefined;
   res.cookie(REFRESH_COOKIE, refreshToken, {
     httpOnly: true,
     sameSite: 'lax',
     secure: env.NODE_ENV === 'production',
-    domain: env.NODE_ENV === 'production' ? env.COOKIE_DOMAIN : undefined,
+    ...(explicitDomain && { domain: explicitDomain }),
     expires: expiresAt,
     path: '/api/auth',
   });
