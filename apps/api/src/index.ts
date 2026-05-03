@@ -4,23 +4,25 @@ import { logger } from './lib/logger.js';
 import { prisma } from './lib/prisma.js';
 import { ensureAdminUser } from './services/admin.js';
 
-// Tasks de boot — falhas aqui são fatais (não sobe o servidor com estado ruim).
-async function boot() {
-  await ensureAdminUser();
-}
-
 const app = buildServer();
 
-await boot().catch((err) => {
-  logger.fatal({ err }, 'boot failed');
-  process.exit(1);
-});
-
+// Listenar PRIMEIRO pra healthcheck do Railway responder rápido.
+// Tasks de boot (ensureAdminUser, etc) rodam em background depois.
 const server = app.listen(env.PORT, () => {
   logger.info(
     { port: env.PORT, env: env.NODE_ENV, frontend: env.FRONTEND_URL },
     `🚀 Savit API listening on :${env.PORT}`,
   );
+});
+
+// Boot tasks pós-listen. Se o admin seed falhar (ex: DB lento ou connection
+// recusada), log e segue — vai retentar em deploys subsequentes via redeploy.
+// Tem timeout de 15s pra evitar warnings de unhandled promise pendurados.
+void Promise.race([
+  ensureAdminUser(),
+  new Promise((_, rej) => setTimeout(() => rej(new Error('admin_seed_timeout_15s')), 15_000)),
+]).catch((err) => {
+  logger.error({ err }, 'admin seed failed (servidor segue rodando)');
 });
 
 async function shutdown(signal: string) {
