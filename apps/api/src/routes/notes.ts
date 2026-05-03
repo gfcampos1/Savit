@@ -1,7 +1,7 @@
 import { Router } from 'express';
 import { z } from 'zod';
 import { Prisma, type NoteType } from '@prisma/client';
-import { NoteInput, NotePatch } from '@savit/shared';
+import { NoteInput, NotePatch, metaSchemaFor } from '@savit/shared';
 import { prisma } from '../lib/prisma.js';
 import { requireAuth } from '../middleware/auth.js';
 import { requireActive } from '../middleware/billing.js';
@@ -66,7 +66,10 @@ notesRouter.get('/:id', async (req, res, next) => {
 notesRouter.post('/', requireActive, async (req, res, next) => {
   try {
     const input = NoteInput.parse(req.body);
-    if (input.categoryId) await assertOwnsCategory(req.user!.id, input.categoryId);
+    const categorySlug = input.categoryId
+      ? await assertOwnsCategoryAndGetSlug(req.user!.id, input.categoryId)
+      : null;
+    const metadata = validateMetadata(categorySlug, input.metadata);
 
     const created = await prisma.note.create({
       data: {
@@ -81,6 +84,12 @@ notesRouter.post('/', requireActive, async (req, res, next) => {
         rawInput: input.rawInput ?? null,
         categoryId: input.categoryId ?? null,
         priority: input.priority ?? null,
+        metadata:
+          metadata === undefined
+            ? undefined
+            : metadata === null
+              ? Prisma.JsonNull
+              : (metadata as Prisma.InputJsonValue),
       },
       include: { category: true },
     });
@@ -94,11 +103,24 @@ notesRouter.patch('/:id', requireActive, async (req, res, next) => {
   try {
     const id = z.string().cuid().parse(req.params.id);
     const patch = NotePatch.parse(req.body);
-    const existing = await prisma.note.findFirst({ where: { id, userId: req.user!.id } });
+    const existing = await prisma.note.findFirst({
+      where: { id, userId: req.user!.id },
+      include: { category: true },
+    });
     if (!existing) throw new HttpError(404, 'not_found');
-    if (patch.categoryId !== undefined && patch.categoryId !== null) {
-      await assertOwnsCategory(req.user!.id, patch.categoryId);
+
+    // Resolve qual categoria valida o metadata: a nova (se vier no patch) ou a atual.
+    let effectiveSlug: string | null = existing.category?.slug ?? null;
+    if (patch.categoryId !== undefined) {
+      if (patch.categoryId === null) {
+        effectiveSlug = null;
+      } else {
+        effectiveSlug = await assertOwnsCategoryAndGetSlug(req.user!.id, patch.categoryId);
+      }
     }
+    const metadata =
+      patch.metadata !== undefined ? validateMetadata(effectiveSlug, patch.metadata) : undefined;
+
     const updated = await prisma.note.update({
       where: { id },
       data: {
@@ -114,6 +136,9 @@ notesRouter.patch('/:id', requireActive, async (req, res, next) => {
         ...(patch.rawInput !== undefined && { rawInput: patch.rawInput }),
         ...(patch.categoryId !== undefined && { categoryId: patch.categoryId }),
         ...(patch.priority !== undefined && { priority: patch.priority }),
+        ...(metadata !== undefined && {
+          metadata: metadata === null ? Prisma.JsonNull : (metadata as Prisma.InputJsonValue),
+        }),
       },
       include: { category: true },
     });
@@ -174,6 +199,7 @@ notesRouter.post('/:id/convert-to-task', requireActive, async (req, res, next) =
       id: created.id,
       noteId: created.noteId,
       categoryId: created.categoryId,
+      recurringTaskId: created.recurringTaskId,
       title: created.title,
       status: created.status,
       column: created.column,
@@ -190,6 +216,7 @@ notesRouter.post('/:id/convert-to-task', requireActive, async (req, res, next) =
             name: created.category.name,
             color: created.category.color,
             icon: created.category.icon,
+            slug: created.category.slug,
           }
         : null,
       description: created.description,
@@ -213,9 +240,34 @@ notesRouter.delete('/:id', requireActive, async (req, res, next) => {
 
 // ----- helpers -----
 
-async function assertOwnsCategory(userId: string, categoryId: string): Promise<void> {
-  const cat = await prisma.category.findFirst({ where: { id: categoryId, userId } });
+async function assertOwnsCategoryAndGetSlug(userId: string, categoryId: string): Promise<string | null> {
+  const cat = await prisma.category.findFirst({
+    where: { id: categoryId, userId },
+    select: { slug: true },
+  });
   if (!cat) throw new HttpError(400, 'invalid_category');
+  return cat.slug;
+}
+
+/**
+ * Valida o payload `metadata` conforme o slug da categoria fixa.
+ * - Categoria do usuário (slug nulo): metadata é ignorado (retorna null se vier valor).
+ * - Slug fixo conhecido: valida com Zod e retorna o objeto parsed.
+ * - Cliente passou null/undefined explicitamente: limpa o metadata.
+ */
+function validateMetadata(
+  slug: string | null,
+  metadata: unknown,
+): unknown | null | undefined {
+  if (metadata === undefined) return undefined;
+  if (metadata === null) return null;
+  const schema = metaSchemaFor(slug);
+  if (!schema) return null; // categoria sem slug fixo — não persistimos metadata livre
+  const parsed = schema.safeParse(metadata);
+  if (!parsed.success) {
+    throw new HttpError(400, 'invalid_metadata', parsed.error.flatten());
+  }
+  return parsed.data;
 }
 
 type SerializableNote = Prisma.NoteGetPayload<{
@@ -231,6 +283,7 @@ function serialize(note: Partial<SerializableNote> & SerializableBase) {
     contentText: note.contentText,
     rawInput: note.rawInput,
     priority: note.priority,
+    metadata: note.metadata ?? null,
     archivedAt: note.archivedAt?.toISOString() ?? null,
     createdAt: note.createdAt.toISOString(),
     updatedAt: note.updatedAt.toISOString(),
@@ -241,6 +294,7 @@ function serialize(note: Partial<SerializableNote> & SerializableBase) {
           name: note.category.name,
           color: note.category.color,
           icon: note.category.icon,
+          slug: note.category.slug,
         }
       : null,
     attachments: note.attachments
@@ -267,6 +321,7 @@ type SerializableBase = Pick<
   | 'contentText'
   | 'rawInput'
   | 'priority'
+  | 'metadata'
   | 'archivedAt'
   | 'createdAt'
   | 'updatedAt'

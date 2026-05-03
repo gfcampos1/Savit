@@ -4,6 +4,7 @@ import type { Category } from '@savit/shared';
 import { parseNatural } from '@/lib/parse-natural';
 import { useCreateNote } from '@/hooks/useNotes';
 import { useCreateTask } from '@/hooks/useTasks';
+import { useMakeTaskRecurring } from '@/hooks/useRecurringTasks';
 import { uploadAttachment } from '@/lib/upload';
 import { PreviewChips } from './PreviewChips';
 import { CategoryPicker } from './CategoryPicker';
@@ -39,6 +40,7 @@ export function Composer({
     // eslint-disable-next-line react-hooks/exhaustive-deps
   }, [initialText]);
   const [pinnedCategoryId, setPinnedCategoryId] = useState<string | null>(defaultCategoryId);
+  const [recurringWeekly, setRecurringWeekly] = useState(false);
   const [submitting, setSubmitting] = useState(false);
   const [error, setError] = useState<string | null>(null);
   const [voiceOpen, setVoiceOpen] = useState(false);
@@ -48,6 +50,7 @@ export function Composer({
 
   const createNote = useCreateNote();
   const createTask = useCreateTask();
+  const makeRecurring = useMakeTaskRecurring();
 
   const parsed = useMemo(() => parseNatural(text, categories), [text, categories]);
   const effectiveCategoryId = pinnedCategoryId ?? parsed.categoryId;
@@ -70,6 +73,7 @@ export function Composer({
   function reset() {
     setText('');
     setError(null);
+    setRecurringWeekly(false);
     requestAnimationFrame(() => taRef.current?.focus());
   }
 
@@ -80,7 +84,7 @@ export function Composer({
     setError(null);
     try {
       if (parsed.isTask) {
-        await createTask.mutateAsync({
+        const task = await createTask.mutateAsync({
           title: content,
           dueAt: parsed.dueAt ? new Date(parsed.dueAt).toISOString() : null,
           categoryId: effectiveCategoryId ?? null,
@@ -88,6 +92,9 @@ export function Composer({
           status: 'TODAY',
           column: 'hoje',
         });
+        if (recurringWeekly) {
+          await makeRecurring.mutateAsync({ taskId: task.id });
+        }
       } else {
         await createNote.mutateAsync({
           type: 'TEXT',
@@ -285,12 +292,29 @@ export function Composer({
       </div>
 
       <div className="mt-2 flex items-center justify-between gap-3">
-        <CategoryPicker
-          categories={categories}
-          value={pinnedCategoryId}
-          onChange={setPinnedCategoryId}
-          autoCategoryName={!pinnedCategoryId ? parsed.categoryName : null}
-        />
+        <div className="flex items-center gap-2">
+          <CategoryPicker
+            categories={categories}
+            value={pinnedCategoryId}
+            onChange={setPinnedCategoryId}
+            autoCategoryName={!pinnedCategoryId ? parsed.categoryName : null}
+          />
+          {parsed.isTask ? (
+            <button
+              type="button"
+              onClick={() => setRecurringWeekly((v) => !v)}
+              aria-pressed={recurringWeekly}
+              title="Toda semana, no dia de hoje, cria uma nova cópia em 'Sem prazo'"
+              className={`inline-flex items-center gap-1 rounded-pill border px-2.5 py-1 text-xs transition-colors ${
+                recurringWeekly
+                  ? 'bg-ink text-bg border-ink'
+                  : 'hairline text-ink-2 hover:text-ink'
+              }`}
+            >
+              ↻ semanal
+            </button>
+          ) : null}
+        </div>
         <span className="font-mono text-[10px] uppercase tracking-mono text-ink-3 hidden sm:block">
           ⌘↵ enviar
         </span>

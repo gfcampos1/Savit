@@ -6,6 +6,7 @@ import { useDebouncedCallback } from '@/hooks/useDebouncedCallback';
 import { TipTapEditor, type TipTapDoc } from '@/components/editor/TipTapEditor';
 import { PhotoGallery } from '@/components/editor/PhotoGallery';
 import { CategoryPicker } from '@/components/composer/CategoryPicker';
+import { MetaForm } from '@/components/notes/MetaForm';
 import { dayHeading, formatTime } from '@/lib/format-date';
 
 // tldraw é pesado — só carrega quando o usuário abre uma nota DRAWING.
@@ -106,7 +107,20 @@ export function NoteDetailPage() {
 
   async function changeCategory(categoryId: string | null) {
     if (!id) return;
-    await patch.mutateAsync({ id, categoryId });
+    // Mudou de categoria → metadata atual provavelmente não se aplica, limpa
+    // (backend também ignoraria; melhor explícito pra UI ficar consistente).
+    await patch.mutateAsync({ id, categoryId, metadata: null });
+  }
+
+  async function saveMetadata(metadata: unknown | null) {
+    if (!id) return;
+    try {
+      await patch.mutateAsync({ id, metadata });
+      setSavedAt(Date.now());
+      setSaveError(null);
+    } catch (err) {
+      setSaveError(err instanceof Error ? err.message : 'erro ao salvar');
+    }
   }
 
   return (
@@ -131,6 +145,14 @@ export function NoteDetailPage() {
         </span>
         <SaveStatus saving={patch.isPending} savedAt={savedAt} error={saveError} />
       </header>
+
+      {n.category?.slug ? (
+        <MetaForm
+          slug={n.category.slug}
+          value={n.metadata ?? null}
+          onChange={(next) => void saveMetadata(next)}
+        />
+      ) : null}
 
       {n.type === 'VOICE' ? <AudioAttachments note={n} /> : null}
 

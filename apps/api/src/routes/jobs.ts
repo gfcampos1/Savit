@@ -11,6 +11,7 @@ import { env } from '../lib/env.js';
 import { logger } from '../lib/logger.js';
 import { prisma } from '../lib/prisma.js';
 import { HttpError } from '../middleware/error.js';
+import { runRecurringTasks } from '../jobs/recurring-tasks.js';
 import { runTrialExpirer } from '../jobs/trial-expirer.js';
 import { generateWeeklySummary } from '../services/weekly-summary.js';
 
@@ -54,6 +55,15 @@ jobsRouter.post('/weekly-summary', async (_req, res, next) => {
 jobsRouter.post('/trial-expirer', async (_req, res, next) => {
   try {
     const result = await runTrialExpirer();
+    res.json(result);
+  } catch (err) {
+    next(err);
+  }
+});
+
+jobsRouter.post('/recurring-tasks', async (_req, res, next) => {
+  try {
+    const result = await runRecurringTasks();
     res.json(result);
   } catch (err) {
     next(err);

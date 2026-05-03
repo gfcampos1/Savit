@@ -12,6 +12,10 @@ export interface Category {
   color: CategoryColor;
   icon: string | null;
   sortOrder: number;
+  /** Não-nulo identifica categoria fixa do sistema (ex: 'books', 'youtube'). */
+  slug: string | null;
+  /** ISO da data em que o usuário ocultou a categoria. Nulo = visível. */
+  hiddenAt: Iso | null;
   /** Notas não arquivadas. Presente em GET /api/categories. */
   noteCount?: number;
   /** Tarefas não DONE/ARCHIVED (pendentes). Presente em GET /api/categories. */
@@ -26,6 +30,8 @@ export interface CategoryRef {
   name: string;
   color: CategoryColor;
   icon: string | null;
+  /** Slug da categoria fixa (ex: 'books', 'youtube') ou null. */
+  slug: string | null;
 }
 
 export interface Note {
@@ -36,6 +42,8 @@ export interface Note {
   contentText: string | null;
   rawInput: string | null;
   priority: 'low' | 'med' | 'high' | null;
+  /** Payload livre tipado por slug da categoria fixa (BookMeta, YoutubeMeta). */
+  metadata: unknown | null;
   archivedAt: Iso | null;
   createdAt: Iso;
   updatedAt: Iso;
@@ -48,6 +56,7 @@ export interface Task {
   id: string;
   noteId: string | null;
   categoryId: string | null;
+  recurringTaskId: string | null;
   category?: CategoryRef | null;
   title: string;
   description: string | null;
@@ -58,6 +67,23 @@ export interface Task {
   priority: 'low' | 'med' | 'high' | null;
   reminderMinBefore: number | null;
   completedAt: Iso | null;
+  createdAt: Iso;
+  updatedAt: Iso;
+}
+
+export interface RecurringTask {
+  id: string;
+  userId: string;
+  categoryId: string | null;
+  category?: CategoryRef | null;
+  title: string;
+  description: string | null;
+  priority: 'low' | 'med' | 'high' | null;
+  /** 0 = domingo … 6 = sábado. */
+  weekday: number;
+  isActive: boolean;
+  nextRunAt: Iso;
+  lastRunAt: Iso | null;
   createdAt: Iso;
   updatedAt: Iso;
 }

@@ -10,11 +10,20 @@ export const categoriesRouter: Router = Router();
 
 categoriesRouter.use(requireAuth);
 
+const ListQuery = z.object({
+  // Página de gerenciamento usa true; pickers/filters usam o default (ocultas omitidas).
+  includeHidden: z.coerce.boolean().default(false),
+});
+
 categoriesRouter.get('/', async (req, res, next) => {
   try {
+    const { includeHidden } = ListQuery.parse(req.query);
     // Conta tasks pendentes (não DONE/ARCHIVED) — métrica mais útil que total
     const items = await prisma.category.findMany({
-      where: { userId: req.user!.id },
+      where: {
+        userId: req.user!.id,
+        ...(includeHidden ? {} : { hiddenAt: null }),
+      },
       orderBy: [{ sortOrder: 'asc' }, { createdAt: 'asc' }],
       include: {
         _count: {
@@ -32,6 +41,8 @@ categoriesRouter.get('/', async (req, res, next) => {
         color: c.color,
         icon: c.icon,
         sortOrder: c.sortOrder,
+        slug: c.slug,
+        hiddenAt: c.hiddenAt?.toISOString() ?? null,
         noteCount: c._count.notes,
         taskCount: c._count.tasks,
         createdAt: c.createdAt.toISOString(),
@@ -100,9 +111,22 @@ categoriesRouter.patch('/:id', requireActive, async (req, res, next) => {
     }
     const updated = await prisma.category.update({
       where: { id },
-      data: patch,
+      data: {
+        ...(patch.name !== undefined && { name: patch.name }),
+        ...(patch.color !== undefined && { color: patch.color }),
+        ...(patch.icon !== undefined && { icon: patch.icon }),
+        ...(patch.sortOrder !== undefined && { sortOrder: patch.sortOrder }),
+        ...(patch.hiddenAt !== undefined && {
+          hiddenAt: patch.hiddenAt ? new Date(patch.hiddenAt) : null,
+        }),
+      },
     });
-    res.json(updated);
+    res.json({
+      ...updated,
+      hiddenAt: updated.hiddenAt?.toISOString() ?? null,
+      createdAt: updated.createdAt.toISOString(),
+      updatedAt: updated.updatedAt.toISOString(),
+    });
   } catch (err) {
     next(err);
   }
@@ -115,6 +139,7 @@ categoriesRouter.delete('/:id', requireActive, async (req, res, next) => {
       where: { id, userId: req.user!.id },
     });
     if (!existing) throw new HttpError(404, 'not_found');
+    if (existing.slug) throw new HttpError(400, 'cannot_delete_fixed');
     await prisma.category.delete({ where: { id } });
     res.status(204).end();
   } catch (err) {

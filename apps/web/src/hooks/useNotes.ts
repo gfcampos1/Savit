@@ -35,6 +35,8 @@ export interface PatchNoteInput {
   contentJson?: unknown;
   categoryId?: string | null;
   priority?: 'low' | 'med' | 'high';
+  /** Payload por slug da categoria fixa (BookMeta, YoutubeMeta) ou null pra limpar. */
+  metadata?: unknown | null;
 }
 
 export function usePatchNote() {

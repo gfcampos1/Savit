@@ -11,8 +11,16 @@ import { Sheet } from '@/components/Sheet';
 import { confirm } from '@/stores/confirm';
 
 export function CategoriesPage() {
-  const cats = useCategories();
+  const cats = useCategories({ includeHidden: true });
+  const update = useUpdateCategory();
   const [editing, setEditing] = useState<Category | 'new' | null>(null);
+
+  async function toggleHidden(c: Category) {
+    await update.mutateAsync({
+      id: c.id,
+      hiddenAt: c.hiddenAt ? null : new Date().toISOString(),
+    });
+  }
 
   return (
     <div className="max-w-2xl mx-auto px-6 pt-8 pb-32">
@@ -21,7 +29,8 @@ export function CategoriesPage() {
           <p className="font-mono text-[11px] uppercase tracking-mono text-ink-3">Espaços</p>
           <h1 className="display-serif text-2xl mt-1">Categorias</h1>
           <p className="text-sm text-ink-2 mt-2">
-            Cor + nome viram tag em todas as notas e tarefas. Clique pra editar.
+            Cor + nome viram tag em todas as notas e tarefas. Categorias fixas têm campos
+            extras (Livros, YouTube) e só podem ser ocultadas — não excluídas.
           </p>
         </div>
         <button
@@ -44,47 +53,78 @@ export function CategoriesPage() {
         </div>
       ) : (
         <ul className="rounded-md border hairline bg-surface divide-y divide-hair shadow-card">
-          {cats.data?.map((c) => (
-            <li key={c.id} className="flex items-center gap-3 px-4 py-3 hover:bg-surface-2/40">
-              <Link
-                to={`/?cat=${c.id}`}
-                className="flex items-center gap-3 flex-1 min-w-0"
-                aria-label={`abrir ${c.name} no inbox`}
+          {cats.data?.map((c) => {
+            const isFixed = Boolean(c.slug);
+            const isHidden = Boolean(c.hiddenAt);
+            return (
+              <li
+                key={c.id}
+                className={`flex items-center gap-3 px-4 py-3 hover:bg-surface-2/40 ${
+                  isHidden ? 'opacity-60' : ''
+                }`}
               >
-                <span
-                  className="grid place-items-center h-10 w-10 rounded-md display-serif text-lg text-bg shrink-0"
-                  style={{ background: c.color }}
-                  aria-hidden
+                <Link
+                  to={`/?cat=${c.id}`}
+                  className="flex items-center gap-3 flex-1 min-w-0"
+                  aria-label={`abrir ${c.name} no inbox`}
                 >
-                  {c.name.charAt(0).toUpperCase()}
-                </span>
-                <div className="flex-1 min-w-0">
-                  <p className="text-md text-ink truncate">{c.name}</p>
-                  <p className="font-mono text-[10px] uppercase tracking-mono text-ink-3 mt-0.5">
-                    {c.noteCount ?? 0} {plural(c.noteCount ?? 0, 'nota', 'notas')}
-                    {(c.taskCount ?? 0) > 0
-                      ? ` · ${c.taskCount} ${plural(c.taskCount ?? 0, 'tarefa pendente', 'tarefas pendentes')}`
-                      : ''}
-                  </p>
-                </div>
-              </Link>
-              <Link
-                to={`/tasks?cat=${c.id}`}
-                aria-label={`abrir tarefas de ${c.name}`}
-                className="text-xs font-mono uppercase tracking-mono text-ink-3 hover:text-accent px-2 py-1"
-              >
-                tarefas →
-              </Link>
-              <button
-                type="button"
-                onClick={() => setEditing(c)}
-                aria-label="editar"
-                className="text-ink-3 hover:text-ink text-sm px-2 py-1"
-              >
-                editar
-              </button>
-            </li>
-          ))}
+                  <span
+                    className="grid place-items-center h-10 w-10 rounded-md display-serif text-lg text-bg shrink-0"
+                    style={{ background: c.color }}
+                    aria-hidden
+                  >
+                    {c.name.charAt(0).toUpperCase()}
+                  </span>
+                  <div className="flex-1 min-w-0">
+                    <p className="text-md text-ink truncate flex items-center gap-2">
+                      {c.name}
+                      {isFixed ? (
+                        <span className="font-mono text-[9px] uppercase tracking-mono px-1.5 py-0.5 rounded border hairline text-ink-3">
+                          fixa
+                        </span>
+                      ) : null}
+                      {isHidden ? (
+                        <span className="font-mono text-[9px] uppercase tracking-mono text-ink-3">
+                          oculta
+                        </span>
+                      ) : null}
+                    </p>
+                    <p className="font-mono text-[10px] uppercase tracking-mono text-ink-3 mt-0.5">
+                      {c.noteCount ?? 0} {plural(c.noteCount ?? 0, 'nota', 'notas')}
+                      {(c.taskCount ?? 0) > 0
+                        ? ` · ${c.taskCount} ${plural(c.taskCount ?? 0, 'tarefa pendente', 'tarefas pendentes')}`
+                        : ''}
+                    </p>
+                  </div>
+                </Link>
+                <Link
+                  to={`/tasks?cat=${c.id}`}
+                  aria-label={`abrir tarefas de ${c.name}`}
+                  className="text-xs font-mono uppercase tracking-mono text-ink-3 hover:text-accent px-2 py-1"
+                >
+                  tarefas →
+                </Link>
+                {isFixed ? (
+                  <button
+                    type="button"
+                    onClick={() => void toggleHidden(c)}
+                    aria-label={isHidden ? 'reexibir' : 'ocultar'}
+                    className="text-ink-3 hover:text-ink text-sm px-2 py-1"
+                  >
+                    {isHidden ? 'reexibir' : 'ocultar'}
+                  </button>
+                ) : null}
+                <button
+                  type="button"
+                  onClick={() => setEditing(c)}
+                  aria-label="editar"
+                  className="text-ink-3 hover:text-ink text-sm px-2 py-1"
+                >
+                  editar
+                </button>
+              </li>
+            );
+          })}
         </ul>
       )}
 
@@ -167,7 +207,7 @@ function CategoryEditor({ category, onClose }: CategoryEditorProps) {
       title={category ? 'Editar categoria' : 'Nova categoria'}
       footer={
         <>
-          {category ? (
+          {category && !category.slug ? (
             <button
               type="button"
               onClick={() => void remove()}

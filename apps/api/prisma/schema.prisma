@@ -51,16 +51,17 @@ model User {
   createdAt DateTime @default(now())
   updatedAt DateTime @updatedAt
 
-  refreshTokens RefreshToken[]
-  categories    Category[]
-  notes         Note[]
-  tasks         Task[]
-  threads       ChatThread[]
-  attachments   Attachment[]
-  weekly        WeeklySummary[]
-  aiUsage       AiUsage[]
-  subscriptions Subscription[]
-  billingEvents BillingEvent[]
+  refreshTokens  RefreshToken[]
+  categories     Category[]
+  notes          Note[]
+  tasks          Task[]
+  recurringTasks RecurringTask[]
+  threads        ChatThread[]
+  attachments    Attachment[]
+  weekly         WeeklySummary[]
+  aiUsage        AiUsage[]
+  subscriptions  Subscription[]
+  billingEvents  BillingEvent[]
 }
 
 model Subscription {
@@ -113,19 +114,25 @@ model RefreshToken {
 // =====================================================================
 
 model Category {
-  id        String   @id @default(cuid())
+  id        String    @id @default(cuid())
   userId    String
   name      String
   color     String   // hex da paleta da SPEC §1.5
   icon      String?
-  sortOrder Int      @default(0)
-  createdAt DateTime @default(now())
-  updatedAt DateTime @updatedAt
-  user      User     @relation(fields: [userId], references: [id], onDelete: Cascade)
-  notes     Note[]
-  tasks     Task[]
+  sortOrder Int       @default(0)
+  // slug != null marca categoria fixa do sistema (ex: 'books', 'youtube').
+  // Categorias fixas não podem ser deletadas — apenas ocultadas via hiddenAt.
+  slug      String?
+  hiddenAt  DateTime?
+  createdAt DateTime  @default(now())
+  updatedAt DateTime  @updatedAt
+  user           User            @relation(fields: [userId], references: [id], onDelete: Cascade)
+  notes          Note[]
+  tasks          Task[]
+  recurringTasks RecurringTask[]
 
   @@unique([userId, name])
+  @@unique([userId, slug])
   @@index([userId])
 }
 
@@ -148,6 +155,9 @@ model Note {
   contentText String? // texto extraído pra busca FTS
   rawInput    String? // texto cru do composer (pré-parser)
   priority    String? // low | med | high
+  // Payload livre por slug de categoria fixa (BookMeta, YoutubeMeta) — validado
+  // no handler com base em category.slug. Nulo para categorias do usuário.
+  metadata    Json?
   archivedAt  DateTime?
   createdAt   DateTime  @default(now())
   updatedAt   DateTime  @updatedAt
@@ -207,6 +217,7 @@ model Task {
   userId            String
   noteId            String? // origem opcional
   categoryId        String?
+  recurringTaskId   String? // origem: instância de uma RecurringTask
   title             String
   description       String? // markdown curto
   status            TaskStatus @default(TODAY)
@@ -219,12 +230,39 @@ model Task {
   createdAt         DateTime   @default(now())
   updatedAt         DateTime   @updatedAt
 
-  user     User      @relation(fields: [userId], references: [id], onDelete: Cascade)
-  note     Note?     @relation(fields: [noteId], references: [id], onDelete: SetNull)
-  category Category? @relation(fields: [categoryId], references: [id], onDelete: SetNull)
+  user          User           @relation(fields: [userId], references: [id], onDelete: Cascade)
+  note          Note?          @relation(fields: [noteId], references: [id], onDelete: SetNull)
+  category      Category?      @relation(fields: [categoryId], references: [id], onDelete: SetNull)
+  recurringTask RecurringTask? @relation(fields: [recurringTaskId], references: [id], onDelete: SetNull)
 
   @@index([userId, status, column, sortOrder])
   @@index([userId, dueAt])
+  @@index([recurringTaskId])
+}
+
+// Template + cadência de tarefa recorrente (apenas semanal por enquanto).
+// Job diário (POST /api/jobs/recurring-tasks) instancia novas Tasks na coluna
+// 'sem-prazo' (= backlog) toda vez que nextRunAt vence, e avança +7 dias.
+model RecurringTask {
+  id          String    @id @default(cuid())
+  userId      String
+  categoryId  String?
+  title       String
+  description String?
+  priority    String? // low | med | high
+  weekday     Int // 0=domingo..6=sábado
+  isActive    Boolean   @default(true)
+  nextRunAt   DateTime
+  lastRunAt   DateTime?
+  createdAt   DateTime  @default(now())
+  updatedAt   DateTime  @updatedAt
+
+  user     User      @relation(fields: [userId], references: [id], onDelete: Cascade)
+  category Category? @relation(fields: [categoryId], references: [id], onDelete: SetNull)
+  tasks    Task[]
+
+  @@index([userId, isActive, nextRunAt])
+  @@index([categoryId])
 }
 
 // =====================================================================

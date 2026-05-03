@@ -31,7 +31,47 @@ export const CategoryInput = z.object({
 });
 export type CategoryInput = z.infer<typeof CategoryInput>;
 
-export const CategoryPatch = CategoryInput.partial();
+// PATCH aceita os mesmos campos editáveis + hiddenAt para ocultar/reexibir.
+// `slug` nunca é editável via API (set apenas no seed/backfill).
+export const CategoryPatch = CategoryInput.partial().extend({
+  hiddenAt: z.string().datetime().nullable().optional(),
+});
+
+// ---------- Categorias fixas (Livros, YouTube) ----------
+
+export const FIXED_CATEGORY_SLUGS = ['books', 'youtube'] as const;
+export type FixedCategorySlug = (typeof FIXED_CATEGORY_SLUGS)[number];
+
+export const BookMeta = z
+  .object({
+    bookName: z.string().min(1).max(200),
+    chapter: z.string().max(100).optional(),
+    pageFrom: z.number().int().positive().optional(),
+    pageTo: z.number().int().positive().optional(),
+  })
+  .refine(
+    (d) => d.pageFrom == null || d.pageTo == null || d.pageTo >= d.pageFrom,
+    { message: 'pageTo precisa ser >= pageFrom', path: ['pageTo'] },
+  );
+export type BookMeta = z.infer<typeof BookMeta>;
+
+export const YoutubeMeta = z.object({
+  channel: z.string().min(1).max(120),
+  watchedAt: z.string().datetime().optional(),
+  link: z.string().url(),
+});
+export type YoutubeMeta = z.infer<typeof YoutubeMeta>;
+
+/**
+ * Retorna o schema Zod do metadata associado ao slug da categoria fixa.
+ * Para categorias do usuário (slug nulo) ou slugs desconhecidos, retorna null
+ * — nesse caso o handler ignora o campo metadata.
+ */
+export function metaSchemaFor(slug: string | null | undefined) {
+  if (slug === 'books') return BookMeta;
+  if (slug === 'youtube') return YoutubeMeta;
+  return null;
+}
 
 // ---------- Note ----------
 
@@ -43,6 +83,9 @@ export const NoteInput = z.object({
   rawInput: z.string().max(2_000).optional(),
   categoryId: z.string().cuid().nullable().optional(),
   priority: z.enum(['low', 'med', 'high']).optional(),
+  // Validação real (por slug da categoria fixa) acontece no handler com
+  // metaSchemaFor(slug). Aqui aceita qualquer JSON livre.
+  metadata: z.unknown().nullable().optional(),
 });
 export type NoteInput = z.infer<typeof NoteInput>;
 
@@ -89,3 +132,18 @@ export const UploadSignInput = z.object({
 
 // helper pra rotas que recebem os defaults exportados acima
 export const KanbanColumnSchema = z.enum(KANBAN_DEFAULT_COLUMNS as unknown as [string, ...string[]]);
+
+// ---------- Recurring Task ----------
+
+export const RecurringTaskInput = z.object({
+  title: z.string().min(1).max(200),
+  description: z.string().max(5_000).optional(),
+  categoryId: z.string().cuid().nullable().optional(),
+  priority: z.enum(['low', 'med', 'high']).optional(),
+  weekday: z.number().int().min(0).max(6),
+});
+export type RecurringTaskInput = z.infer<typeof RecurringTaskInput>;
+
+export const RecurringTaskPatch = RecurringTaskInput.partial().extend({
+  isActive: z.boolean().optional(),
+});

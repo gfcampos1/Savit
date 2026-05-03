@@ -1,14 +1,18 @@
-import { useMemo } from 'react';
+import { useMemo, useState } from 'react';
 import { useSearchParams } from 'react-router-dom';
 import { useTasks } from '@/hooks/useTasks';
 import { useCategories } from '@/hooks/useCategories';
+import { useRecurringTasks } from '@/hooks/useRecurringTasks';
 import { Composer } from '@/components/composer/Composer';
 import { CategoryFilter } from '@/components/CategoryFilter';
 import { Board } from '@/components/kanban/Board';
+import { RecurringTasksSheet } from '@/components/kanban/RecurringTasksSheet';
 
 export function TasksPage() {
   const tasks = useTasks({ includeDone: true });
   const cats = useCategories();
+  const recurring = useRecurringTasks();
+  const [recurringOpen, setRecurringOpen] = useState(false);
   const [searchParams, setSearchParams] = useSearchParams();
   const categoryId = searchParams.get('cat');
 
@@ -53,6 +57,18 @@ export function TasksPage() {
           Arraste cartões pra mudar de coluna — em <em>Hoje/Amanhã/Semana</em> o prazo ajusta
           sozinho; <em>Concluídas</em> marca como feito.
         </p>
+        <button
+          type="button"
+          onClick={() => setRecurringOpen(true)}
+          className="inline-flex items-center gap-1.5 rounded-pill border hairline px-2.5 py-1 text-xs text-ink-2 hover:text-ink transition-colors"
+        >
+          ↻ recorrentes
+          {(recurring.data?.items.length ?? 0) > 0 ? (
+            <span className="font-mono text-[10px] text-ink-3">
+              ({recurring.data?.items.length})
+            </span>
+          ) : null}
+        </button>
         <CategoryFilter
           categories={cats.data ?? []}
           value={categoryId}
@@ -60,6 +76,12 @@ export function TasksPage() {
           countKind="tasks"
         />
       </div>
+
+      <RecurringTasksSheet
+        open={recurringOpen}
+        onClose={() => setRecurringOpen(false)}
+        categories={cats.data ?? []}
+      />
 
       {tasks.isLoading ? (
         <p className="font-mono text-[11px] uppercase tracking-mono text-ink-3 py-10 text-center">

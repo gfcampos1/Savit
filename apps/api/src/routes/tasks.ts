@@ -183,6 +183,82 @@ tasksRouter.delete('/:id', requireActive, async (req, res, next) => {
   }
 });
 
+/**
+ * Atalho: cria uma RecurringTask copiando título/descrição/categoria/priority
+ * da Task existente. Por padrão usa o dia da semana de hoje (default que faz
+ * sentido pra UX "tornar recorrente daqui em diante"). Cliente pode override
+ * via { weekday }.
+ */
+const MakeRecurringInput = z.object({
+  weekday: z.number().int().min(0).max(6).optional(),
+});
+
+tasksRouter.post('/:id/make-recurring', requireActive, async (req, res, next) => {
+  try {
+    const id = z.string().cuid().parse(req.params.id);
+    const input = MakeRecurringInput.parse(req.body ?? {});
+    const task = await prisma.task.findFirst({ where: { id, userId: req.user!.id } });
+    if (!task) throw new HttpError(404, 'not_found');
+
+    const weekday = input.weekday ?? new Date().getDay();
+    const created = await prisma.recurringTask.create({
+      data: {
+        userId: req.user!.id,
+        title: task.title,
+        description: task.description ?? null,
+        categoryId: task.categoryId ?? null,
+        priority: task.priority ?? null,
+        weekday,
+        nextRunAt: nextOccurrence(weekday),
+      },
+      include: { category: true },
+    });
+
+    // marca a Task original como instância dessa recorrência (dá visibilidade na UI)
+    await prisma.task.update({
+      where: { id: task.id },
+      data: { recurringTaskId: created.id },
+    });
+
+    res.status(201).json({
+      id: created.id,
+      userId: created.userId,
+      categoryId: created.categoryId,
+      title: created.title,
+      description: created.description,
+      priority: created.priority,
+      weekday: created.weekday,
+      isActive: created.isActive,
+      nextRunAt: created.nextRunAt.toISOString(),
+      lastRunAt: created.lastRunAt?.toISOString() ?? null,
+      createdAt: created.createdAt.toISOString(),
+      updatedAt: created.updatedAt.toISOString(),
+      category: created.category
+        ? {
+            id: created.category.id,
+            name: created.category.name,
+            color: created.category.color,
+            icon: created.category.icon,
+            slug: created.category.slug,
+          }
+        : null,
+    });
+  } catch (err) {
+    next(err);
+  }
+});
+
+function nextOccurrence(weekday: number, now: Date = new Date()): Date {
+  // 00:00 UTC do dia alvo — alinhado com runRecurringTasks (cron diário).
+  const d = new Date(now);
+  d.setUTCHours(0, 0, 0, 0);
+  const today = d.getUTCDay();
+  let diff = (weekday - today + 7) % 7;
+  if (diff === 0) diff = 7;
+  d.setUTCDate(d.getUTCDate() + diff);
+  return d;
+}
+
 // ----- helpers -----
 
 async function assertOwnsCategory(userId: string, categoryId: string): Promise<void> {
@@ -233,6 +309,7 @@ function serialize(t: TaskWithCategory) {
     id: t.id,
     noteId: t.noteId,
     categoryId: t.categoryId,
+    recurringTaskId: t.recurringTaskId,
     title: t.title,
     description: t.description,
     status: t.status,
@@ -250,6 +327,7 @@ function serialize(t: TaskWithCategory) {
           name: t.category.name,
           color: t.category.color,
           icon: t.category.icon,
+          slug: t.category.slug,
         }
       : null,
   };

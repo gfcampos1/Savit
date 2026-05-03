@@ -19,6 +19,7 @@ import { healthRouter } from './routes/health.js';
 import { jobsRouter } from './routes/jobs.js';
 import { meRouter } from './routes/me.js';
 import { notesRouter } from './routes/notes.js';
+import { recurringTasksRouter } from './routes/recurringTasks.js';
 import { statsRouter, weeklyRouter } from './routes/stats.js';
 import { tasksRouter } from './routes/tasks.js';
 import { uploadsRouter } from './routes/uploads.js';
@@ -67,6 +68,7 @@ export function buildServer(): Express {
   app.use('/api/categories', categoriesRouter);
   app.use('/api/notes', notesRouter);
   app.use('/api/tasks', tasksRouter);
+  app.use('/api/recurring-tasks', recurringTasksRouter);
   app.use('/api/uploads', uploadsRouter);
   app.use('/api/chat', chatRouter);
   app.use('/api/stats', statsRouter);
