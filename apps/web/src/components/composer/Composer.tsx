@@ -2,13 +2,13 @@ import { useEffect, useMemo, useRef, useState } from 'react';
 import { useNavigate } from 'react-router-dom';
 import type { Category } from '@savit/shared';
 import { parseNatural } from '@/lib/parse-natural';
-import { useCreateNote, usePatchNote } from '@/hooks/useNotes';
+import { useCreateNote } from '@/hooks/useNotes';
 import { useCreateTask } from '@/hooks/useTasks';
-import { transcribeAttachment, uploadAttachment } from '@/lib/upload';
-import { ApiError } from '@/lib/api';
+import { uploadAttachment } from '@/lib/upload';
 import { PreviewChips } from './PreviewChips';
 import { CategoryPicker } from './CategoryPicker';
-import { VoiceRecorder, type RecordedClip } from '@/components/editor/VoiceRecorder';
+import { VoiceRecorder } from '@/components/editor/VoiceRecorder';
+import { toast } from '@/stores/ui';
 
 interface ComposerProps {
   categories: Category[];
@@ -47,7 +47,6 @@ export function Composer({
   const navigate = useNavigate();
 
   const createNote = useCreateNote();
-  const patchNote = usePatchNote();
   const createTask = useCreateTask();
 
   const parsed = useMemo(() => parseNatural(text, categories), [text, categories]);
@@ -144,50 +143,46 @@ export function Composer({
     navigate(`/notes/${note.id}`);
   }
 
-  async function onVoiceClip(clip: RecordedClip) {
-    setVoiceBusy('enviando…');
+  async function onVoiceTranscript(transcript: string) {
+    setVoiceBusy('salvando…');
     try {
-      // 1. cria a nota tipo VOICE primeiro pra poder linkar o anexo
-      const note = await createNote.mutateAsync({
-        type: 'VOICE',
-        contentText: '',
-        rawInput: '[áudio]',
-        categoryId: effectiveCategoryId ?? null,
-      });
+      // Aplica o parser natural na transcrição (pode capturar #categoria,
+      // hoje 9h, etc. se o usuário disser de viva voz).
+      const speechParsed = parseNatural(transcript, categories);
+      const cleanText = speechParsed.text.trim() || transcript;
 
-      // 2. upload do áudio
-      setVoiceBusy('enviando áudio…');
-      const { attachment } = await uploadAttachment({
-        blob: clip.blob,
-        kind: 'AUDIO',
-        noteId: note.id,
-        durationMs: clip.durationMs,
-      });
-
-      // 3. transcribe (pode falhar se OPENROUTER_API_KEY ausente — não bloqueia)
-      let transcript = '';
-      setVoiceBusy('transcrevendo…');
-      try {
-        const t = await transcribeAttachment(attachment.id, 'pt');
-        transcript = t.text;
-      } catch (err) {
-        console.warn('transcribe falhou', err);
-        if (err instanceof ApiError && err.status === 503) {
-          transcript = '[transcrição indisponível — configure OPENROUTER_API_KEY]';
-        } else {
-          transcript = '[falha ao transcrever]';
-        }
+      let note;
+      if (speechParsed.isTask) {
+        await createTask.mutateAsync({
+          title: cleanText,
+          dueAt: speechParsed.dueAt ? new Date(speechParsed.dueAt).toISOString() : null,
+          categoryId: speechParsed.categoryId ?? effectiveCategoryId ?? null,
+          priority: speechParsed.priority ?? undefined,
+          status: 'TODAY',
+          column: 'hoje',
+        });
+        toast({ message: 'Tarefa criada por voz.', tone: 'success' });
+      } else {
+        note = await createNote.mutateAsync({
+          type: 'TEXT',
+          contentText: cleanText,
+          rawInput: transcript,
+          categoryId: speechParsed.categoryId ?? effectiveCategoryId ?? null,
+          priority: speechParsed.priority ?? undefined,
+        });
+        toast({
+          message: 'Nota criada por voz.',
+          tone: 'success',
+          actionLabel: 'Abrir',
+          onAction: () => navigate(`/notes/${note!.id}`),
+        });
       }
-
-      // 4. atualiza a nota com o texto transcrito
-      await patchNote.mutateAsync({ id: note.id, contentText: transcript });
 
       setVoiceOpen(false);
       setVoiceBusy(null);
-      navigate(`/notes/${note.id}`);
     } catch (err) {
       console.error('voice flow error', err);
-      setError('Não conseguimos salvar a gravação.');
+      setError('Não conseguimos salvar.');
       setVoiceBusy(null);
     }
   }
@@ -210,7 +205,7 @@ export function Composer({
           setVoiceOpen(false);
           setVoiceBusy(null);
         }}
-        onComplete={onVoiceClip}
+        onComplete={onVoiceTranscript}
       />
     );
   }

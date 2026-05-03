@@ -20,7 +20,6 @@ import { notesRouter } from './routes/notes.js';
 import { statsRouter, weeklyRouter } from './routes/stats.js';
 import { tasksRouter } from './routes/tasks.js';
 import { uploadsRouter } from './routes/uploads.js';
-import { voiceRouter } from './routes/voice.js';
 
 const __filename = fileURLToPath(import.meta.url);
 const __dirname = path.dirname(__filename);
@@ -63,7 +62,6 @@ export function buildServer(): Express {
   app.use('/api/notes', notesRouter);
   app.use('/api/tasks', tasksRouter);
   app.use('/api/uploads', uploadsRouter);
-  app.use('/api/voice', voiceRouter);
   app.use('/api/chat', chatRouter);
   app.use('/api/stats', statsRouter);
   app.use('/api/weekly', weeklyRouter);

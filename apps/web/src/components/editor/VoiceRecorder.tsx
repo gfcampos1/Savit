@@ -1,252 +1,291 @@
-// Gravador de voz baseado em MediaRecorder. Mostra um waveform "live" feito
-// à mão a partir de AnalyserNode (sem libs). Após parar, devolve o Blob +
-// duração; quem usa decide o que fazer (upload, transcribe, criar nota).
+// Captura de voz via Web Speech API nativa do navegador (SpeechRecognition).
+// Sem upload, sem chamadas externas — transcrição roda no device.
+//
+// Suporte: Chrome/Edge (todos), Safari 14.1+ (parcial), Firefox: NÃO.
+// Quando o navegador não suporta, exibimos mensagem amigável e desativamos.
 
 import { useEffect, useRef, useState } from 'react';
 
-const PREFERRED_MIMES = [
-  'audio/webm;codecs=opus',
-  'audio/webm',
-  'audio/ogg;codecs=opus',
-  'audio/mp4',
-];
+// Web Speech API tem prefixo `webkit` em Safari. Tipos abaixo cobrem ambos.
+type SpeechRecognitionConstructor = new () => SpeechRecognitionInstance;
 
-function pickSupportedMime(): string {
-  for (const m of PREFERRED_MIMES) {
-    if (typeof MediaRecorder !== 'undefined' && MediaRecorder.isTypeSupported(m)) return m;
-  }
-  return '';
+interface SpeechRecognitionInstance {
+  lang: string;
+  continuous: boolean;
+  interimResults: boolean;
+  maxAlternatives: number;
+  start(): void;
+  stop(): void;
+  abort(): void;
+  onresult: ((e: SpeechRecognitionEventLike) => void) | null;
+  onerror: ((e: { error: string }) => void) | null;
+  onend: (() => void) | null;
+  onstart: (() => void) | null;
 }
 
-export interface RecordedClip {
-  blob: Blob;
-  durationMs: number;
-  mimeType: string;
+interface SpeechRecognitionEventLike {
+  resultIndex: number;
+  results: ArrayLike<{
+    isFinal: boolean;
+    0: { transcript: string; confidence: number };
+  }>;
+}
+
+function getRecognitionCtor(): SpeechRecognitionConstructor | null {
+  if (typeof window === 'undefined') return null;
+  const w = window as unknown as {
+    SpeechRecognition?: SpeechRecognitionConstructor;
+    webkitSpeechRecognition?: SpeechRecognitionConstructor;
+  };
+  return w.SpeechRecognition ?? w.webkitSpeechRecognition ?? null;
 }
 
 interface VoiceRecorderProps {
   onCancel: () => void;
-  onComplete: (clip: RecordedClip) => void | Promise<void>;
-  /** Texto exibido no estado idle/processando — quem usa controla o copy. */
+  /** Recebe a transcrição final ao confirmar. */
+  onComplete: (text: string) => void | Promise<void>;
+  /** Texto exibido na fase de processamento (ex: salvando…). */
   busyLabel?: string | null;
 }
 
-type Phase = 'idle' | 'recording' | 'processing';
+type Phase = 'idle' | 'listening' | 'processing';
 
 export function VoiceRecorder({ onCancel, onComplete, busyLabel }: VoiceRecorderProps) {
   const [phase, setPhase] = useState<Phase>('idle');
   const [error, setError] = useState<string | null>(null);
+  const [finalText, setFinalText] = useState('');
+  const [interimText, setInterimText] = useState('');
   const [elapsedMs, setElapsedMs] = useState(0);
 
-  const recorderRef = useRef<MediaRecorder | null>(null);
-  const streamRef = useRef<MediaStream | null>(null);
-  const chunksRef = useRef<Blob[]>([]);
+  const recognitionRef = useRef<SpeechRecognitionInstance | null>(null);
   const startedAtRef = useRef<number>(0);
   const tickRef = useRef<ReturnType<typeof setInterval> | null>(null);
-  const audioCtxRef = useRef<AudioContext | null>(null);
-  const analyserRef = useRef<AnalyserNode | null>(null);
-  const canvasRef = useRef<HTMLCanvasElement | null>(null);
-  const rafRef = useRef<number | null>(null);
+  const supported = Boolean(getRecognitionCtor());
 
-  useEffect(() => () => cleanup(), []);
+  useEffect(() => () => stopInternal(), []);
 
-  async function start() {
-    setError(null);
-    try {
-      const stream = await navigator.mediaDevices.getUserMedia({ audio: true });
-      streamRef.current = stream;
-
-      const mimeType = pickSupportedMime();
-      const recorder = new MediaRecorder(
-        stream,
-        mimeType ? { mimeType, audioBitsPerSecond: 96_000 } : undefined,
-      );
-      recorderRef.current = recorder;
-      chunksRef.current = [];
-
-      recorder.ondataavailable = (e) => {
-        if (e.data && e.data.size > 0) chunksRef.current.push(e.data);
-      };
-      recorder.onstop = () => {
-        const finalMime = recorder.mimeType || mimeType || 'audio/webm';
-        const blob = new Blob(chunksRef.current, { type: finalMime });
-        const dur = Date.now() - startedAtRef.current;
-        teardownAudio();
-        setPhase('processing');
-        Promise.resolve(onComplete({ blob, durationMs: dur, mimeType: finalMime })).catch((err) => {
-          console.error('onComplete failed', err);
-          setError('Erro ao processar a gravação.');
-          setPhase('idle');
-        });
-      };
-
-      // Waveform setup
-      const ctx = new (window.AudioContext || (window as unknown as { webkitAudioContext: typeof AudioContext }).webkitAudioContext)();
-      audioCtxRef.current = ctx;
-      const source = ctx.createMediaStreamSource(stream);
-      const analyser = ctx.createAnalyser();
-      analyser.fftSize = 1024;
-      source.connect(analyser);
-      analyserRef.current = analyser;
-
-      recorder.start(250);
-      startedAtRef.current = Date.now();
-      setPhase('recording');
-      setElapsedMs(0);
-      tickRef.current = setInterval(() => setElapsedMs(Date.now() - startedAtRef.current), 100);
-      drawLoop();
-    } catch (err) {
-      console.error('mic error', err);
-      setError('Sem permissão pro microfone ou dispositivo indisponível.');
-      cleanup();
-    }
-  }
-
-  function stop() {
-    const r = recorderRef.current;
-    if (r && r.state !== 'inactive') r.stop();
-  }
-
-  function cancel() {
-    cleanup();
-    onCancel();
-  }
-
-  function cleanup() {
+  function stopInternal() {
     if (tickRef.current) {
       clearInterval(tickRef.current);
       tickRef.current = null;
     }
-    if (recorderRef.current && recorderRef.current.state !== 'inactive') {
-      // remove o handler pra não disparar onComplete
-      recorderRef.current.onstop = null;
+    if (recognitionRef.current) {
+      recognitionRef.current.onresult = null;
+      recognitionRef.current.onerror = null;
+      recognitionRef.current.onend = null;
       try {
-        recorderRef.current.stop();
+        recognitionRef.current.abort();
+      } catch {
+        /* ignore */
+      }
+      recognitionRef.current = null;
+    }
+  }
+
+  function start() {
+    setError(null);
+    const Ctor = getRecognitionCtor();
+    if (!Ctor) {
+      setError('seu navegador não suporta reconhecimento de voz nativo.');
+      return;
+    }
+
+    const rec = new Ctor();
+    rec.lang = 'pt-BR';
+    rec.continuous = true;
+    rec.interimResults = true;
+    rec.maxAlternatives = 1;
+
+    let accumulated = '';
+
+    rec.onresult = (e) => {
+      let interim = '';
+      for (let i = e.resultIndex; i < e.results.length; i++) {
+        const r = e.results[i];
+        if (!r) continue;
+        const transcript = r[0].transcript;
+        if (r.isFinal) {
+          accumulated += (accumulated ? ' ' : '') + transcript.trim();
+          setFinalText(accumulated);
+          interim = '';
+        } else {
+          interim += transcript;
+        }
+      }
+      setInterimText(interim.trim());
+    };
+
+    rec.onerror = (e) => {
+      console.error('SpeechRecognition error', e.error);
+      // 'no-speech' é benigno — usuário ficou em silêncio. Não mostra erro.
+      if (e.error === 'no-speech' || e.error === 'aborted') return;
+      const friendly: Record<string, string> = {
+        'not-allowed': 'permissão de microfone negada.',
+        'service-not-allowed': 'reconhecimento bloqueado pelo sistema.',
+        network: 'falha de rede no reconhecimento.',
+        'audio-capture': 'sem microfone disponível.',
+      };
+      setError(friendly[e.error] ?? `erro de reconhecimento: ${e.error}`);
+    };
+
+    rec.onend = () => {
+      // o browser pode encerrar sozinho após silêncio — se ainda estamos em
+      // listening, paramos pra mostrar resultado final.
+      setPhase((curr) => (curr === 'listening' ? 'idle' : curr));
+      if (tickRef.current) {
+        clearInterval(tickRef.current);
+        tickRef.current = null;
+      }
+    };
+
+    try {
+      rec.start();
+    } catch (err) {
+      console.error('failed to start recognition', err);
+      setError('não consegui iniciar o reconhecimento.');
+      return;
+    }
+
+    recognitionRef.current = rec;
+    startedAtRef.current = Date.now();
+    setPhase('listening');
+    setFinalText('');
+    setInterimText('');
+    setElapsedMs(0);
+    tickRef.current = setInterval(() => setElapsedMs(Date.now() - startedAtRef.current), 100);
+  }
+
+  function stopListening() {
+    if (recognitionRef.current) {
+      try {
+        recognitionRef.current.stop();
       } catch {
         /* ignore */
       }
     }
-    teardownAudio();
+    if (tickRef.current) {
+      clearInterval(tickRef.current);
+      tickRef.current = null;
+    }
+    setPhase('idle');
   }
 
-  function teardownAudio() {
-    if (rafRef.current) {
-      cancelAnimationFrame(rafRef.current);
-      rafRef.current = null;
+  async function confirm() {
+    const txt = (finalText + ' ' + interimText).trim();
+    if (!txt) {
+      setError('nada foi capturado.');
+      return;
     }
-    if (streamRef.current) {
-      streamRef.current.getTracks().forEach((t) => t.stop());
-      streamRef.current = null;
+    stopInternal();
+    setPhase('processing');
+    try {
+      await onComplete(txt);
+    } catch (err) {
+      console.error('onComplete failed', err);
+      setError('erro ao salvar.');
+      setPhase('idle');
     }
-    if (audioCtxRef.current) {
-      audioCtxRef.current.close().catch(() => undefined);
-      audioCtxRef.current = null;
-    }
-    analyserRef.current = null;
   }
 
-  function drawLoop() {
-    const canvas = canvasRef.current;
-    const analyser = analyserRef.current;
-    if (!canvas || !analyser) return;
-    const ctx = canvas.getContext('2d');
-    if (!ctx) return;
-    const buffer = new Uint8Array(analyser.fftSize);
-
-    const tick = () => {
-      analyser.getByteTimeDomainData(buffer);
-      const w = canvas.width;
-      const h = canvas.height;
-      ctx.clearRect(0, 0, w, h);
-      ctx.lineWidth = 1.5;
-      ctx.strokeStyle = getComputedStyle(canvas).getPropertyValue('--accent') || '#c0563a';
-      ctx.beginPath();
-      const slice = w / buffer.length;
-      let x = 0;
-      for (let i = 0; i < buffer.length; i++) {
-        const v = (buffer[i] ?? 128) / 128;
-        const y = (v * h) / 2;
-        if (i === 0) ctx.moveTo(x, y);
-        else ctx.lineTo(x, y);
-        x += slice;
-      }
-      ctx.lineTo(w, h / 2);
-      ctx.stroke();
-      rafRef.current = requestAnimationFrame(tick);
-    };
-    tick();
+  function cancel() {
+    stopInternal();
+    onCancel();
   }
+
+  const showText = finalText || interimText;
+  const transcript = (
+    <p className="text-md text-ink leading-snug min-h-[60px]">
+      {finalText ? <span>{finalText}</span> : null}
+      {interimText ? (
+        <span className="text-ink-3 italic">
+          {finalText ? ' ' : ''}
+          {interimText}
+        </span>
+      ) : null}
+      {!showText ? (
+        <span className="text-ink-3 italic">
+          {phase === 'listening' ? 'pode falar…' : 'aperte iniciar e fale'}
+        </span>
+      ) : null}
+    </p>
+  );
 
   return (
     <div className="rounded-lg border hairline bg-surface shadow-card p-4">
       <div className="flex items-center gap-3 mb-3">
         <span
           className={`h-2 w-2 rounded-pill ${
-            phase === 'recording' ? 'bg-danger animate-pulse' : 'bg-ink-3'
+            phase === 'listening' ? 'bg-danger animate-pulse' : 'bg-ink-3'
           }`}
           aria-hidden
         />
         <span className="font-mono text-[11px] uppercase tracking-mono text-ink-2">
-          {phase === 'idle' && 'gravar'}
-          {phase === 'recording' && 'gravando'}
-          {phase === 'processing' && (busyLabel ?? 'transcrevendo…')}
+          {phase === 'idle' && (showText ? 'pausado' : 'gravar voz')}
+          {phase === 'listening' && 'ouvindo…'}
+          {phase === 'processing' && (busyLabel ?? 'salvando…')}
         </span>
-        <span className="ml-auto font-mono text-sm text-ink">
-          {formatMs(elapsedMs)}
-        </span>
+        <span className="ml-auto font-mono text-sm text-ink">{formatMs(elapsedMs)}</span>
       </div>
 
-      <canvas
-        ref={canvasRef}
-        width={560}
-        height={56}
-        className="w-full rounded-sm bg-surface-2"
-      />
+      <div className="rounded-md bg-surface-2 p-3 mb-3">{transcript}</div>
+
+      {!supported ? (
+        <p className="text-xs text-warning mb-3">
+          Seu navegador não suporta reconhecimento nativo (use Chrome ou Safari).
+        </p>
+      ) : null}
 
       {error ? (
-        <p className="mt-3 text-xs text-danger" role="alert">
+        <p className="text-xs text-danger mb-3" role="alert">
           {error}
         </p>
       ) : null}
 
-      <div className="mt-3 flex items-center justify-end gap-2">
-        {phase === 'idle' && (
+      <div className="flex items-center justify-end gap-2">
+        <button
+          type="button"
+          onClick={cancel}
+          className="px-3 py-1.5 text-sm text-ink-2 hover:text-ink"
+        >
+          Cancelar
+        </button>
+
+        {phase === 'listening' ? (
+          <button
+            type="button"
+            onClick={stopListening}
+            className="px-4 py-1.5 rounded-md bg-danger text-white text-sm font-medium"
+          >
+            ■ Parar
+          </button>
+        ) : phase === 'idle' && showText ? (
           <>
             <button
               type="button"
-              onClick={cancel}
-              className="px-3 py-1.5 text-sm text-ink-2 hover:text-ink"
+              onClick={start}
+              disabled={!supported}
+              className="px-3 py-1.5 text-sm text-ink-2 hover:text-ink disabled:opacity-50"
             >
-              Cancelar
+              ● Continuar
             </button>
             <button
               type="button"
-              onClick={() => void start()}
+              onClick={() => void confirm()}
               className="px-4 py-1.5 rounded-md bg-ink text-bg text-sm font-medium"
             >
-              ● Iniciar
+              salvar
             </button>
           </>
-        )}
-        {phase === 'recording' && (
-          <>
-            <button
-              type="button"
-              onClick={cancel}
-              className="px-3 py-1.5 text-sm text-ink-2 hover:text-ink"
-            >
-              Descartar
-            </button>
-            <button
-              type="button"
-              onClick={stop}
-              className="px-4 py-1.5 rounded-md bg-danger text-white text-sm font-medium"
-            >
-              ■ Parar
-            </button>
-          </>
-        )}
-        {phase === 'processing' && (
+        ) : phase === 'idle' ? (
+          <button
+            type="button"
+            onClick={start}
+            disabled={!supported}
+            className="px-4 py-1.5 rounded-md bg-ink text-bg text-sm font-medium disabled:opacity-50"
+          >
+            ● Iniciar
+          </button>
+        ) : (
           <button
             type="button"
             disabled

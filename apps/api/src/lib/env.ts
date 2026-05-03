@@ -29,11 +29,9 @@ const EnvSchema = z.object({
   OPENROUTER_FALLBACK_MODEL: z.string().default('openai/gpt-5'),
   OPENROUTER_HTTP_REFERER: z.string().default('http://localhost:5173'),
   OPENROUTER_APP_NAME: z.string().default('Savit'),
-  WHISPER_MODEL: z.string().default('openai/whisper-large-v3'),
 
   AI_DAILY_TOKEN_LIMIT: z.coerce.number().int().positive().default(200_000),
   AI_MONTHLY_TOKEN_LIMIT: z.coerce.number().int().positive().default(2_000_000),
-  AI_DAILY_AUDIO_MINUTES: z.coerce.number().int().positive().default(60),
 
   CRON_SECRET: z.string().default('dev-cron-secret'),
 
