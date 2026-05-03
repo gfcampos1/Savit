@@ -1,0 +1,5 @@
+[phases.install]
+cmds = ['corepack enable', 'NODE_ENV=development pnpm install --frozen-lockfile']
+
+[phases.build]
+cmds = ['pnpm build', 'pnpm --filter @savit/api exec prisma migrate deploy']
