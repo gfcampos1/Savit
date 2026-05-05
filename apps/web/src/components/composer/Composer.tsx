@@ -114,21 +114,33 @@ export function Composer({
   }
 
   async function createDrawingNote() {
-    const note = await createNote.mutateAsync({
-      type: 'DRAWING',
-      contentText: '',
-      categoryId: effectiveCategoryId ?? null,
-    });
-    navigate(`/notes/${note.id}`);
+    if (createNote.isPending) return;
+    try {
+      const note = await createNote.mutateAsync({
+        type: 'DRAWING',
+        contentText: '',
+        categoryId: effectiveCategoryId ?? null,
+      });
+      navigate(`/notes/${note.id}`);
+    } catch (err) {
+      console.error('createDrawingNote', err);
+      toast({ message: 'Não foi possível criar o desenho.', tone: 'danger' });
+    }
   }
 
   async function createMindMapNote() {
-    const note = await createNote.mutateAsync({
-      type: 'MINDMAP',
-      contentText: '',
-      categoryId: effectiveCategoryId ?? null,
-    });
-    navigate(`/notes/${note.id}`);
+    if (createNote.isPending) return;
+    try {
+      const note = await createNote.mutateAsync({
+        type: 'MINDMAP',
+        contentText: '',
+        categoryId: effectiveCategoryId ?? null,
+      });
+      navigate(`/notes/${note.id}`);
+    } catch (err) {
+      console.error('createMindMapNote', err);
+      toast({ message: 'Não foi possível criar o mapa.', tone: 'danger' });
+    }
   }
 
   /**
