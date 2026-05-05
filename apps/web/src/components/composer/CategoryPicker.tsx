@@ -1,4 +1,4 @@
-import { useState } from 'react';
+import { useEffect, useRef, useState } from 'react';
 import type { Category } from '@savit/shared';
 
 interface CategoryPickerProps {
@@ -9,6 +9,10 @@ interface CategoryPickerProps {
   autoCategoryName?: string | null;
 }
 
+// Altura aproximada do dropdown (8+1 itens × ~32px + paddings). Usada pra
+// decidir abrir pra cima/baixo conforme o espaço disponível na viewport.
+const DROPDOWN_APPROX_H = 280;
+
 export function CategoryPicker({
   categories,
   value,
@@ -16,13 +20,51 @@ export function CategoryPicker({
   autoCategoryName,
 }: CategoryPickerProps) {
   const [open, setOpen] = useState(false);
+  const [openUp, setOpenUp] = useState(true);
+  const buttonRef = useRef<HTMLButtonElement>(null);
+  const menuRef = useRef<HTMLDivElement>(null);
   const selected = value ? categories.find((c) => c.id === value) : null;
+
+  function toggle() {
+    if (!open && buttonRef.current) {
+      // Abre pra baixo se houver espaço; senão pra cima. Composer (rodapé)
+      // tem ~0px abaixo → abre pra cima. Nota detalhe (topo) tem viewport
+      // inteira abaixo → abre pra baixo. Evita clipping atrás do AppShell.
+      const rect = buttonRef.current.getBoundingClientRect();
+      const spaceAbove = rect.top;
+      const spaceBelow = window.innerHeight - rect.bottom;
+      setOpenUp(spaceBelow < DROPDOWN_APPROX_H && spaceAbove > spaceBelow);
+    }
+    setOpen((v) => !v);
+  }
+
+  // Fecha ao clicar fora (substitui o onMouseLeave que era ruim em mobile).
+  useEffect(() => {
+    if (!open) return;
+    function onDocPointer(e: Event) {
+      const target = e.target as Node | null;
+      if (!target) return;
+      if (
+        buttonRef.current?.contains(target) === false &&
+        menuRef.current?.contains(target) === false
+      ) {
+        setOpen(false);
+      }
+    }
+    document.addEventListener('mousedown', onDocPointer);
+    document.addEventListener('touchstart', onDocPointer);
+    return () => {
+      document.removeEventListener('mousedown', onDocPointer);
+      document.removeEventListener('touchstart', onDocPointer);
+    };
+  }, [open]);
 
   return (
     <div className="relative">
       <button
+        ref={buttonRef}
         type="button"
-        onClick={() => setOpen((v) => !v)}
+        onClick={toggle}
         className="inline-flex items-center gap-2 rounded-pill border hairline px-2.5 py-1 text-xs text-ink-2 hover:text-ink transition-colors"
       >
         {selected ? (
@@ -46,9 +88,13 @@ export function CategoryPicker({
 
       {open ? (
         <div
+          ref={menuRef}
           role="menu"
-          className="absolute bottom-full left-0 mb-2 w-56 rounded-md border hairline bg-surface shadow-card p-1 z-20"
-          onMouseLeave={() => setOpen(false)}
+          // z-40 fica acima do AppShell (z-30) sem competir com modais (z-50).
+          // Abre pra cima/baixo conforme posição na viewport.
+          className={`absolute ${
+            openUp ? 'bottom-full mb-2' : 'top-full mt-2'
+          } left-0 w-56 max-h-[60vh] overflow-y-auto rounded-md border hairline bg-surface shadow-card p-1 z-40`}
         >
           <button
             role="menuitem"
