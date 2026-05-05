@@ -1,4 +1,4 @@
-import { lazy, Suspense } from 'react';
+import { lazy, Suspense, useEffect } from 'react';
 import { QueryClient, QueryClientProvider } from '@tanstack/react-query';
 import { BrowserRouter, Navigate, Route, Routes } from 'react-router-dom';
 
@@ -23,27 +23,25 @@ import { InboxPage } from '@/routes/inbox';
 import { TasksPage } from '@/routes/tasks';
 
 // Lazy: telas pesadas (TipTap, tldraw, charts, billing) ou pouco visitadas.
-// Reduz o bundle inicial e acelera o FCP.
-const NoteDetailPage = lazy(() =>
-  import('@/routes/notes/detail').then((m) => ({ default: m.NoteDetailPage })),
-);
-const CategoriesPage = lazy(() =>
-  import('@/routes/categories').then((m) => ({ default: m.CategoriesPage })),
-);
-const ChatPage = lazy(() => import('@/routes/chat/index').then((m) => ({ default: m.ChatPage })));
-const DashboardPage = lazy(() =>
-  import('@/routes/dashboard').then((m) => ({ default: m.DashboardPage })),
-);
-const FocusPage = lazy(() => import('@/routes/focus').then((m) => ({ default: m.FocusPage })));
-const BillingPage = lazy(() =>
-  import('@/routes/billing').then((m) => ({ default: m.BillingPage })),
-);
-const ProfilePage = lazy(() =>
-  import('@/routes/profile').then((m) => ({ default: m.ProfilePage })),
-);
-const AdminPage = lazy(() =>
-  import('@/routes/admin/index').then((m) => ({ default: m.AdminPage })),
-);
+// Reduz o bundle inicial e acelera o FCP. Chunks são pré-carregados em
+// idle (ver useEffect abaixo) — subsequentes navs ficam instantâneas.
+const importNoteDetail = () => import('@/routes/notes/detail');
+const importCategories = () => import('@/routes/categories');
+const importChat = () => import('@/routes/chat/index');
+const importDashboard = () => import('@/routes/dashboard');
+const importFocus = () => import('@/routes/focus');
+const importBilling = () => import('@/routes/billing');
+const importProfile = () => import('@/routes/profile');
+const importAdmin = () => import('@/routes/admin/index');
+
+const NoteDetailPage = lazy(() => importNoteDetail().then((m) => ({ default: m.NoteDetailPage })));
+const CategoriesPage = lazy(() => importCategories().then((m) => ({ default: m.CategoriesPage })));
+const ChatPage = lazy(() => importChat().then((m) => ({ default: m.ChatPage })));
+const DashboardPage = lazy(() => importDashboard().then((m) => ({ default: m.DashboardPage })));
+const FocusPage = lazy(() => importFocus().then((m) => ({ default: m.FocusPage })));
+const BillingPage = lazy(() => importBilling().then((m) => ({ default: m.BillingPage })));
+const ProfilePage = lazy(() => importProfile().then((m) => ({ default: m.ProfilePage })));
+const AdminPage = lazy(() => importAdmin().then((m) => ({ default: m.AdminPage })));
 
 // importa store pra ativar o configureApi side-effect
 import '@/stores/auth';
@@ -54,10 +52,43 @@ const queryClient = new QueryClient({
     queries: {
       retry: 1,
       refetchOnWindowFocus: false,
-      staleTime: 30_000,
+      // 5 min — dados ficam fresh entre navegações de rota. Sem isso cada
+      // mount remontava queries e disparava round-trip pro Railway (cold
+      // start ~3-8s no plano Hobby) → navegação ficava lenta perceptível.
+      staleTime: 5 * 60_000,
+      gcTime: 30 * 60_000,
     },
   },
 });
+
+/**
+ * Pré-carrega chunks lazy depois que o app está interativo. Chunks ficam no
+ * cache de módulos do Vite e o React.lazy resolve instantâneo na navegação.
+ * Roda em requestIdleCallback pra não competir com renderização inicial.
+ */
+function useChunkPrefetch() {
+  useEffect(() => {
+    const ric =
+      typeof window !== 'undefined' && 'requestIdleCallback' in window
+        ? window.requestIdleCallback
+        : (cb: () => void) => setTimeout(cb, 1500);
+    const handle = ric(() => {
+      void importNoteDetail();
+      void importCategories();
+      void importChat();
+      void importDashboard();
+      void importProfile();
+      // billing/focus/admin ficam pra quando o user navegar — pouco frequentes
+    });
+    return () => {
+      if (typeof window !== 'undefined' && 'cancelIdleCallback' in window) {
+        window.cancelIdleCallback(handle as number);
+      } else {
+        clearTimeout(handle as unknown as number);
+      }
+    };
+  }, []);
+}
 
 function RouteFallback() {
   return (
@@ -71,6 +102,7 @@ function AppInner({ children }: { children: React.ReactNode }) {
   // Atalhos globais precisam de useNavigate (CommandPalette usa) → tem que
   // estar dentro do BrowserRouter.
   useGlobalShortcuts();
+  useChunkPrefetch();
   return (
     <>
       <CommandPalette />
