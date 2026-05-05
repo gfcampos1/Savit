@@ -32,6 +32,36 @@
     touch-action: manipulation;
   }
 
+  /* Scrollbar global temada — track transparente, thumb usa ink-3.
+     Adapta automaticamente entre Paper/Playful/Linear via tokens.
+     Firefox: scrollbar-* properties. Chrome/Safari/Edge: ::-webkit-scrollbar. */
+  html {
+    scrollbar-color: var(--ink-3) transparent;
+    scrollbar-width: thin;
+  }
+  ::-webkit-scrollbar {
+    width: 10px;
+    height: 10px;
+  }
+  ::-webkit-scrollbar-track {
+    background: transparent;
+  }
+  ::-webkit-scrollbar-thumb {
+    background-color: var(--ink-3);
+    border-radius: 5px;
+    /* borda transparente + background-clip dá efeito de "thumb fininho com
+       respiro" em vez de encostar nas bordas do track. */
+    border: 2px solid transparent;
+    background-clip: content-box;
+  }
+  ::-webkit-scrollbar-thumb:hover {
+    background-color: var(--ink-2);
+    background-clip: content-box;
+  }
+  ::-webkit-scrollbar-corner {
+    background: transparent;
+  }
+
   /* Cards e elementos selecionáveis: bloqueia menu nativo no long-press
      pra implementar swipe/long-press semântico nossos. */
   article,
