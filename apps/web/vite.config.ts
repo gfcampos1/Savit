@@ -11,9 +11,12 @@ export default defineConfig(({ mode }) => {
     plugins: [
       react(),
       VitePWA({
-        registerType: 'prompt', // mostra toast "Atualizar" quando há nova versão
+        // autoUpdate: novo SW assume sozinho no próximo carregamento. Crítico
+        // pra distribuir hot-fixes (ex: remoção do cache stale de /api/auth/refresh
+        // que estava deslogando usuários presos no SW antigo).
+        registerType: 'autoUpdate',
         includeAssets: ['icons/logo-light.png', 'icons/logo-dark.png', 'icons/logo-accent.png'],
-        injectRegister: false, // registramos manualmente em main.tsx pra controlar update prompt
+        injectRegister: false, // registramos manualmente em main.tsx
         devOptions: {
           enabled: false, // SW só em prod (em dev usaríamos perdíamos hot-reload)
         },
@@ -23,6 +26,12 @@ export default defineConfig(({ mode }) => {
           // navegate fallback pra SPA: se a rota não existir no cache, devolve index.html
           navigateFallback: '/index.html',
           navigateFallbackDenylist: [/^\/api\//],
+          // SW novo assume controle dos clientes abertos imediatamente ao ativar.
+          // Sem isso, abas antigas continuariam servindo o SW antigo até reload.
+          clientsClaim: true,
+          skipWaiting: true,
+          // Limpa precaches de versões anteriores.
+          cleanupOutdatedCaches: true,
           // /api/* fica de fora do SW de propósito: NetworkFirst antes cacheava
           // 401 do /api/auth/refresh e quebrava o login do PWA (timeout de 5s
           // servia resposta stale). React Query gerencia cache em memória.

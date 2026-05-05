@@ -5,6 +5,8 @@
 //   const data = await api<MeResponse>('/api/me');
 //   const created = await api('/api/notes', { method: 'POST', body: { ... } });
 
+import type { MeResponse } from '@savit/shared';
+
 type AccessTokenGetter = () => string | null;
 type AccessTokenSetter = (token: string | null) => void;
 type LogoutHook = () => void;
@@ -54,9 +56,23 @@ interface RequestOpts {
   _retry?: boolean;
 }
 
-let refreshInFlight: Promise<string | null> | null = null;
+export interface RefreshResult {
+  accessToken: string;
+  user: MeResponse;
+}
 
-async function tryRefresh(): Promise<string | null> {
+let refreshInFlight: Promise<RefreshResult | null> | null = null;
+
+/**
+ * Faz POST /api/auth/refresh com in-flight dedup: chamadas concorrentes
+ * compartilham o MESMO request HTTP. Crítico pra evitar a race onde duas
+ * chamadas simultâneas com o mesmo cookie de refresh disparam o
+ * "revoke-all-tokens" no backend (ele detecta reuse do token).
+ *
+ * Setta o accessToken no store automaticamente em sucesso. Caller é
+ * responsável por persistir o `user` se precisar (bootstrap faz).
+ */
+export async function tryRefresh(): Promise<RefreshResult | null> {
   if (refreshInFlight) return refreshInFlight;
   refreshInFlight = (async () => {
     try {
@@ -65,9 +81,9 @@ async function tryRefresh(): Promise<string | null> {
         credentials: 'include',
       });
       if (!res.ok) return null;
-      const data = (await res.json()) as { accessToken: string };
+      const data = (await res.json()) as RefreshResult;
       setAccessToken(data.accessToken);
-      return data.accessToken;
+      return data;
     } catch {
       return null;
     } finally {
@@ -99,8 +115,8 @@ export async function api<T = unknown>(path: string, opts: RequestOpts = {}): Pr
   });
 
   if (res.status === 401 && !opts._retry && !path.startsWith('/api/auth/')) {
-    const newToken = await tryRefresh();
-    if (newToken) {
+    const refreshed = await tryRefresh();
+    if (refreshed) {
       return api<T>(path, { ...opts, _retry: true });
     }
     onForcedLogout();

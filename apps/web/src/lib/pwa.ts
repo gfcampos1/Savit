@@ -31,6 +31,12 @@ function emit(next: Partial<PWAState>) {
 /** Registra o SW. Chamar UMA vez no boot (em main.tsx). */
 export async function registerSW(): Promise<void> {
   if (typeof window === 'undefined' || import.meta.env.DEV) return;
+
+  // Limpa cache órfão do SW antigo (NetworkFirst em /api/* podia ter cacheado
+  // 401 do /api/auth/refresh, deslogando o usuário em loop). Roda 1x por boot,
+  // antes do registro novo. Idempotente — se o cache não existir, não faz nada.
+  await wipeStaleApiCache();
+
   try {
     const { registerSW } = await import('virtual:pwa-register');
     const updateSW = registerSW({
@@ -51,5 +57,19 @@ export async function registerSW(): Promise<void> {
     // virtual:pwa-register só existe quando vite-plugin-pwa rodou — em dev,
     // não. Não é erro real.
     console.debug('PWA registration skipped:', err);
+  }
+}
+
+async function wipeStaleApiCache(): Promise<void> {
+  if (typeof caches === 'undefined') return;
+  try {
+    const names = await caches.keys();
+    await Promise.all(
+      names
+        .filter((n) => n === 'savit-api' || n.startsWith('savit-api-'))
+        .map((n) => caches.delete(n)),
+    );
+  } catch {
+    /* navegadores raros sem CacheStorage — ignora */
   }
 }

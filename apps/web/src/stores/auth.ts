@@ -1,6 +1,6 @@
 import { create } from 'zustand';
 import type { MeResponse } from '@savit/shared';
-import { api, configureApi } from '@/lib/api';
+import { api, configureApi, tryRefresh } from '@/lib/api';
 
 interface AuthState {
   user: MeResponse | null;
@@ -30,22 +30,14 @@ export const useAuthStore = create<AuthState>((set, get) => ({
   clear: () => set({ user: null, accessToken: null, status: 'guest' }),
 
   bootstrap: async () => {
-    // Tenta refresh silencioso ao abrir o app — se houver cookie válido, vira authed.
-    try {
-      const res = await fetch('/api/auth/refresh', {
-        method: 'POST',
-        credentials: 'include',
-      });
-      if (!res.ok) {
-        get().clear();
-        return;
-      }
-      const data = (await res.json()) as {
-        accessToken: string;
-        user: MeResponse;
-      };
+    // Refresh silencioso ao abrir o app. Usa tryRefresh do lib/api pra
+    // compartilhar in-flight cache com o auto-refresh em 401 — sem isso
+    // duas chamadas simultâneas (bootstrap + retry de query) com o mesmo
+    // cookie disparam o revoke-all do backend, deslogando o usuário.
+    const data = await tryRefresh();
+    if (data) {
       set({ user: data.user, accessToken: data.accessToken, status: 'authed' });
-    } catch {
+    } else {
       get().clear();
     }
   },
