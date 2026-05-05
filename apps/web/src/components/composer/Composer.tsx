@@ -235,7 +235,7 @@ export function Composer({
           onKeyDown={onKeyDown}
           placeholder="Envie uma mensagem…"
           rows={1}
-          className="w-full resize-none bg-transparent text-ink text-md leading-snug outline-none placeholder:text-ink-3 py-1"
+          className="w-full resize-none bg-transparent text-ink text-md leading-snug outline-none placeholder:text-ink-3 py-1 no-scrollbar"
           aria-label="capturar ideia"
         />
 
