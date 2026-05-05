@@ -217,72 +217,99 @@ export function Composer({
     );
   }
 
+  const canSubmit = !!text.trim() && !submitting;
+
   return (
-    <div className="rounded-lg border hairline bg-surface shadow-card p-3">
-      {parsed.matches.length > 0 ? (
-        <PreviewChips parsed={parsed} onClearMatch={clearMatch} />
-      ) : null}
+    <div className="space-y-2">
+      {/* Bubble principal: textarea + ícones inline + send circular.
+          Padrão chat moderno (WhatsApp/iMessage): tudo num container só. */}
+      <div className="rounded-3xl border hairline bg-surface shadow-card px-4 pt-3 pb-2">
+        {parsed.matches.length > 0 ? (
+          <PreviewChips parsed={parsed} onClearMatch={clearMatch} />
+        ) : null}
 
-      {/* Linha 1: textarea ocupa largura total — não compete com botões. */}
-      <textarea
-        ref={taRef}
-        value={text}
-        onChange={(e) => setText(e.target.value)}
-        onKeyDown={onKeyDown}
-        placeholder="Sobre o que é?"
-        rows={1}
-        className="w-full resize-none bg-transparent text-ink text-md leading-snug outline-none placeholder:text-ink-3 py-1"
-        aria-label="capturar ideia"
-      />
+        <textarea
+          ref={taRef}
+          value={text}
+          onChange={(e) => setText(e.target.value)}
+          onKeyDown={onKeyDown}
+          placeholder="Envie uma mensagem…"
+          rows={1}
+          className="w-full resize-none bg-transparent text-ink text-md leading-snug outline-none placeholder:text-ink-3 py-1"
+          aria-label="capturar ideia"
+        />
 
-      {/* Linha 2: ícones de captura alternativa (voz, foto, desenho, mapa). */}
-      <div className="mt-2 flex items-center gap-2">
-        <button
-          type="button"
-          onClick={() => setVoiceOpen(true)}
-          aria-label="gravar voz"
-          title="gravar voz"
-          className="grid place-items-center h-9 w-9 rounded-pill border hairline text-ink-2 hover:text-accent hover:border-accent transition-colors"
-        >
-          <MicIcon />
-        </button>
-        <label
-          aria-label="adicionar foto"
-          title="foto / câmera"
-          className="grid place-items-center h-9 w-9 rounded-pill border hairline text-ink-2 hover:text-accent hover:border-accent transition-colors cursor-pointer"
-        >
-          <input
-            type="file"
-            accept="image/*"
-            multiple
-            capture="environment"
-            onChange={(e) => void createPhotoNote(e.target.files)}
-            className="hidden"
-          />
-          <PhotoIcon />
-        </label>
-        <button
-          type="button"
-          onClick={() => void createDrawingNote()}
-          aria-label="desenhar"
-          title="desenho à mão"
-          className="grid place-items-center h-9 w-9 rounded-pill border hairline text-ink-2 hover:text-accent hover:border-accent transition-colors"
-        >
-          <PenIcon />
-        </button>
-        <button
-          type="button"
-          onClick={() => void createMindMapNote()}
-          aria-label="mapa mental"
-          title="mapa mental"
-          className="grid place-items-center h-9 w-9 rounded-pill border hairline text-ink-2 hover:text-accent hover:border-accent transition-colors"
-        >
-          <MindIcon />
-        </button>
+        <div className="mt-1 flex items-center gap-1">
+          {/* Ícones inline sem borda — só ícone tappable. */}
+          <button
+            type="button"
+            onClick={() => setVoiceOpen(true)}
+            aria-label="gravar voz"
+            title="gravar voz"
+            className="grid place-items-center h-9 w-9 rounded-full text-ink-3 hover:text-ink hover:bg-surface-2 transition-colors"
+          >
+            <MicIcon />
+          </button>
+          <label
+            aria-label="adicionar foto"
+            title="foto / câmera"
+            className="grid place-items-center h-9 w-9 rounded-full text-ink-3 hover:text-ink hover:bg-surface-2 transition-colors cursor-pointer"
+          >
+            <input
+              type="file"
+              accept="image/*"
+              multiple
+              capture="environment"
+              onChange={(e) => void createPhotoNote(e.target.files)}
+              className="hidden"
+            />
+            <PhotoIcon />
+          </label>
+          <button
+            type="button"
+            onClick={() => void createDrawingNote()}
+            aria-label="desenhar"
+            title="desenho à mão"
+            className="grid place-items-center h-9 w-9 rounded-full text-ink-3 hover:text-ink hover:bg-surface-2 transition-colors"
+          >
+            <PenIcon />
+          </button>
+          <button
+            type="button"
+            onClick={() => void createMindMapNote()}
+            aria-label="mapa mental"
+            title="mapa mental"
+            className="grid place-items-center h-9 w-9 rounded-full text-ink-3 hover:text-ink hover:bg-surface-2 transition-colors"
+          >
+            <MindIcon />
+          </button>
+
+          <span className="flex-1" />
+
+          {/* Send circular ancorado à direita do bubble. */}
+          <button
+            type="button"
+            onClick={() => void submit()}
+            disabled={!canSubmit}
+            aria-label="enviar"
+            className={`grid place-items-center h-10 w-10 rounded-full transition-colors shrink-0 ${
+              canSubmit
+                ? 'bg-ink text-bg hover:opacity-90'
+                : 'bg-surface-2 text-ink-3 cursor-not-allowed'
+            }`}
+          >
+            {submitting ? (
+              <span className="font-mono text-[10px]">…</span>
+            ) : (
+              <ArrowUpIcon />
+            )}
+          </button>
+        </div>
       </div>
 
-      {/* Linha 3: contexto (categoria + recorrência) + dica de teclado. */}
-      <div className="mt-2 flex items-center justify-between gap-3">
+      {/* Tray de contexto fora do bubble — categoria + recorrência + dica.
+          Visualmente leve, não compete com o bubble principal. */}
+      <div className="px-2 flex items-center justify-between gap-3">
         <div className="flex items-center gap-2 flex-wrap">
           <CategoryPicker
             categories={categories}
@@ -311,29 +338,8 @@ export function Composer({
         </span>
       </div>
 
-      {/* Linha 4: send como CTA prominente — full width no mobile,
-          right-aligned auto no desktop. */}
-      <div className="mt-3 sm:flex sm:justify-end">
-        <button
-          type="button"
-          onClick={() => void submit()}
-          disabled={!text.trim() || submitting}
-          aria-label="enviar"
-          className="w-full sm:w-auto inline-flex items-center justify-center gap-2 h-11 px-6 rounded-pill bg-ink text-bg text-sm font-medium disabled:opacity-40 transition-opacity"
-        >
-          {submitting ? (
-            <span className="font-mono text-[11px]">enviando…</span>
-          ) : (
-            <>
-              <SendIcon />
-              <span>Enviar</span>
-            </>
-          )}
-        </button>
-      </div>
-
       {error ? (
-        <p className="text-xs text-danger mt-2" role="alert">
+        <p className="px-2 text-xs text-danger" role="alert">
           {error}
         </p>
       ) : null}
@@ -392,13 +398,14 @@ function MindIcon() {
   );
 }
 
-function SendIcon() {
+function ArrowUpIcon() {
   return (
-    <svg width="16" height="16" viewBox="0 0 24 24" fill="none" aria-hidden>
+    <svg width="18" height="18" viewBox="0 0 24 24" fill="none" aria-hidden>
       <path
-        d="M5 12L19 5L13 19L11 13L5 12Z"
+        d="M12 19V5M5 12l7-7 7 7"
         stroke="currentColor"
-        strokeWidth="1.8"
+        strokeWidth="2.2"
+        strokeLinecap="round"
         strokeLinejoin="round"
       />
     </svg>
