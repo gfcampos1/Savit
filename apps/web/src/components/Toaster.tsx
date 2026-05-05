@@ -12,10 +12,10 @@ export function Toaster() {
     <div
       role="region"
       aria-label="notificações"
-      // Mobile: bottom-60 (~240px) clareia o composer fixo da Inbox/Tasks
-      // (textarea + ícones + meta + send + paddings + gradient ≈ 232px).
+      // Mobile: bottom-52 (~208px) clareia o composer chat-style fixo da
+      // Inbox/Tasks (bubble + tray de contexto + paddings ≈ 176-200px).
       // Desktop: vai pro canto inferior direito (composer central não bloqueia).
-      className="fixed bottom-60 left-1/2 -translate-x-1/2 sm:bottom-4 sm:left-auto sm:right-4 sm:translate-x-0 z-40 flex flex-col gap-2 max-w-[calc(100%-2rem)] sm:max-w-xs"
+      className="fixed bottom-52 left-1/2 -translate-x-1/2 sm:bottom-4 sm:left-auto sm:right-4 sm:translate-x-0 z-40 flex flex-col gap-2 max-w-[calc(100%-2rem)] sm:max-w-xs"
     >
       {toasts.map((t) => {
         const cls =

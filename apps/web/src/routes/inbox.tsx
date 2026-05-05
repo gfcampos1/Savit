@@ -111,7 +111,7 @@ export function InboxPage() {
   const isLoading = cats.isLoading || notes.isLoading || tasks.isLoading;
 
   return (
-    <div className="max-w-2xl mx-auto px-6 pt-8 pb-64">
+    <div className="max-w-2xl mx-auto px-6 pt-8 pb-52">
       <header className="mb-6 flex items-end justify-between gap-4">
         <div className="flex-1 min-w-0">
           <p className="font-mono text-[11px] uppercase tracking-mono text-ink-3">Olá ✦</p>

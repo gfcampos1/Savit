@@ -39,7 +39,7 @@ export function TasksPage() {
   const pending = total - done;
 
   return (
-    <div className="max-w-2xl md:max-w-7xl mx-auto px-6 pt-8 pb-64">
+    <div className="max-w-2xl md:max-w-7xl mx-auto px-6 pt-8 pb-52">
       <header className="mb-6 flex flex-col md:flex-row md:items-end gap-3 md:gap-6">
         <div>
           <p className="font-mono text-[11px] uppercase tracking-mono text-ink-3">Quadro</p>
