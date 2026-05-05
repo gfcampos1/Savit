@@ -139,7 +139,7 @@ export function InboxPage() {
         ) : null}
       </header>
 
-      <nav className="sticky top-[57px] z-10 -mx-6 px-6 py-3 bg-bg/85 backdrop-blur border-b hairline mb-6 flex items-center gap-3 flex-wrap">
+      <nav className="sticky top-[calc(57px+env(safe-area-inset-top))] z-10 -mx-6 px-6 py-3 bg-bg/85 backdrop-blur border-b hairline mb-6 flex items-center gap-3 flex-wrap">
         <div className="inline-flex gap-1 rounded-pill bg-surface-2 p-1">
           <Tab active={filter === 'all'} onClick={() => setFilter('all')} count={noteCount + taskCount}>
             Tudo
@@ -179,7 +179,7 @@ export function InboxPage() {
         <Feed notes={filteredNotes} tasks={filteredTasks} filter={filter} />
       )}
 
-      <div className="fixed inset-x-0 bottom-0 z-20 bg-gradient-to-t from-bg via-bg to-transparent px-6 pt-6 pb-6">
+      <div className="fixed inset-x-0 bottom-0 z-20 bg-gradient-to-t from-bg via-bg to-transparent px-6 pt-6 pb-[calc(1.5rem+env(safe-area-inset-bottom))]">
         <div className="max-w-2xl mx-auto">
           <Composer
             categories={cats.data ?? []}

@@ -92,7 +92,7 @@ export function TasksPage() {
         <Board tasks={filtered} />
       )}
 
-      <div className="fixed inset-x-0 bottom-0 z-20 bg-gradient-to-t from-bg via-bg to-transparent px-6 pt-6 pb-6">
+      <div className="fixed inset-x-0 bottom-0 z-20 bg-gradient-to-t from-bg via-bg to-transparent px-6 pt-6 pb-[calc(1.5rem+env(safe-area-inset-bottom))]">
         <div className="max-w-2xl mx-auto">
           <Composer categories={cats.data ?? []} defaultCategoryId={categoryId} />
         </div>

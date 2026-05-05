@@ -15,7 +15,7 @@ export function AppShell() {
   return (
     <div className="min-h-full flex flex-col">
       <PaywallBanner />
-      <header className="sticky top-0 z-30 border-b hairline bg-bg/85 backdrop-blur">
+      <header className="sticky top-0 z-30 border-b hairline bg-bg/85 backdrop-blur pt-[env(safe-area-inset-top)]">
         <nav className="max-w-7xl mx-auto px-4 md:px-6 py-3 flex items-center gap-3 md:gap-5">
           <NavLink to="/" className="flex items-center gap-2 shrink-0" aria-label="Savit">
             <img src="/icons/logo-light.png" alt="" width={24} height={24} className="rounded" />
