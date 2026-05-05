@@ -41,6 +41,29 @@
 [data-theme='paper'][data-accent='purple']{ --accent: #7a5cc7; }
 [data-theme='paper'][data-accent='blue']  { --accent: #5b8cff; }
 
+/* ===== Tema A2 — Snow (claro neutro, branco moderno) =====
+   Alternativa fria ao Paper: branco puro, cinzas frios, accent azul.
+   Para usuários que acham o creme do Paper amarelado demais. */
+[data-theme='snow'] {
+  --bg: #ffffff;
+  --surface: #ffffff;
+  --surface-2: #f4f4f5;
+  --ink: #18181b;
+  --ink-2: #52525b;
+  --ink-3: #a1a1aa;
+  --hair: rgba(0, 0, 0, 0.08);
+  --accent: #2563eb;
+  --accent-2: #4338ca;
+  --accent-soft: rgba(37, 99, 235, 0.08);
+  --success: #16a34a;
+  --warning: #ca8a04;
+  --danger: #dc2626;
+  --shadow-card: 0 1px 0 rgba(0, 0, 0, 0.04), 0 12px 24px -16px rgba(0, 0, 0, 0.12);
+  --radius-sm: 8px;
+  --radius-md: 12px;
+  --radius-lg: 18px;
+}
+
 /* ===== Tema B — Playful (vibrante, dark roxo) ===== */
 [data-theme='playful'] {
   --bg: #0e0a1a;

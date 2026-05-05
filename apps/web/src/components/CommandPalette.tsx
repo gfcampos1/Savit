@@ -307,5 +307,14 @@ function renderGroups(groups: Group[], active: number) {
 }
 
 function labelTheme(t: Theme): string {
-  return t === 'paper' ? 'Paper' : t === 'playful' ? 'Playful' : 'Linear';
+  switch (t) {
+    case 'paper':
+      return 'Paper';
+    case 'snow':
+      return 'Snow';
+    case 'playful':
+      return 'Playful';
+    case 'linear':
+      return 'Linear';
+  }
 }

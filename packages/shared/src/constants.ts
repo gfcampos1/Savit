@@ -16,7 +16,7 @@ export const CATEGORY_COLORS = [
 
 export type CategoryColor = (typeof CATEGORY_COLORS)[number];
 
-export const THEMES = ['paper', 'playful', 'linear'] as const;
+export const THEMES = ['paper', 'snow', 'playful', 'linear'] as const;
 export type Theme = (typeof THEMES)[number];
 
 export const KANBAN_DEFAULT_COLUMNS = ['hoje', 'amanha', 'semana', 'sem-prazo', 'concluidas'] as const;

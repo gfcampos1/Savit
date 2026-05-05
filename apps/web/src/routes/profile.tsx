@@ -65,6 +65,8 @@ function labelFor(t: Theme): string {
   switch (t) {
     case 'paper':
       return 'Paper';
+    case 'snow':
+      return 'Snow';
     case 'playful':
       return 'Playful';
     case 'linear':

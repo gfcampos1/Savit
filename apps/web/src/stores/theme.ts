@@ -19,6 +19,7 @@ function applyToDom(theme: Theme) {
   // ajusta meta theme-color baseado no fundo do tema
   const colors: Record<Theme, string> = {
     paper: '#f6f1e8',
+    snow: '#ffffff',
     playful: '#0e0a1a',
     linear: '#0a0c10',
   };
