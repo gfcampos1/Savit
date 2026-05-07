@@ -146,12 +146,11 @@ export function Composer({
   async function onVoiceTranscript(transcript: string) {
     setVoiceBusy('salvando…');
     try {
-      // Aplica o parser natural na transcrição (pode capturar #categoria,
-      // hoje 9h, etc. se o usuário disser de viva voz).
+      // Aplica o parser natural na transcrição (pode capturar #categoria
+      // ou prioridade se o usuário disser de viva voz).
       const speechParsed = parseNatural(transcript, categories);
       const cleanText = speechParsed.text.trim() || transcript;
 
-      let note;
       const note = await createNote.mutateAsync({
         type: 'TEXT',
         contentText: cleanText,
