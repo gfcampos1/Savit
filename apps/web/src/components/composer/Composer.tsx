@@ -84,8 +84,10 @@ export function Composer({
     setError(null);
     try {
       if (parsed.isTask) {
+        const { title, description } = splitTitleAndDescription(content);
         const task = await createTask.mutateAsync({
-          title: content,
+          title,
+          description,
           dueAt: parsed.dueAt ? new Date(parsed.dueAt).toISOString() : null,
           categoryId: effectiveCategoryId ?? null,
           priority: parsed.priority ?? undefined,
@@ -172,8 +174,10 @@ export function Composer({
 
       let note;
       if (speechParsed.isTask) {
+        const { title, description } = splitTitleAndDescription(cleanText);
         await createTask.mutateAsync({
-          title: cleanText,
+          title,
+          description,
           dueAt: speechParsed.dueAt ? new Date(speechParsed.dueAt).toISOString() : null,
           categoryId: speechParsed.categoryId ?? effectiveCategoryId ?? null,
           priority: speechParsed.priority ?? undefined,
@@ -357,6 +361,35 @@ export function Composer({
       ) : null}
     </div>
   );
+}
+
+// Schema do backend limita title a 200 chars. Se o conteúdo capturado virar
+// tarefa e exceder isso, joga o título-resumo (primeira linha truncada) no
+// title e o resto vai pra description (limite 5000) — em vez de bloquear o save.
+const TASK_TITLE_MAX = 200;
+function splitTitleAndDescription(content: string): {
+  title: string;
+  description: string | undefined;
+} {
+  const firstLineEnd = content.indexOf('\n');
+  const firstLine = firstLineEnd === -1 ? content : content.slice(0, firstLineEnd);
+  const rest = firstLineEnd === -1 ? '' : content.slice(firstLineEnd + 1).trim();
+
+  if (firstLine.length <= TASK_TITLE_MAX && !rest) {
+    return { title: firstLine, description: undefined };
+  }
+
+  if (firstLine.length <= TASK_TITLE_MAX) {
+    return { title: firstLine, description: rest || undefined };
+  }
+
+  // primeira linha já estoura — corta no último espaço antes do limite
+  const cut = firstLine.lastIndexOf(' ', TASK_TITLE_MAX - 1);
+  const sliceAt = cut > TASK_TITLE_MAX / 2 ? cut : TASK_TITLE_MAX - 1;
+  const title = firstLine.slice(0, sliceAt).trimEnd() + '…';
+  const overflow = firstLine.slice(sliceAt).trim();
+  const description = [overflow, rest].filter(Boolean).join('\n').trim() || undefined;
+  return { title, description };
 }
 
 function MicIcon() {

@@ -218,7 +218,11 @@ export function parseNatural(input: string, categories: Category[]): ParseResult
     dueAt = d.getTime();
   }
 
-  const isTask = dueAt !== null || matchesTaskVerb(lower);
+  // Conteúdo multi-linha ou longo sem data explícita é nota, não tarefa —
+  // pautas/agendas/listas estruturadas costumam conter verbos imperativos
+  // ("fazer", "marcar", "enviar") sem serem uma única tarefa acionável.
+  const looksLikeNote = raw.includes('\n') || raw.length > 200;
+  const isTask = dueAt !== null || (!looksLikeNote && matchesTaskVerb(lower));
   // (não empurramos um match 'task' aqui — KindChip em PreviewChips já mostra
   // o badge "TAREFA"/"NOTA" baseado em isTask.)
 
