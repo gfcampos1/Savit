@@ -3,8 +3,6 @@ import { useNavigate } from 'react-router-dom';
 import type { Category } from '@savit/shared';
 import { parseNatural } from '@/lib/parse-natural';
 import { useCreateNote } from '@/hooks/useNotes';
-import { useCreateTask } from '@/hooks/useTasks';
-import { useMakeTaskRecurring } from '@/hooks/useRecurringTasks';
 import { uploadAttachment } from '@/lib/upload';
 import { PreviewChips } from './PreviewChips';
 import { CategoryPicker } from './CategoryPicker';
@@ -24,7 +22,8 @@ interface ComposerProps {
  * - Parser roda enquanto digita; chips removíveis.
  * - Categoria pode ser fixada via dropdown (sobrescreve #hashtag).
  * - Cmd/Ctrl+Enter envia, Esc colapsa.
- * - Cria nota OU tarefa baseado no parser; se houver dueAt → tarefa.
+ * - Sempre cria nota. Conversão para tarefa é feita explicitamente pelo
+ *   usuário via botão "→ tarefa" no NoteCard.
  */
 export function Composer({
   categories,
@@ -40,7 +39,6 @@ export function Composer({
     // eslint-disable-next-line react-hooks/exhaustive-deps
   }, [initialText]);
   const [pinnedCategoryId, setPinnedCategoryId] = useState<string | null>(defaultCategoryId);
-  const [recurringWeekly, setRecurringWeekly] = useState(false);
   const [submitting, setSubmitting] = useState(false);
   const [error, setError] = useState<string | null>(null);
   const [voiceOpen, setVoiceOpen] = useState(false);
@@ -49,8 +47,6 @@ export function Composer({
   const navigate = useNavigate();
 
   const createNote = useCreateNote();
-  const createTask = useCreateTask();
-  const makeRecurring = useMakeTaskRecurring();
 
   const parsed = useMemo(() => parseNatural(text, categories), [text, categories]);
   const effectiveCategoryId = pinnedCategoryId ?? parsed.categoryId;
@@ -73,7 +69,6 @@ export function Composer({
   function reset() {
     setText('');
     setError(null);
-    setRecurringWeekly(false);
     requestAnimationFrame(() => taRef.current?.focus());
   }
 
@@ -83,29 +78,13 @@ export function Composer({
     setSubmitting(true);
     setError(null);
     try {
-      if (parsed.isTask) {
-        const { title, description } = splitTitleAndDescription(content);
-        const task = await createTask.mutateAsync({
-          title,
-          description,
-          dueAt: parsed.dueAt ? new Date(parsed.dueAt).toISOString() : null,
-          categoryId: effectiveCategoryId ?? null,
-          priority: parsed.priority ?? undefined,
-          status: 'TODAY',
-          column: 'hoje',
-        });
-        if (recurringWeekly) {
-          await makeRecurring.mutateAsync({ taskId: task.id });
-        }
-      } else {
-        await createNote.mutateAsync({
-          type: 'TEXT',
-          contentText: content,
-          rawInput: parsed.raw,
-          categoryId: effectiveCategoryId ?? null,
-          priority: parsed.priority ?? undefined,
-        });
-      }
+      await createNote.mutateAsync({
+        type: 'TEXT',
+        contentText: content,
+        rawInput: parsed.raw,
+        categoryId: effectiveCategoryId ?? null,
+        priority: parsed.priority ?? undefined,
+      });
       reset();
     } catch (err) {
       setError('Não conseguimos salvar agora. Tente de novo.');
@@ -173,33 +152,19 @@ export function Composer({
       const cleanText = speechParsed.text.trim() || transcript;
 
       let note;
-      if (speechParsed.isTask) {
-        const { title, description } = splitTitleAndDescription(cleanText);
-        await createTask.mutateAsync({
-          title,
-          description,
-          dueAt: speechParsed.dueAt ? new Date(speechParsed.dueAt).toISOString() : null,
-          categoryId: speechParsed.categoryId ?? effectiveCategoryId ?? null,
-          priority: speechParsed.priority ?? undefined,
-          status: 'TODAY',
-          column: 'hoje',
-        });
-        toast({ message: 'Tarefa criada por voz.', tone: 'success' });
-      } else {
-        note = await createNote.mutateAsync({
-          type: 'TEXT',
-          contentText: cleanText,
-          rawInput: transcript,
-          categoryId: speechParsed.categoryId ?? effectiveCategoryId ?? null,
-          priority: speechParsed.priority ?? undefined,
-        });
-        toast({
-          message: 'Nota criada por voz.',
-          tone: 'success',
-          actionLabel: 'Abrir',
-          onAction: () => navigate(`/notes/${note!.id}`),
-        });
-      }
+      const note = await createNote.mutateAsync({
+        type: 'TEXT',
+        contentText: cleanText,
+        rawInput: transcript,
+        categoryId: speechParsed.categoryId ?? effectiveCategoryId ?? null,
+        priority: speechParsed.priority ?? undefined,
+      });
+      toast({
+        message: 'Nota criada por voz.',
+        tone: 'success',
+        actionLabel: 'Abrir',
+        onAction: () => navigate(`/notes/${note.id}`),
+      });
 
       setVoiceOpen(false);
       setVoiceBusy(null);
@@ -323,7 +288,7 @@ export function Composer({
         </div>
       </div>
 
-      {/* Tray de contexto fora do bubble — categoria + recorrência + dica.
+      {/* Tray de contexto fora do bubble — categoria + dica.
           Visualmente leve, não compete com o bubble principal. */}
       <div className="px-2 flex items-center justify-between gap-3">
         <div className="flex items-center gap-2 flex-wrap">
@@ -333,21 +298,6 @@ export function Composer({
             onChange={setPinnedCategoryId}
             autoCategoryName={!pinnedCategoryId ? parsed.categoryName : null}
           />
-          {parsed.isTask ? (
-            <button
-              type="button"
-              onClick={() => setRecurringWeekly((v) => !v)}
-              aria-pressed={recurringWeekly}
-              title="Toda semana, no dia de hoje, cria uma nova cópia em 'Sem prazo'"
-              className={`inline-flex items-center gap-1 rounded-pill border px-2.5 py-1 text-xs transition-colors ${
-                recurringWeekly
-                  ? 'bg-ink text-bg border-ink'
-                  : 'hairline text-ink-2 hover:text-ink'
-              }`}
-            >
-              ↻ semanal
-            </button>
-          ) : null}
         </div>
         <span className="font-mono text-[10px] uppercase tracking-mono text-ink-3 hidden sm:block">
           ⌘↵ enviar
@@ -361,35 +311,6 @@ export function Composer({
       ) : null}
     </div>
   );
-}
-
-// Schema do backend limita title a 200 chars. Se o conteúdo capturado virar
-// tarefa e exceder isso, joga o título-resumo (primeira linha truncada) no
-// title e o resto vai pra description (limite 5000) — em vez de bloquear o save.
-const TASK_TITLE_MAX = 200;
-function splitTitleAndDescription(content: string): {
-  title: string;
-  description: string | undefined;
-} {
-  const firstLineEnd = content.indexOf('\n');
-  const firstLine = firstLineEnd === -1 ? content : content.slice(0, firstLineEnd);
-  const rest = firstLineEnd === -1 ? '' : content.slice(firstLineEnd + 1).trim();
-
-  if (firstLine.length <= TASK_TITLE_MAX && !rest) {
-    return { title: firstLine, description: undefined };
-  }
-
-  if (firstLine.length <= TASK_TITLE_MAX) {
-    return { title: firstLine, description: rest || undefined };
-  }
-
-  // primeira linha já estoura — corta no último espaço antes do limite
-  const cut = firstLine.lastIndexOf(' ', TASK_TITLE_MAX - 1);
-  const sliceAt = cut > TASK_TITLE_MAX / 2 ? cut : TASK_TITLE_MAX - 1;
-  const title = firstLine.slice(0, sliceAt).trimEnd() + '…';
-  const overflow = firstLine.slice(sliceAt).trim();
-  const description = [overflow, rest].filter(Boolean).join('\n').trim() || undefined;
-  return { title, description };
 }
 
 function MicIcon() {

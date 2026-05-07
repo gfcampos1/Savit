@@ -7,33 +7,22 @@ interface PreviewChipsProps {
 
 /**
  * Chips do parser exibidos acima do input. Cada chip tem X pra remover do texto.
- * SPEC §3.3 + R-01.
+ * Hoje só categoria e prioridade — composer sempre cria nota.
  */
 export function PreviewChips({ parsed, onClearMatch }: PreviewChipsProps) {
   if (parsed.matches.length === 0) return null;
   return (
     <div className="flex flex-wrap gap-1.5 mb-2">
-      <KindChip kind={parsed.isTask ? 'task' : 'note'} />
       {parsed.matches.map((m, i) => (
         <Chip
           key={`${m.kind}-${i}`}
           color={m.kind === 'category' ? parsed.categoryColor ?? undefined : undefined}
-          onRemove={m.kind === 'task' ? undefined : () => onClearMatch(i)}
+          onRemove={() => onClearMatch(i)}
         >
           {m.label}
         </Chip>
       ))}
     </div>
-  );
-}
-
-function KindChip({ kind }: { kind: 'task' | 'note' }) {
-  return (
-    <span className="inline-flex items-center gap-1.5 rounded-pill bg-accent-soft text-accent px-2.5 py-1 text-xs font-medium">
-      <span className="font-mono uppercase tracking-mono text-[10px]">
-        {kind === 'task' ? 'tarefa' : 'nota'}
-      </span>
-    </span>
   );
 }
 
