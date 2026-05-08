@@ -23,11 +23,11 @@ export function useTasks(opts?: { status?: TaskStatus; column?: string; includeD
 
 export interface CreateTaskInput {
   title: string;
-  description?: string;
+  description?: string | null;
   status?: TaskStatus;
   column?: string;
   dueAt?: string | null;
-  priority?: 'low' | 'med' | 'high';
+  priority?: 'low' | 'med' | 'high' | null;
   categoryId?: string | null;
   noteId?: string | null;
 }

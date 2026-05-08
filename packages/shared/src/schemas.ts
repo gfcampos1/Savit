@@ -95,13 +95,13 @@ export const NotePatch = NoteInput.partial();
 
 export const TaskInput = z.object({
   title: z.string().min(1).max(200),
-  description: z.string().max(5_000).optional(),
+  description: z.string().max(5_000).nullable().optional(),
   status: z.enum(TASK_STATUSES as unknown as [string, ...string[]]).default('TODAY'),
   column: z.string().min(1).max(40).default('hoje'),
   sortOrder: z.number().int().nonnegative().default(0),
   dueAt: z.string().datetime().nullable().optional(),
-  priority: z.enum(['low', 'med', 'high']).optional(),
-  reminderMinBefore: z.number().int().nonnegative().optional(),
+  priority: z.enum(['low', 'med', 'high']).nullable().optional(),
+  reminderMinBefore: z.number().int().nonnegative().nullable().optional(),
   categoryId: z.string().cuid().nullable().optional(),
   noteId: z.string().cuid().nullable().optional(),
 });

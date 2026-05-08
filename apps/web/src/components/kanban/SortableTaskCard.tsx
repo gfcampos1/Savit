@@ -1,9 +1,11 @@
+import { useState } from 'react';
 import type { Task } from '@savit/shared';
 import { useSortable } from '@dnd-kit/sortable';
 import { CSS } from '@dnd-kit/utilities';
 import { dueLabel } from '@/lib/format-date';
 import { useToggleTaskDone, useDeleteTask } from '@/hooks/useTasks';
 import { confirm } from '@/stores/confirm';
+import { TaskEditSheet } from '@/components/tasks/TaskEditSheet';
 
 interface SortableTaskCardProps {
   task: Task;
@@ -18,6 +20,7 @@ export function SortableTaskCard({ task, ghost, hideWhileDragging }: SortableTas
     id: task.id,
     data: { type: 'task', column: task.column, sortOrder: task.sortOrder },
   });
+  const [editing, setEditing] = useState(false);
 
   const style: React.CSSProperties = {
     transform: CSS.Transform.toString(transform),
@@ -26,15 +29,25 @@ export function SortableTaskCard({ task, ghost, hideWhileDragging }: SortableTas
   };
 
   return (
-    <div
-      ref={setNodeRef}
-      style={style}
-      {...attributes}
-      {...listeners}
-      className={`select-none ${ghost ? 'opacity-50' : ''}`}
-    >
-      <TaskCardBody task={task} />
-    </div>
+    <>
+      <div
+        ref={setNodeRef}
+        style={style}
+        {...attributes}
+        {...listeners}
+        onClick={() => setEditing(true)}
+        onKeyDown={(e) => {
+          if (e.key === 'Enter') {
+            e.preventDefault();
+            setEditing(true);
+          }
+        }}
+        className={`select-none cursor-pointer ${ghost ? 'opacity-50' : ''}`}
+      >
+        <TaskCardBody task={task} />
+      </div>
+      {editing ? <TaskEditSheet task={task} onClose={() => setEditing(false)} /> : null}
+    </>
   );
 }
 
