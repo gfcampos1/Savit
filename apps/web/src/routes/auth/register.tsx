@@ -25,9 +25,11 @@ export function RegisterPage() {
   const register = useAuthStore((s) => s.register);
   const googleExchange = useAuthStore((s) => s.googleExchange);
 
+  const rememberDefault = useAuthStore((s) => s.rememberMe);
   const [name, setName] = useState('');
   const [email, setEmail] = useState('');
   const [password, setPassword] = useState('');
+  const [rememberMe, setRememberMe] = useState(rememberDefault);
   const [submitting, setSubmitting] = useState(false);
   const [error, setError] = useState<string | null>(null);
 
@@ -40,7 +42,7 @@ export function RegisterPage() {
     setError(null);
     setSubmitting(true);
     try {
-      await register({ email, password, name: name.trim() || undefined });
+      await register({ email, password, name: name.trim() || undefined, rememberMe });
       navigate('/', { replace: true });
     } catch (err) {
       if (err instanceof ApiError && err.status === 409) {
@@ -78,7 +80,7 @@ export function RegisterPage() {
           label="Cadastrar com Google"
           onCode={async (code) => {
             try {
-              await googleExchange(code);
+              await googleExchange(code, rememberMe);
               navigate('/', { replace: true });
             } catch (err) {
               setError(
@@ -145,9 +147,19 @@ export function RegisterPage() {
             />
           ))}
         </div>
-        <p className="text-xs text-ink-3 mb-6">
-          {password ? `força · ${STRENGTH_COPY[Math.max(0, score - 1)] ?? '—'}` : ' '}
+        <p className="text-xs text-ink-3 mb-4">
+          {password ? `força · ${STRENGTH_COPY[Math.max(0, score - 1)] ?? '—'}` : ' '}
         </p>
+
+        <label className="flex items-center gap-2.5 mb-6 cursor-pointer select-none">
+          <input
+            type="checkbox"
+            checked={rememberMe}
+            onChange={(e) => setRememberMe(e.target.checked)}
+            className="h-4 w-4 accent-accent cursor-pointer"
+          />
+          <span className="text-sm text-ink-2">Mantenha-me conectado</span>
+        </label>
 
         {error ? (
           <p className="text-sm text-danger mb-4" role="alert">

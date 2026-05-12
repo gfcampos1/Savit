@@ -11,10 +11,11 @@ export default defineConfig(({ mode }) => {
     plugins: [
       react(),
       VitePWA({
-        // autoUpdate: novo SW assume sozinho no próximo carregamento. Crítico
-        // pra distribuir hot-fixes (ex: remoção do cache stale de /api/auth/refresh
-        // que estava deslogando usuários presos no SW antigo).
-        registerType: 'autoUpdate',
+        // prompt: o SW novo fica em "waiting" até o usuário aceitar atualizar
+        // (toast em onPWAState → updateNow). Evita reload-surpresa que zerava
+        // o access token em memória e empurrava o user pra tela de login no
+        // meio de uma sessão.
+        registerType: 'prompt',
         includeAssets: ['icons/logo-light.png', 'icons/logo-dark.png', 'icons/logo-accent.png'],
         injectRegister: false, // registramos manualmente em main.tsx
         devOptions: {

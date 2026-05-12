@@ -12,12 +12,15 @@ export const RegisterInput = z.object({
     .regex(/[A-Za-z]/, 'precisa de letra')
     .regex(/[0-9]/, 'precisa de número'),
   name: z.string().min(1).max(80).optional(),
+  // "Mantenha-me conectado" — refresh token com TTL longo (sticky na rotação).
+  rememberMe: z.boolean().optional(),
 });
 export type RegisterInput = z.infer<typeof RegisterInput>;
 
 export const LoginInput = z.object({
   email: z.string().email().max(254),
   password: z.string().min(1).max(128),
+  rememberMe: z.boolean().optional(),
 });
 export type LoginInput = z.infer<typeof LoginInput>;
 

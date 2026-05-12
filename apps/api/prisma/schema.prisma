@@ -102,6 +102,9 @@ model RefreshToken {
   deviceInfo  String?
   expiresAt   DateTime
   revokedAt   DateTime?
+  // true quando o usuário marcou "Mantenha-me conectado" no login — emite tokens
+  // com TTL longo (JWT_REFRESH_EXTENDED_EXPIRES_IN). Sticky na rotação.
+  extended    Boolean   @default(false)
   createdAt   DateTime  @default(now())
   user        User      @relation(fields: [userId], references: [id], onDelete: Cascade)
 

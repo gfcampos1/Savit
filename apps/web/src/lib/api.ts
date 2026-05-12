@@ -58,10 +58,16 @@ interface RequestOpts {
 
 export interface RefreshResult {
   accessToken: string;
+  accessExpiresInMs: number;
   user: MeResponse;
 }
 
-let refreshInFlight: Promise<RefreshResult | null> | null = null;
+export type RefreshOutcome =
+  | { ok: true; data: RefreshResult }
+  | { ok: false; reason: 'unauthorized' }
+  | { ok: false; reason: 'network' };
+
+let refreshInFlight: Promise<RefreshOutcome> | null = null;
 
 /**
  * Faz POST /api/auth/refresh com in-flight dedup: chamadas concorrentes
@@ -69,10 +75,10 @@ let refreshInFlight: Promise<RefreshResult | null> | null = null;
  * chamadas simultâneas com o mesmo cookie de refresh disparam o
  * "revoke-all-tokens" no backend (ele detecta reuse do token).
  *
- * Setta o accessToken no store automaticamente em sucesso. Caller é
- * responsável por persistir o `user` se precisar (bootstrap faz).
+ * Distingue 'unauthorized' (cookie inválido — pode deslogar) de 'network'
+ * (falha de fetch / 5xx — NÃO desloga). Em sucesso, setta accessToken no store.
  */
-export async function tryRefresh(): Promise<RefreshResult | null> {
+export async function tryRefresh(): Promise<RefreshOutcome> {
   if (refreshInFlight) return refreshInFlight;
   refreshInFlight = (async () => {
     try {
@@ -80,12 +86,18 @@ export async function tryRefresh(): Promise<RefreshResult | null> {
         method: 'POST',
         credentials: 'include',
       });
-      if (!res.ok) return null;
+      if (res.status === 401 || res.status === 403) {
+        return { ok: false, reason: 'unauthorized' } as const;
+      }
+      if (!res.ok) {
+        // 5xx, 429 etc. = problema do servidor, não auth — não desloga.
+        return { ok: false, reason: 'network' } as const;
+      }
       const data = (await res.json()) as RefreshResult;
       setAccessToken(data.accessToken);
-      return data;
+      return { ok: true, data } as const;
     } catch {
-      return null;
+      return { ok: false, reason: 'network' } as const;
     } finally {
       refreshInFlight = null;
     }
@@ -116,10 +128,15 @@ export async function api<T = unknown>(path: string, opts: RequestOpts = {}): Pr
 
   if (res.status === 401 && !opts._retry && !path.startsWith('/api/auth/')) {
     const refreshed = await tryRefresh();
-    if (refreshed) {
+    if (refreshed.ok) {
       return api<T>(path, { ...opts, _retry: true });
     }
-    onForcedLogout();
+    // Só desloga em 401 explícito do refresh. Em erro de rede, deixa a request
+    // original falhar com 401 — o caller decide (geralmente o React Query retry
+    // ou o user tenta de novo); a sessão NÃO é perdida por hiccup de rede.
+    if (refreshed.reason === 'unauthorized') {
+      onForcedLogout();
+    }
   }
 
   const isJson = res.headers.get('content-type')?.includes('application/json');

@@ -121,4 +121,6 @@ export interface MeResponse {
 export interface AuthResponse {
   user: MeResponse;
   accessToken: string;
+  /** TTL do access token em ms — usado pelo front pra agendar refresh proativo. */
+  accessExpiresInMs: number;
 }

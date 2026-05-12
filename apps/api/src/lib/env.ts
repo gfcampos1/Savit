@@ -11,7 +11,10 @@ const EnvSchema = z.object({
 
   JWT_SECRET: z.string().min(32, 'JWT_SECRET must be at least 32 chars'),
   JWT_ACCESS_EXPIRES_IN: z.string().default('15m'),
-  JWT_REFRESH_EXPIRES_IN: z.string().default('30d'),
+  JWT_REFRESH_EXPIRES_IN: z.string().default('90d'),
+  // TTL longo quando o usuário marca "Mantenha-me conectado". A flag fica
+  // sticky no refresh token row e é propagada em cada rotação.
+  JWT_REFRESH_EXTENDED_EXPIRES_IN: z.string().default('365d'),
   BCRYPT_ROUNDS: z.coerce.number().int().min(8).max(15).default(12),
 
   ENCRYPTION_KEY: z.string().min(32).default('dev-encryption-key-32-chars-long-xx'),

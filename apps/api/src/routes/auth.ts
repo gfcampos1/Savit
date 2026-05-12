@@ -82,6 +82,9 @@ authRouter.post('/login', async (req, res, next) => {
   }
 });
 
+// Schema dos endpoints Google — credential/code + flag opcional rememberMe.
+const RememberMeFlag = z.object({ rememberMe: z.boolean().optional() });
+
 // Config público pro front saber quais providers de auth estão disponíveis
 // sem depender de VITE_* em build time. Cacheável (5min).
 authRouter.get('/config', (_req, res) => {
@@ -91,14 +94,20 @@ authRouter.get('/config', (_req, res) => {
   });
 });
 
-const GoogleLoginInput = z.object({
-  credential: z.string().min(20).max(8192),
-});
+const GoogleLoginInput = z
+  .object({
+    credential: z.string().min(20).max(8192),
+  })
+  .merge(RememberMeFlag);
 
 authRouter.post('/google', async (req, res, next) => {
   try {
-    const { credential } = GoogleLoginInput.parse(req.body);
-    const result = await loginWithGoogle({ credential, deviceInfo: deviceInfoFrom(req) });
+    const { credential, rememberMe } = GoogleLoginInput.parse(req.body);
+    const result = await loginWithGoogle({
+      credential,
+      deviceInfo: deviceInfoFrom(req),
+      rememberMe,
+    });
     setRefreshCookie(res, result.refreshToken, result.refreshExpiresAt);
     res.json(publicResponse(result));
   } catch (err) {
@@ -106,14 +115,20 @@ authRouter.post('/google', async (req, res, next) => {
   }
 });
 
-const GoogleCodeInput = z.object({
-  code: z.string().min(10).max(2048),
-});
+const GoogleCodeInput = z
+  .object({
+    code: z.string().min(10).max(2048),
+  })
+  .merge(RememberMeFlag);
 
 authRouter.post('/google/exchange', async (req, res, next) => {
   try {
-    const { code } = GoogleCodeInput.parse(req.body);
-    const result = await loginWithGoogleCode({ code, deviceInfo: deviceInfoFrom(req) });
+    const { code, rememberMe } = GoogleCodeInput.parse(req.body);
+    const result = await loginWithGoogleCode({
+      code,
+      deviceInfo: deviceInfoFrom(req),
+      rememberMe,
+    });
     setRefreshCookie(res, result.refreshToken, result.refreshExpiresAt);
     res.json(publicResponse(result));
   } catch (err) {

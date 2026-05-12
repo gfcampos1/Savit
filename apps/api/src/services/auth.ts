@@ -35,6 +35,7 @@ export async function register(input: {
   password: string;
   name?: string;
   deviceInfo?: string;
+  rememberMe?: boolean;
 }): Promise<AuthResult> {
   const email = input.email.trim().toLowerCase();
   const existing = await prisma.user.findUnique({ where: { email } });
@@ -55,7 +56,7 @@ export async function register(input: {
 
   await ensureDefaultCategories(user.id);
 
-  return issueTokens(user, input.deviceInfo);
+  return issueTokens(user, input.deviceInfo, input.rememberMe ?? false);
 }
 
 /**
@@ -66,6 +67,7 @@ export async function register(input: {
 export async function loginWithGoogle(input: {
   credential: string;
   deviceInfo?: string;
+  rememberMe?: boolean;
 }): Promise<AuthResult> {
   let profile;
   try {
@@ -76,7 +78,7 @@ export async function loginWithGoogle(input: {
     }
     throw err;
   }
-  return loginWithGoogleProfile(profile, input.deviceInfo);
+  return loginWithGoogleProfile(profile, input.deviceInfo, input.rememberMe ?? false);
 }
 
 /**
@@ -87,6 +89,7 @@ export async function loginWithGoogle(input: {
 export async function loginWithGoogleCode(input: {
   code: string;
   deviceInfo?: string;
+  rememberMe?: boolean;
 }): Promise<AuthResult> {
   let profile;
   try {
@@ -97,12 +100,13 @@ export async function loginWithGoogleCode(input: {
     }
     throw err;
   }
-  return loginWithGoogleProfile(profile, input.deviceInfo);
+  return loginWithGoogleProfile(profile, input.deviceInfo, input.rememberMe ?? false);
 }
 
 async function loginWithGoogleProfile(
   profile: GoogleProfile,
   deviceInfo: string | undefined,
+  rememberMe: boolean,
 ): Promise<AuthResult> {
   if (!profile.emailVerified) {
     throw new HttpError(403, 'google_email_not_verified');
@@ -140,6 +144,7 @@ async function loginWithGoogleProfile(
   return issueTokens(
     { id: user.id, email: user.email, name: user.name, createdAt: user.createdAt },
     deviceInfo,
+    rememberMe,
   );
 }
 
@@ -147,6 +152,7 @@ export async function login(input: {
   email: string;
   password: string;
   deviceInfo?: string;
+  rememberMe?: boolean;
 }): Promise<AuthResult> {
   const email = input.email.trim().toLowerCase();
   const user = await prisma.user.findUnique({
@@ -165,7 +171,7 @@ export async function login(input: {
   }
 
   const { passwordHash: _drop, ...publicUser } = user;
-  return issueTokens(publicUser, input.deviceInfo);
+  return issueTokens(publicUser, input.deviceInfo, input.rememberMe ?? false);
 }
 
 export async function refresh(input: {
@@ -191,13 +197,18 @@ export async function refresh(input: {
     throw new HttpError(401, 'invalid_refresh_token');
   }
 
-  // rotação: revoga o atual, emite um novo
+  // rotação: revoga o atual, emite um novo. A flag "extended" é sticky —
+  // herdada do token revogado pra manter o TTL longo até logout/revogação.
   await prisma.refreshToken.update({
     where: { id: stored.id },
     data: { revokedAt: new Date() },
   });
 
-  return issueTokens(stored.user, input.deviceInfo ?? stored.deviceInfo ?? undefined);
+  return issueTokens(
+    stored.user,
+    input.deviceInfo ?? stored.deviceInfo ?? undefined,
+    stored.extended,
+  );
 }
 
 export async function logout(refreshToken: string | undefined): Promise<void> {
@@ -214,10 +225,12 @@ export async function logout(refreshToken: string | undefined): Promise<void> {
 async function issueTokens(
   user: { id: string; email: string; name: string | null; createdAt: Date },
   deviceInfo: string | undefined,
+  extended: boolean,
 ): Promise<AuthResult> {
   const accessToken = signAccessToken({ sub: user.id, email: user.email });
   const { plaintext, hashed } = generateRefreshToken();
-  const refreshExpiresAt = new Date(Date.now() + expiresInMs(env.JWT_REFRESH_EXPIRES_IN));
+  const ttlSpec = extended ? env.JWT_REFRESH_EXTENDED_EXPIRES_IN : env.JWT_REFRESH_EXPIRES_IN;
+  const refreshExpiresAt = new Date(Date.now() + expiresInMs(ttlSpec));
 
   await prisma.refreshToken.create({
     data: {
@@ -225,6 +238,7 @@ async function issueTokens(
       hashedToken: hashed,
       deviceInfo: deviceInfo?.slice(0, 200),
       expiresAt: refreshExpiresAt,
+      extended,
     },
   });
 

@@ -39,8 +39,10 @@ export async function registerSW(): Promise<void> {
 
   try {
     const { registerSW } = await import('virtual:pwa-register');
+    // Sem `immediate: true`: o registro aguarda window.onload, e o SW novo
+    // fica em waiting (registerType: 'prompt') até `updateNow` chamar
+    // updateSW(true) — sem reload-surpresa zerando access token em memória.
     const updateSW = registerSW({
-      immediate: true,
       onNeedRefresh() {
         emit({
           needRefresh: true,

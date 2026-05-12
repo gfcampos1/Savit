@@ -18,8 +18,10 @@ export function LoginPage() {
 
   const from = (location.state as LocationStateMaybe | null)?.from ?? '/';
 
+  const rememberDefault = useAuthStore((s) => s.rememberMe);
   const [email, setEmail] = useState('');
   const [password, setPassword] = useState('');
+  const [rememberMe, setRememberMe] = useState(rememberDefault);
   const [submitting, setSubmitting] = useState(false);
   const [error, setError] = useState<string | null>(null);
 
@@ -29,7 +31,7 @@ export function LoginPage() {
     setError(null);
     setSubmitting(true);
     try {
-      await login({ email, password });
+      await login({ email, password, rememberMe });
       navigate(from, { replace: true });
     } catch (err) {
       if (err instanceof ApiError && err.status === 401) {
@@ -65,7 +67,7 @@ export function LoginPage() {
           label="Entrar com Google"
           onCode={async (code) => {
             try {
-              await googleExchange(code);
+              await googleExchange(code, rememberMe);
               navigate(from, { replace: true });
             } catch (err) {
               setError(
@@ -111,6 +113,16 @@ export function LoginPage() {
             </a>
           }
         />
+
+        <label className="flex items-center gap-2.5 mb-6 cursor-pointer select-none">
+          <input
+            type="checkbox"
+            checked={rememberMe}
+            onChange={(e) => setRememberMe(e.target.checked)}
+            className="h-4 w-4 accent-accent cursor-pointer"
+          />
+          <span className="text-sm text-ink-2">Mantenha-me conectado</span>
+        </label>
 
         {error ? (
           <p className="text-sm text-danger mb-4" role="alert">
